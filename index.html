@@ -27,14 +27,33 @@
 
     <main>
         <section class="converter-section">
-            <div class="converter-box">
+            <div class="converter-box" id="mainMenu">
                 <div class="function-card">
-                    <button id="fileConverterBtn" class="menu-btn">File Converter</button>
-                    
-                    <div id="fileConverterContent" class="file-converter-content">
-                        <input type="file" id="fileInput" multiple>
-                        <div id="fileList"></div>
-                    </div>
+                    <button class="menu-btn" onclick="showSection('fileConverter')">File Converter</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('unitConverter')">Unit Converter</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('linkConverter')">Link Converter</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('currencyConverter')">Currency Converter</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('mediaConverter')">Media Converter</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('audioConverter')">Audio Converter</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('photoEditor')">Photoshop</button>
                 </div>
                 
                 <div class="function-card">
@@ -49,6 +68,212 @@
                     <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucFont/'">Draw Font</button>
                 </div>
             </div>
+        </section>
+        
+        <section id="fileConverter" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>File Converter</h2>
+            <div class="converter-options">
+                <button class="converter-btn" onclick="showConverter('pdfConverter')">PDF Converter</button>
+                <button class="converter-btn" onclick="showConverter('imageConverter')">Image Converter</button>
+                <button class="converter-btn" onclick="showConverter('videoConverter')">Video Converter</button>
+                <button class="converter-btn" onclick="showConverter('documentConverter')">Document Converter</button>
+                <button class="converter-btn" onclick="showConverter('codeConverter')">Code Converter</button>
+                <button class="converter-btn" onclick="showConverter('fontConverter')">Font Converter</button>
+            </div>
+            
+            <div id="pdfConverter" class="converter-content">
+                <h3>PDF Converter</h3>
+                <input type="file" accept=".pdf">
+                <select>
+                    <option value="word">To Word</option>
+                    <option value="excel">To Excel</option>
+                    <option value="jpg">To JPG</option>
+                    <option value="html">To HTML</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="imageConverter" class="converter-content">
+                <h3>Image Converter</h3>
+                <input type="file" accept="image/*">
+                <select>
+                    <option value="png">PNG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="webp">WebP</option>
+                    <option value="svg">SVG</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="videoConverter" class="converter-content">
+                <h3>Video Converter</h3>
+                <input type="file" accept="video/*">
+                <select>
+                    <option value="mp4">MP4</option>
+                    <option value="avi">AVI</option>
+                    <option value="mov">MOV</option>
+                    <option value="gif">GIF</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="documentConverter" class="converter-content">
+                <h3>Document Converter</h3>
+                <input type="file">
+                <select>
+                    <option value="doc">DOC</option>
+                    <option value="txt">TXT</option>
+                    <option value="html">HTML</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="codeConverter" class="converter-content">
+                <h3>Code Converter</h3>
+                <textarea placeholder="Paste your code here"></textarea>
+                <select>
+                    <option value="json">JSON</option>
+                    <option value="xml">XML</option>
+                    <option value="yaml">YAML</option>
+                    <option value="csv">CSV</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="fontConverter" class="converter-content">
+                <h3>Font Converter</h3>
+                <input type="file" accept=".ttf,.otf,.woff,.woff2">
+                <select>
+                    <option value="ttf">TTF</option>
+                    <option value="otf">OTF</option>
+                    <option value="woff">WOFF</option>
+                    <option value="woff2">WOFF2</option>
+                </select>
+                <button>Convert</button>
+            </div>
+        </section>
+        
+        <section id="unitConverter" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Unit Converter</h2>
+            <div class="converter-options">
+                <button class="converter-btn" onclick="showConverter('colorConverter')">Color Converter</button>
+                <button class="converter-btn" onclick="showConverter('timeConverter')">Time Converter</button>
+                <button class="converter-btn" onclick="showConverter('weightConverter')">Weight Converter</button>
+                <button class="converter-btn" onclick="showConverter('temperatureConverter')">Temperature Converter</button>
+            </div>
+            
+            <div id="colorConverter" class="converter-content">
+                <h3>Color Converter</h3>
+                <input type="color" id="colorPicker">
+                <input type="text" id="hexInput" placeholder="HEX">
+                <input type="text" id="rgbInput" placeholder="RGB">
+                <input type="text" id="hslInput" placeholder="HSL">
+            </div>
+            
+            <div id="timeConverter" class="converter-content">
+                <h3>Time Converter</h3>
+                <select id="timezoneFrom">
+                    <option value="UTC">UTC</option>
+                    <option value="EST">EST</option>
+                    <option value="PST">PST</option>
+                </select>
+                <select id="timezoneTo">
+                    <option value="UTC">UTC</option>
+                    <option value="EST">EST</option>
+                    <option value="PST">PST</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="weightConverter" class="converter-content">
+                <h3>Weight Converter</h3>
+                <input type="number" placeholder="Enter value">
+                <select>
+                    <option value="kg">Kilograms</option>
+                    <option value="lbs">Pounds</option>
+                    <option value="oz">Ounces</option>
+                </select>
+                <button>Convert</button>
+            </div>
+            
+            <div id="temperatureConverter" class="converter-content">
+                <h3>Temperature Converter</h3>
+                <input type="number" placeholder="Enter value">
+                <select>
+                    <option value="celsius">Celsius</option>
+                    <option value="fahrenheit">Fahrenheit</option>
+                    <option value="kelvin">Kelvin</option>
+                </select>
+                <button>Convert</button>
+            </div>
+        </section>
+        
+        <section id="linkConverter" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Link Converter</h2>
+            <div class="converter-options">
+                <button class="converter-btn" onclick="showConverter('urlConverter')">URL Encoder/Decoder</button>
+                <button class="converter-btn" onclick="showConverter('qrConverter')">QR Code Generator</button>
+            </div>
+            
+            <div id="urlConverter" class="converter-content">
+                <h3>URL Encoder/Decoder</h3>
+                <textarea placeholder="Enter URL or text"></textarea>
+                <div>
+                    <button onclick="encodeURL()">Encode</button>
+                    <button onclick="decodeURL()">Decode</button>
+                </div>
+                <textarea id="urlResult" readonly></textarea>
+            </div>
+            
+            <div id="qrConverter" class="converter-content">
+                <h3>QR Code Generator</h3>
+                <input type="text" placeholder="Enter text or URL">
+                <button>Generate QR</button>
+                <div id="qrCode"></div>
+            </div>
+        </section>
+        
+        <section id="currencyConverter" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Currency Converter</h2>
+            <input type="number" placeholder="Amount">
+            <select>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="RUB">RUB</option>
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+            </select>
+            <select>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="RUB">RUB</option>
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+            </select>
+            <button>Convert</button>
+        </section>
+        
+        <section id="mediaConverter" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Media Converter</h2>
+            <p>Coming soon</p>
+        </section>
+        
+        <section id="audioConverter" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Audio Converter</h2>
+            <p>Coming soon</p>
+        </section>
+        
+        <section id="photoEditor" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Photoshop</h2>
+            <p>Coming soon</p>
         </section>
     </main>
 
@@ -78,8 +303,14 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
-    <script src="support.js"></script>
-    <script src="file-converter.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/support.js"></script>
+    <script src="js/file-converter.js"></script>
+    <script src="js/currency-converter.js"></script>
+    <script src="js/media-converter.js"></script>
+    <script src="js/audio-converter.js"></script>
+    <script src="js/unit-converter.js"></script>
+    <script src="js/photo-editor.js"></script>
+    <script src="js/link-converter.js"></script>
 </body>
 </html>

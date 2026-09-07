@@ -219,3 +219,82 @@ main {
 .copy-btn:hover {
     filter: brightness(1.1);
 }
+
+.tool-section {
+    display: none;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.tool-section h2 {
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+.back-btn {
+    background: var(--border);
+    color: var(--text);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.back-btn:hover {
+    background: var(--hover);
+}
+
+.converter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.converter-btn {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.converter-btn:hover {
+    filter: brightness(1.1);
+}
+
+.converter-content {
+    display: none;
+    margin-top: 1rem;
+}
+
+.converter-content.active {
+    display: block;
+}
+
+.converter-content input,
+.converter-content select,
+.converter-content textarea {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+}
+
+.converter-content button {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
