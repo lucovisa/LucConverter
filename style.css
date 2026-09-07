@@ -34,11 +34,17 @@ header {
     border-bottom: 1px solid var(--border);
 }
 
-.logo span {
+.logo a {
     font-size: 1.8rem;
     font-weight: bold;
     color: var(--text);
     letter-spacing: 1px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.logo a:hover {
+    color: var(--accent);
 }
 
 .header-actions {
@@ -50,7 +56,7 @@ header {
     padding: 0.6rem 1.2rem;
     border: none;
     border-radius: 4px;
-    background: linear-gradient(to right, #d32f2f, #b71c1c);
+    background: var(--button-bg);
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -65,37 +71,46 @@ header {
 }
 
 main {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 3rem 2rem;
 }
 
 .converter-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.function-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.function-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .menu-btn {
     background: var(--button-bg);
     color: var(--button-text);
     border: none;
-    padding: 1rem 2rem;
+    padding: 1rem;
     border-radius: 4px;
-    font-size: 1.1rem;
+    font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
     width: 100%;
+    min-height: 80px;
 }
 
 .menu-btn:hover {
     filter: brightness(1.1);
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    transform: translateY(-2px);
 }
 
 .file-converter-content {
@@ -109,17 +124,19 @@ main {
 
 #fileInput {
     width: 100%;
-    padding: 1rem;
+    padding: 0.8rem;
     border: 2px dashed var(--border);
     border-radius: 4px;
     cursor: pointer;
     background: var(--bg);
     color: var(--text);
+    font-size: 0.9rem;
 }
 
 #fileList {
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     text-align: left;
+    font-size: 0.9rem;
 }
 
 .donate-panel {

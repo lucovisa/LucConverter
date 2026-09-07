@@ -5,11 +5,6 @@ const fileList = document.getElementById('fileList');
 
 fileConverterBtn.addEventListener('click', function() {
     fileConverterContent.classList.toggle('active');
-    if (fileConverterContent.classList.contains('active')) {
-        fileConverterBtn.textContent = '✕ Close File Converter';
-    } else {
-        fileConverterBtn.textContent = '📁 File Converter';
-    }
 });
 
 fileInput.addEventListener('change', function() {

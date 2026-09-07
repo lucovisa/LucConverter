@@ -18,7 +18,7 @@
 <body>
     <header>
         <div class="logo">
-            <span>LucConverter</span>
+            <a href="https://github.com/lucovisa" target="_blank">LucConverter</a>
         </div>
         <div class="header-actions">
             <button id="donateBtn" class="donate-btn">❤️ Donate</button>
@@ -28,16 +28,26 @@
     <main>
         <section class="converter-section">
             <div class="converter-box">
-                <button id="fileConverterBtn" class="menu-btn">File Converter</button>
-                
-                <div id="fileConverterContent" class="file-converter-content">
-                    <input type="file" id="fileInput" multiple>
-                    <div id="fileList"></div>
+                <div class="function-card">
+                    <button id="fileConverterBtn" class="menu-btn">File Converter</button>
+                    
+                    <div id="fileConverterContent" class="file-converter-content">
+                        <input type="file" id="fileInput" multiple>
+                        <div id="fileList"></div>
+                    </div>
                 </div>
                 
-                <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/SQL-in-image/'">Embed Text in Image</button>
-                <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucCursor/'">Draw Cursor</button>
-                <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucFont/'">Draw Font</button>
+                <div class="function-card">
+                    <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/SQL-in-image/'">Embed Text in Image</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucCursor/'">Draw Cursor</button>
+                </div>
+                
+                <div class="function-card">
+                    <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucFont/'">Draw Font</button>
+                </div>
             </div>
         </section>
     </main>
