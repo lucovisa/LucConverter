@@ -21,49 +21,49 @@
             <span>LucConverter</span>
         </div>
         <div class="header-actions">
-            <button id="themeToggle" class="theme-btn">🌙</button>
             <button id="donateBtn" class="donate-btn">❤️ Donate</button>
         </div>
     </header>
 
     <main>
         <section class="converter-section">
-            <h1>Free Anonymous Converter</h1>
-            <p>Convert files and currencies securely and anonymously</p>
-            
             <div class="converter-box">
-                <button id="fileConverterBtn" class="file-converter-btn">📁 File Converter</button>
+                <button id="fileConverterBtn" class="menu-btn">File Converter</button>
                 
                 <div id="fileConverterContent" class="file-converter-content">
                     <input type="file" id="fileInput" multiple>
                     <div id="fileList"></div>
                 </div>
+                
+                <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/SQL-in-image/'">Embed Text in Image</button>
+                <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucCursor/'">Draw Cursor</button>
+                <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/LucFont/'">Draw Font</button>
             </div>
         </section>
     </main>
 
-    <div id="donateModal" class="modal">
-        <div class="modal-content">
-            <button id="closeDonate" class="close-btn">✕</button>
+    <div id="donatePanel" class="donate-panel">
+        <div class="donate-header">
             <h2>Support LucConverter</h2>
-            <p>Your donation helps us keep the converter free and anonymous</p>
-            
-            <div class="crypto-addresses">
-                <div class="crypto-item">
-                    <div class="crypto-label">ETH/USDT (ERC-20)</div>
-                    <div class="crypto-address">0xFa78966938743C9168abFC2acD6D7751d7dA35Cf</div>
-                    <button class="copy-btn" data-address="0xFa78966938743C9168abFC2acD6D7751d7dA35Cf">Copy</button>
-                </div>
-                <div class="crypto-item">
-                    <div class="crypto-label">BTC (Bitcoin mainnet)</div>
-                    <div class="crypto-address">bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp</div>
-                    <button class="copy-btn" data-address="bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp">Copy</button>
-                </div>
-                <div class="crypto-item">
-                    <div class="crypto-label">TON/USDT (The Open Network)</div>
-                    <div class="crypto-address">UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF</div>
-                    <button class="copy-btn" data-address="UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF">Copy</button>
-                </div>
+            <button id="closeDonate" class="close-btn">✕</button>
+        </div>
+        <p>Your donation helps us keep the converter free and anonymous</p>
+        
+        <div class="crypto-addresses">
+            <div class="crypto-item">
+                <div class="crypto-label">ETH/USDT (ERC-20)</div>
+                <div class="crypto-address">0xFa78966938743C9168abFC2acD6D7751d7dA35Cf</div>
+                <button class="copy-btn" data-address="0xFa78966938743C9168abFC2acD6D7751d7dA35Cf">Copy</button>
+            </div>
+            <div class="crypto-item">
+                <div class="crypto-label">BTC (Bitcoin mainnet)</div>
+                <div class="crypto-address">bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp</div>
+                <button class="copy-btn" data-address="bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp">Copy</button>
+            </div>
+            <div class="crypto-item">
+                <div class="crypto-label">TON/USDT (The Open Network)</div>
+                <div class="crypto-address">UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF</div>
+                <button class="copy-btn" data-address="UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF">Copy</button>
             </div>
         </div>
     </div>

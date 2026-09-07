@@ -10,24 +10,10 @@
     --header-bg: #171a21;
     --border: #2a475e;
     --accent: #66c0f4;
-    --modal-bg: #16202d;
+    --panel-bg: #16202d;
     --card-bg: #1b2838;
     --shadow: rgba(0,0,0,0.5);
     --hover: #2a475e;
-    --button-bg: linear-gradient(to right, #47bfff, #1a44c2);
-    --button-text: #ffffff;
-}
-
-[data-theme="dark"] {
-    --bg: #0a0a0a;
-    --text: #c7d5e0;
-    --header-bg: #0f0f0f;
-    --border: #1a1a1a;
-    --accent: #66c0f4;
-    --modal-bg: #1a1a1a;
-    --card-bg: #0f0f0f;
-    --shadow: rgba(0,0,0,0.7);
-    --hover: #1a1a1a;
     --button-bg: linear-gradient(to right, #47bfff, #1a44c2);
     --button-text: #ffffff;
 }
@@ -36,7 +22,6 @@ body {
     font-family: "Motiva Sans", Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
-    transition: all 0.3s ease;
     min-height: 100vh;
 }
 
@@ -47,12 +32,6 @@ header {
     padding: 1rem 2rem;
     background: var(--header-bg);
     border-bottom: 1px solid var(--border);
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .logo span {
@@ -67,50 +46,28 @@ header {
     gap: 1rem;
 }
 
-.theme-btn, .donate-btn {
+.donate-btn {
     padding: 0.6rem 1.2rem;
     border: none;
     border-radius: 4px;
-    background: var(--button-bg);
-    color: var(--button-text);
+    background: linear-gradient(to right, #d32f2f, #b71c1c);
+    color: white;
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 0.95rem;
     font-weight: 500;
 }
 
-.donate-btn {
-    background: linear-gradient(to right, #d32f2f, #b71c1c);
-}
-
-.theme-btn:hover, .donate-btn:hover {
+.donate-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     filter: brightness(1.1);
 }
 
 main {
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
     padding: 3rem 2rem;
-}
-
-.converter-section {
-    text-align: center;
-}
-
-.converter-section h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    color: var(--text);
-    font-weight: 300;
-}
-
-.converter-section p {
-    font-size: 1.1rem;
-    color: var(--text);
-    opacity: 0.7;
-    margin-bottom: 2rem;
 }
 
 .converter-box {
@@ -118,11 +75,12 @@ main {
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 2rem;
-    max-width: 600px;
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
-.file-converter-btn {
+.menu-btn {
     background: var(--button-bg);
     color: var(--button-text);
     border: none;
@@ -134,14 +92,15 @@ main {
     width: 100%;
 }
 
-.file-converter-btn:hover {
+.menu-btn:hover {
     filter: brightness(1.1);
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
 }
 
 .file-converter-content {
     display: none;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
 }
 
 .file-converter-content.active {
@@ -163,49 +122,37 @@ main {
     text-align: left;
 }
 
-.modal {
-    display: none;
+.donate-panel {
     position: fixed;
+    right: -600px;
     top: 0;
-    left: 0;
-    width: 100%;
+    width: 500px;
     height: 100%;
-    background: rgba(0,0,0,0.7);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal.active {
-    display: flex;
-}
-
-.modal-content {
-    background: var(--modal-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--border);
     padding: 2rem;
-    max-width: 600px;
-    width: 90%;
-    position: relative;
-    animation: slideIn 0.3s ease;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
 }
 
-@keyframes slideIn {
-    from {
-        transform: translateY(-50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+.donate-panel.active {
+    right: 0;
+}
+
+.donate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.donate-header h2 {
+    color: var(--text);
+    font-size: 1.5rem;
 }
 
 .close-btn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -213,8 +160,10 @@ main {
     color: var(--text);
 }
 
-.crypto-addresses {
-    margin-top: 1.5rem;
+.donate-panel p {
+    color: var(--text);
+    opacity: 0.8;
+    margin-bottom: 1.5rem;
 }
 
 .crypto-item {
