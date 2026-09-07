@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LucConverter - Free Anonymous File and Currency Converter</title>
+    <meta name="description" content="Free anonymous file and currency converter">
+    <meta name="keywords" content="github, lucovisa, converter, convert, files, currency, crypto, anonymous, free, online, tool, luc, luc converter, file converter, currency converter, crypto converter">
+    <meta property="og:title" content="LucConverter - Free Anonymous File and Currency Converter">
+    <meta property="og:description" content="Free anonymous file and currency converter">
+    <meta property="og:image" content="og-image-1200x630.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="icon-512.png" alt="LucConverter Logo">
+            <span>LucConverter</span>
+        </div>
+        <div class="header-actions">
+            <button id="themeToggle" class="theme-btn">🌙</button>
+            <button id="donateBtn" class="donate-btn">❤️ Donate</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="converter-section">
+            <h1>Free Anonymous Converter</h1>
+            <p>Convert files and currencies securely and anonymously</p>
+            
+            <div class="converter-box">
+                <div class="file-converter">
+                    <h2>File Converter</h2>
+                    <input type="file" id="fileInput" multiple>
+                    <div id="fileList"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="donateModal" class="modal">
+        <div class="modal-content">
+            <button id="closeDonate" class="close-btn">✕</button>
+            <h2>Support LucConverter</h2>
+            <p>Your donation helps us keep the converter free and anonymous</p>
+            
+            <div class="crypto-addresses">
+                <div class="crypto-item">
+                    <span>ETH/USDT (ERC-20)</span>
+                    <button class="copy-btn" data-address="0xFa78966938743C9168abFC2acD6D7751d7dA35Cf">Copy</button>
+                </div>
+                <div class="crypto-item">
+                    <span>BTC (Bitcoin mainnet)</span>
+                    <button class="copy-btn" data-address="bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp">Copy</button>
+                </div>
+                <div class="crypto-item">
+                    <span>TON/USDT (The Open Network)</span>
+                    <button class="copy-btn" data-address="UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="support.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
