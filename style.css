@@ -5,29 +5,35 @@
 }
 
 :root {
-    --bg: #ffffff;
-    --text: #1a1a1a;
-    --header-bg: #f8f9fa;
-    --border: #e0e0e0;
-    --accent: #7c3aed;
-    --modal-bg: #ffffff;
-    --card-bg: #f8f9fa;
-    --shadow: rgba(0,0,0,0.1);
+    --bg: #1b2838;
+    --text: #c7d5e0;
+    --header-bg: #171a21;
+    --border: #2a475e;
+    --accent: #66c0f4;
+    --modal-bg: #16202d;
+    --card-bg: #1b2838;
+    --shadow: rgba(0,0,0,0.5);
+    --hover: #2a475e;
+    --button-bg: linear-gradient(to right, #47bfff, #1a44c2);
+    --button-text: #ffffff;
 }
 
 [data-theme="dark"] {
-    --bg: #1a1a1a;
-    --text: #f0f0f0;
-    --header-bg: #2d2d2d;
-    --border: #444;
-    --accent: #a78bfa;
-    --modal-bg: #2d2d2d;
-    --card-bg: #333;
-    --shadow: rgba(255,255,255,0.1);
+    --bg: #0a0a0a;
+    --text: #c7d5e0;
+    --header-bg: #0f0f0f;
+    --border: #1a1a1a;
+    --accent: #66c0f4;
+    --modal-bg: #1a1a1a;
+    --card-bg: #0f0f0f;
+    --shadow: rgba(0,0,0,0.7);
+    --hover: #1a1a1a;
+    --button-bg: linear-gradient(to right, #47bfff, #1a44c2);
+    --button-text: #ffffff;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: "Motiva Sans", Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     transition: all 0.3s ease;
@@ -49,15 +55,11 @@ header {
     gap: 0.5rem;
 }
 
-.logo img {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-}
-
 .logo span {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
+    color: var(--text);
+    letter-spacing: 1px;
 }
 
 .header-actions {
@@ -66,25 +68,25 @@ header {
 }
 
 .theme-btn, .donate-btn {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--card-bg);
-    color: var(--text);
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    background: var(--button-bg);
+    color: var(--button-text);
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
 .donate-btn {
-    background: var(--accent);
-    color: white;
-    border: none;
+    background: linear-gradient(to right, #d32f2f, #b71c1c);
 }
 
 .theme-btn:hover, .donate-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--shadow);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    filter: brightness(1.1);
 }
 
 main {
@@ -100,34 +102,57 @@ main {
 .converter-section h1 {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
+    color: var(--text);
+    font-weight: 300;
 }
 
 .converter-section p {
     font-size: 1.1rem;
     color: var(--text);
-    opacity: 0.8;
+    opacity: 0.7;
     margin-bottom: 2rem;
 }
 
 .converter-box {
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
     padding: 2rem;
     max-width: 600px;
     margin: 0 auto;
 }
 
-.file-converter h2 {
-    margin-bottom: 1rem;
-    font-size: 1.3rem;
+.file-converter-btn {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.file-converter-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.file-converter-content {
+    display: none;
+    margin-top: 1rem;
+}
+
+.file-converter-content.active {
+    display: block;
 }
 
 #fileInput {
     width: 100%;
     padding: 1rem;
     border: 2px dashed var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
     background: var(--bg);
     color: var(--text);
@@ -145,7 +170,7 @@ main {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.7);
     z-index: 1000;
     align-items: center;
     justify-content: center;
@@ -158,9 +183,9 @@ main {
 .modal-content {
     background: var(--modal-bg);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
     padding: 2rem;
-    max-width: 500px;
+    max-width: 600px;
     width: 90%;
     position: relative;
     animation: slideIn 0.3s ease;
@@ -193,20 +218,32 @@ main {
 }
 
 .crypto-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    margin-bottom: 1rem;
     padding: 0.8rem;
-    margin-bottom: 0.5rem;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
+}
+
+.crypto-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+}
+
+.crypto-address {
+    font-size: 0.85rem;
+    word-break: break-all;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    opacity: 0.9;
 }
 
 .copy-btn {
-    padding: 0.3rem 0.8rem;
-    background: var(--accent);
-    color: white;
+    padding: 0.4rem 1rem;
+    background: var(--button-bg);
+    color: var(--button-text);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -214,5 +251,5 @@ main {
 }
 
 .copy-btn:hover {
-    opacity: 0.9;
+    filter: brightness(1.1);
 }

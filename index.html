@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LucConverter - Free Anonymous File and Currency Converter</title>
+    <title>LucConverter</title>
     <meta name="description" content="Free anonymous file and currency converter">
-    <meta name="keywords" content="github, lucovisa, converter, convert, files, currency, crypto, anonymous, free, online, tool, luc, luc converter, file converter, currency converter, crypto converter">
-    <meta property="og:title" content="LucConverter - Free Anonymous File and Currency Converter">
+    <meta name="keywords" content="github, lucovisa, converter, convert, files, currency, crypto, anonymous, free, online, tool, luc, luc converter, file converter, currency converter, crypto converter, bitcoin, ethereum, ton, usdt, exchange, file conversion, лук, луковица, лук конвертер, конвертер, конвертер файлов, конвертер валют, криптовалюта, анонимный, бесплатный, онлайн, файлы, валюта, биткоин, эфириум, тон, обмен">
+    <meta property="og:title" content="LucConverter">
     <meta property="og:description" content="Free anonymous file and currency converter">
     <meta property="og:image" content="og-image-1200x630.png">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lucovisa.github.io/LucConverter/">
     <link rel="icon" type="image/png" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="stylesheet" href="style.css">
@@ -17,7 +18,6 @@
 <body>
     <header>
         <div class="logo">
-            <img src="icon-512.png" alt="LucConverter Logo">
             <span>LucConverter</span>
         </div>
         <div class="header-actions">
@@ -32,8 +32,9 @@
             <p>Convert files and currencies securely and anonymously</p>
             
             <div class="converter-box">
-                <div class="file-converter">
-                    <h2>File Converter</h2>
+                <button id="fileConverterBtn" class="file-converter-btn">📁 File Converter</button>
+                
+                <div id="fileConverterContent" class="file-converter-content">
                     <input type="file" id="fileInput" multiple>
                     <div id="fileList"></div>
                 </div>
@@ -49,15 +50,18 @@
             
             <div class="crypto-addresses">
                 <div class="crypto-item">
-                    <span>ETH/USDT (ERC-20)</span>
+                    <div class="crypto-label">ETH/USDT (ERC-20)</div>
+                    <div class="crypto-address">0xFa78966938743C9168abFC2acD6D7751d7dA35Cf</div>
                     <button class="copy-btn" data-address="0xFa78966938743C9168abFC2acD6D7751d7dA35Cf">Copy</button>
                 </div>
                 <div class="crypto-item">
-                    <span>BTC (Bitcoin mainnet)</span>
+                    <div class="crypto-label">BTC (Bitcoin mainnet)</div>
+                    <div class="crypto-address">bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp</div>
                     <button class="copy-btn" data-address="bc1q60tvcsw4guyhxa5e3n47eqmj0s3lpxzkxldpvp">Copy</button>
                 </div>
                 <div class="crypto-item">
-                    <span>TON/USDT (The Open Network)</span>
+                    <div class="crypto-label">TON/USDT (The Open Network)</div>
+                    <div class="crypto-address">UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF</div>
                     <button class="copy-btn" data-address="UQDsZ_8MkBtjjp-pVa5Fefdg1jtJApOZ7oeFF3WBlLnwQcHF">Copy</button>
                 </div>
             </div>
@@ -66,6 +70,6 @@
 
     <script src="script.js"></script>
     <script src="support.js"></script>
-    <script src="main.js"></script>
+    <script src="file-converter.js"></script>
 </body>
 </html>
