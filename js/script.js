@@ -122,3 +122,17 @@ function initLiveClock() {
     setInterval(updateClock, 1000);
 }
 document.addEventListener('DOMContentLoaded', initLiveClock);
+
+function initLiveClock() {
+    const clockElement = document.getElementById('liveClock');
+    if (!clockElement) return;
+    function updateClock() {
+        const now = new Date();
+        clockElement.textContent = now.toLocaleTimeString();
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+    clockElement.addEventListener('click', function() {
+        window.location.href = 'https://lucovisa.github.io/LucConverter/';
+    });
+}
