@@ -47,21 +47,48 @@ function initMediaShop() {
     let processedBlobs = [];
     let audioContext = null;
 
+    function isAllowedFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const allowedExt = ['glb', 'gltf', 'obj'];
+        return file.type.startsWith('audio') || file.type.startsWith('video') || allowedExt.includes(ext);
+    }
+
     function processFiles(files) {
-        mediaFiles = files;
+        const validFiles = files.filter(isAllowedFile);
+        const invalidFiles = files.filter(f => !isAllowedFile(f));
+
+        if (invalidFiles.length > 0) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = `Skipped ${invalidFiles.length} unsupported file(s). Only audio, video, GLB, GLTF and OBJ are allowed.`;
+            editorContainer.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        if (validFiles.length === 0) {
+            editorContainer.style.display = 'block';
+            editorContainer.innerHTML = '';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = 'No supported files. Please upload audio, video, GLB, GLTF or OBJ files.';
+            editorContainer.appendChild(errorDiv);
+            return;
+        }
+
+        mediaFiles = validFiles;
         processedBlobs = [];
         editorContainer.style.display = 'block';
         editorContainer.innerHTML = '';
 
         const title = document.createElement('h3');
-        title.textContent = `Loaded ${files.length} file(s)`;
+        title.textContent = `Loaded ${validFiles.length} file(s)`;
         title.style.color = 'var(--accent)';
         title.style.marginBottom = '1rem';
         editorContainer.appendChild(title);
 
         const fileListContainer = document.createElement('div');
         fileListContainer.style.marginBottom = '1rem';
-        files.forEach((file, index) => {
+        validFiles.forEach((file, index) => {
             const fileItem = document.createElement('div');
             fileItem.style.padding = '0.5rem';
             fileItem.style.border = '1px solid var(--border)';
@@ -90,7 +117,7 @@ function initMediaShop() {
 
         editorContainer.appendChild(fileListContainer);
 
-        const has3D = files.some(f => {
+        const has3D = validFiles.some(f => {
             const ext = f.name.split('.').pop().toLowerCase();
             return ['glb', 'gltf', 'obj'].includes(ext);
         });
@@ -276,7 +303,7 @@ function initMediaShop() {
 
             init3DViewer(
                 viewerContainer,
-                files.find(f => ['glb', 'gltf', 'obj'].includes(f.name.split('.').pop().toLowerCase())),
+                validFiles.find(f => ['glb', 'gltf', 'obj'].includes(f.name.split('.').pop().toLowerCase())),
                 viewerInfo,
                 autoRotateBtn,
                 bgColorBtn,
@@ -295,7 +322,7 @@ function initMediaShop() {
             );
         }
 
-        const hasMedia = files.some(f => f.type.startsWith('audio') || f.type.startsWith('video'));
+        const hasMedia = validFiles.some(f => f.type.startsWith('audio') || f.type.startsWith('video'));
         if (hasMedia) {
             const controlsContainer = document.createElement('div');
             controlsContainer.style.padding = '1rem';
@@ -320,8 +347,8 @@ function initMediaShop() {
             formatSelect.style.border = '1px solid var(--border)';
             formatSelect.style.borderRadius = '4px';
             formatSelect.style.color = 'var(--text)';
-            const isVideo = files.some(f => f.type.startsWith('video'));
-            const isAudio = files.some(f => f.type.startsWith('audio'));
+            const isVideo = validFiles.some(f => f.type.startsWith('video'));
+            const isAudio = validFiles.some(f => f.type.startsWith('audio'));
             if (isVideo && !isAudio) {
                 ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
             } else if (isAudio && !isVideo) {
@@ -646,6 +673,10 @@ function initMediaShop() {
                     hideUI();
                     hideUIBtn.textContent = 'Show UI';
                 }
+            }
+            if (e.key === 'Escape' && uiHidden) {
+                showUI();
+                hideUIBtn.textContent = 'Hide UI';
             }
         });
 
