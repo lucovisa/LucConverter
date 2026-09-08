@@ -614,31 +614,61 @@ function initMediaShop() {
         });
 
         edgesBtn.addEventListener('click', () => {
-            if (currentModel && !currentModel.userData.edgesHelper) {
-                const edges = new THREE.EdgesGeometry(currentModel.geometry || new THREE.BufferGeometry());
-                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
-                currentModel.add(line);
-                currentModel.userData.edgesHelper = line;
-                edgesBtn.textContent = 'Edges: On';
-            } else if (currentModel && currentModel.userData.edgesHelper) {
-                currentModel.remove(currentModel.userData.edgesHelper);
-                currentModel.userData.edgesHelper = null;
-                edgesBtn.textContent = 'Edges';
+    if (currentModel) {
+        const existingEdges = [];
+        currentModel.traverse((child) => {
+            if (child.userData && child.userData.edgesHelper) {
+                existingEdges.push(child);
             }
         });
+        
+        if (existingEdges.length > 0) {
+            existingEdges.forEach(child => {
+                child.remove(child.userData.edgesHelper);
+                child.userData.edgesHelper = null;
+            });
+            edgesBtn.textContent = 'Edges';
+        } else {
+            currentModel.traverse((child) => {
+                if (child.isMesh && child.geometry) {
+                    const edges = new THREE.EdgesGeometry(child.geometry);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
+                    child.add(line);
+                    child.userData.edgesHelper = line;
+                }
+            });
+            edgesBtn.textContent = 'Edges: On';
+        }
+    }
+});
 
-        verticesBtn.addEventListener('click', () => {
-            if (currentModel && !currentModel.userData.pointsHelper) {
-                const points = new THREE.Points(currentModel.geometry || new THREE.BufferGeometry(), new THREE.PointsMaterial({ color: 0xff0000, size: 0.05 }));
-                currentModel.add(points);
-                currentModel.userData.pointsHelper = points;
-                verticesBtn.textContent = 'Vertices: On';
-            } else if (currentModel && currentModel.userData.pointsHelper) {
-                currentModel.remove(currentModel.userData.pointsHelper);
-                currentModel.userData.pointsHelper = null;
-                verticesBtn.textContent = 'Vertices';
+verticesBtn.addEventListener('click', () => {
+    if (currentModel) {
+        const existingPoints = [];
+        currentModel.traverse((child) => {
+            if (child.userData && child.userData.pointsHelper) {
+                existingPoints.push(child);
             }
         });
+        
+        if (existingPoints.length > 0) {
+            existingPoints.forEach(child => {
+                child.remove(child.userData.pointsHelper);
+                child.userData.pointsHelper = null;
+            });
+            verticesBtn.textContent = 'Vertices';
+        } else {
+            currentModel.traverse((child) => {
+                if (child.isMesh && child.geometry) {
+                    const points = new THREE.Points(child.geometry, new THREE.PointsMaterial({ color: 0xff0000, size: 0.03 }));
+                    child.add(points);
+                    child.userData.pointsHelper = points;
+                }
+            });
+            verticesBtn.textContent = 'Vertices: On';
+        }
+    }
+});
 
         materialBtn.addEventListener('click', () => {
             if (!currentModel) return;
