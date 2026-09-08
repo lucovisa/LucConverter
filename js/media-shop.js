@@ -100,7 +100,7 @@ function initMediaShop() {
             viewerContainer.style.width = '100%';
             viewerContainer.style.height = '500px';
             viewerContainer.style.position = 'relative';
-            viewerContainer.style.background = '#0a0a0a';
+            viewerContainer.style.background = '#000000';
             viewerContainer.style.borderRadius = '4px';
             viewerContainer.style.marginBottom = '1rem';
             viewerContainer.style.overflow = 'hidden';
@@ -118,7 +118,7 @@ function initMediaShop() {
             viewerContainer.appendChild(viewerInfo);
 
             const controlsInfo = document.createElement('div');
-            controlsInfo.textContent = 'Mouse: rotate | Wheel: zoom | Right click: pan';
+            controlsInfo.textContent = 'Mouse: rotate | Wheel: zoom | Right click: pan | F11: fullscreen';
             controlsInfo.style.position = 'absolute';
             controlsInfo.style.bottom = '10px';
             controlsInfo.style.left = '50%';
@@ -241,6 +241,17 @@ function initMediaShop() {
             lightBtn.style.fontSize = '0.75rem';
             toolbar.appendChild(lightBtn);
 
+            const hideUIBtn = document.createElement('button');
+            hideUIBtn.textContent = 'Hide UI';
+            hideUIBtn.style.padding = '0.4rem 0.6rem';
+            hideUIBtn.style.background = 'rgba(0,0,0,0.7)';
+            hideUIBtn.style.color = 'white';
+            hideUIBtn.style.border = '1px solid #444';
+            hideUIBtn.style.borderRadius = '4px';
+            hideUIBtn.style.cursor = 'pointer';
+            hideUIBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(hideUIBtn);
+
             const screenshotBtn = document.createElement('button');
             screenshotBtn.textContent = 'Screenshot';
             screenshotBtn.style.padding = '0.4rem 0.6rem';
@@ -277,7 +288,10 @@ function initMediaShop() {
                 resetCameraBtn,
                 screenshotBtn,
                 lightBtn,
-                closeBtn
+                closeBtn,
+                hideUIBtn,
+                controlsInfo,
+                toolbar
             );
         }
 
@@ -535,7 +549,7 @@ function initMediaShop() {
         }
     }
 
-    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn, lightBtn, closeBtn) {
+    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn, lightBtn, closeBtn, hideUIBtn, controlsInfo, toolbar) {
         if (!file || typeof THREE === 'undefined') {
             infoEl.textContent = '3D library not loaded';
             return;
@@ -545,7 +559,7 @@ function initMediaShop() {
         const height = container.clientHeight || 500;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a1a);
+        scene.background = new THREE.Color(0x000000);
 
         const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
         camera.position.set(3, 2, 5);
@@ -580,6 +594,60 @@ function initMediaShop() {
         scene.add(hemisphereLight);
 
         let lightMode = 'normal';
+        let uiHidden = false;
+
+        function hideUI() {
+            uiHidden = true;
+            toolbar.style.display = 'none';
+            controlsInfo.style.display = 'none';
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.zIndex = '9999';
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        }
+
+        function showUI() {
+            uiHidden = false;
+            toolbar.style.display = 'flex';
+            controlsInfo.style.display = 'block';
+            container.style.position = 'relative';
+            container.style.top = 'auto';
+            container.style.left = 'auto';
+            container.style.width = '100%';
+            container.style.height = '500px';
+            container.style.zIndex = 'auto';
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+        }
+
+        hideUIBtn.addEventListener('click', () => {
+            if (uiHidden) {
+                showUI();
+                hideUIBtn.textContent = 'Hide UI';
+            } else {
+                hideUI();
+                hideUIBtn.textContent = 'Show UI';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                if (uiHidden) {
+                    showUI();
+                    hideUIBtn.textContent = 'Hide UI';
+                } else {
+                    hideUI();
+                    hideUIBtn.textContent = 'Show UI';
+                }
+            }
+        });
 
         lightBtn.addEventListener('click', () => {
             if (lightMode === 'normal') {
@@ -648,7 +716,7 @@ function initMediaShop() {
         });
 
         let currentBgIndex = 0;
-        const bgColors = [0x1a1a1a, 0x2a2a2a, 0x3a3a3a, 0xffffff, 0x000000, 0x1b2838];
+        const bgColors = [0x000000, 0x1a1a1a, 0x2a2a2a, 0x3a3a3a, 0xffffff, 0x1b2838];
         bgColorBtn.addEventListener('click', () => {
             currentBgIndex = (currentBgIndex + 1) % bgColors.length;
             scene.background = new THREE.Color(bgColors[currentBgIndex]);
