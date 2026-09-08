@@ -131,35 +131,130 @@ function initMediaShop() {
             controlsInfo.style.borderRadius = '4px';
             viewerContainer.appendChild(controlsInfo);
 
+            const toolbar = document.createElement('div');
+            toolbar.style.position = 'absolute';
+            toolbar.style.top = '10px';
+            toolbar.style.left = '10px';
+            toolbar.style.right = '10px';
+            toolbar.style.display = 'flex';
+            toolbar.style.gap = '0.3rem';
+            toolbar.style.flexWrap = 'wrap';
+            toolbar.style.zIndex = '20';
+            viewerContainer.appendChild(toolbar);
+
             const autoRotateBtn = document.createElement('button');
-            autoRotateBtn.textContent = 'Auto Rotate: Off';
-            autoRotateBtn.style.position = 'absolute';
-            autoRotateBtn.style.top = '10px';
-            autoRotateBtn.style.right = '10px';
-            autoRotateBtn.style.padding = '0.5rem 1rem';
+            autoRotateBtn.textContent = 'Auto: Off';
+            autoRotateBtn.style.padding = '0.4rem 0.6rem';
             autoRotateBtn.style.background = 'rgba(0,0,0,0.7)';
             autoRotateBtn.style.color = 'white';
             autoRotateBtn.style.border = '1px solid #444';
             autoRotateBtn.style.borderRadius = '4px';
             autoRotateBtn.style.cursor = 'pointer';
-            autoRotateBtn.style.zIndex = '20';
-            viewerContainer.appendChild(autoRotateBtn);
+            autoRotateBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(autoRotateBtn);
+
+            const resetCameraBtn = document.createElement('button');
+            resetCameraBtn.textContent = 'Reset Camera';
+            resetCameraBtn.style.padding = '0.4rem 0.6rem';
+            resetCameraBtn.style.background = 'rgba(0,0,0,0.7)';
+            resetCameraBtn.style.color = 'white';
+            resetCameraBtn.style.border = '1px solid #444';
+            resetCameraBtn.style.borderRadius = '4px';
+            resetCameraBtn.style.cursor = 'pointer';
+            resetCameraBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(resetCameraBtn);
 
             const bgColorBtn = document.createElement('button');
-            bgColorBtn.textContent = 'Background';
-            bgColorBtn.style.position = 'absolute';
-            bgColorBtn.style.top = '10px';
-            bgColorBtn.style.left = '10px';
-            bgColorBtn.style.padding = '0.5rem 1rem';
+            bgColorBtn.textContent = 'BG';
+            bgColorBtn.style.padding = '0.4rem 0.6rem';
             bgColorBtn.style.background = 'rgba(0,0,0,0.7)';
             bgColorBtn.style.color = 'white';
             bgColorBtn.style.border = '1px solid #444';
             bgColorBtn.style.borderRadius = '4px';
             bgColorBtn.style.cursor = 'pointer';
-            bgColorBtn.style.zIndex = '20';
-            viewerContainer.appendChild(bgColorBtn);
+            bgColorBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(bgColorBtn);
 
-            init3DViewer(viewerContainer, files.find(f => ['glb', 'gltf', 'obj'].includes(f.name.split('.').pop().toLowerCase())), viewerInfo, autoRotateBtn, bgColorBtn);
+            const gridBtn = document.createElement('button');
+            gridBtn.textContent = 'Grid: On';
+            gridBtn.style.padding = '0.4rem 0.6rem';
+            gridBtn.style.background = 'rgba(0,0,0,0.7)';
+            gridBtn.style.color = 'white';
+            gridBtn.style.border = '1px solid #444';
+            gridBtn.style.borderRadius = '4px';
+            gridBtn.style.cursor = 'pointer';
+            gridBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(gridBtn);
+
+            const wireframeBtn = document.createElement('button');
+            wireframeBtn.textContent = 'Wireframe';
+            wireframeBtn.style.padding = '0.4rem 0.6rem';
+            wireframeBtn.style.background = 'rgba(0,0,0,0.7)';
+            wireframeBtn.style.color = 'white';
+            wireframeBtn.style.border = '1px solid #444';
+            wireframeBtn.style.borderRadius = '4px';
+            wireframeBtn.style.cursor = 'pointer';
+            wireframeBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(wireframeBtn);
+
+            const edgesBtn = document.createElement('button');
+            edgesBtn.textContent = 'Edges';
+            edgesBtn.style.padding = '0.4rem 0.6rem';
+            edgesBtn.style.background = 'rgba(0,0,0,0.7)';
+            edgesBtn.style.color = 'white';
+            edgesBtn.style.border = '1px solid #444';
+            edgesBtn.style.borderRadius = '4px';
+            edgesBtn.style.cursor = 'pointer';
+            edgesBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(edgesBtn);
+
+            const verticesBtn = document.createElement('button');
+            verticesBtn.textContent = 'Vertices';
+            verticesBtn.style.padding = '0.4rem 0.6rem';
+            verticesBtn.style.background = 'rgba(0,0,0,0.7)';
+            verticesBtn.style.color = 'white';
+            verticesBtn.style.border = '1px solid #444';
+            verticesBtn.style.borderRadius = '4px';
+            verticesBtn.style.cursor = 'pointer';
+            verticesBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(verticesBtn);
+
+            const materialBtn = document.createElement('button');
+            materialBtn.textContent = 'Material';
+            materialBtn.style.padding = '0.4rem 0.6rem';
+            materialBtn.style.background = 'rgba(0,0,0,0.7)';
+            materialBtn.style.color = 'white';
+            materialBtn.style.border = '1px solid #444';
+            materialBtn.style.borderRadius = '4px';
+            materialBtn.style.cursor = 'pointer';
+            materialBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(materialBtn);
+
+            const screenshotBtn = document.createElement('button');
+            screenshotBtn.textContent = 'Screenshot';
+            screenshotBtn.style.padding = '0.4rem 0.6rem';
+            screenshotBtn.style.background = 'rgba(0,0,0,0.7)';
+            screenshotBtn.style.color = 'white';
+            screenshotBtn.style.border = '1px solid #444';
+            screenshotBtn.style.borderRadius = '4px';
+            screenshotBtn.style.cursor = 'pointer';
+            screenshotBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(screenshotBtn);
+
+            init3DViewer(
+                viewerContainer,
+                files.find(f => ['glb', 'gltf', 'obj'].includes(f.name.split('.').pop().toLowerCase())),
+                viewerInfo,
+                autoRotateBtn,
+                bgColorBtn,
+                gridBtn,
+                wireframeBtn,
+                edgesBtn,
+                verticesBtn,
+                materialBtn,
+                resetCameraBtn,
+                screenshotBtn
+            );
         }
 
         const hasMedia = files.some(f => f.type.startsWith('audio') || f.type.startsWith('video'));
@@ -416,7 +511,7 @@ function initMediaShop() {
         }
     }
 
-    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn) {
+    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn) {
         if (!file || typeof THREE === 'undefined') {
             infoEl.textContent = '3D library not loaded';
             return;
@@ -460,12 +555,31 @@ function initMediaShop() {
         const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         scene.add(hemisphereLight);
 
-        const gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0x444444);
+        let gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0x444444);
         scene.add(gridHelper);
+
+        let currentModel = null;
+        let originalMaterials = [];
+        let materialMode = 'original';
+        let wireframeMode = false;
+
+        const materials = {
+            original: null,
+            metal: new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 1, roughness: 0.2 }),
+            plastic: new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0, roughness: 0.5 }),
+            wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0, roughness: 0.8 })
+        };
 
         autoRotateBtn.addEventListener('click', () => {
             controls.autoRotate = !controls.autoRotate;
-            autoRotateBtn.textContent = 'Auto Rotate: ' + (controls.autoRotate ? 'On' : 'Off');
+            autoRotateBtn.textContent = 'Auto: ' + (controls.autoRotate ? 'On' : 'Off');
+        });
+
+        resetCameraBtn.addEventListener('click', () => {
+            camera.position.set(3, 2, 5);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.update();
         });
 
         let currentBgIndex = 0;
@@ -475,6 +589,88 @@ function initMediaShop() {
             scene.background = new THREE.Color(bgColors[currentBgIndex]);
         });
 
+        gridBtn.addEventListener('click', () => {
+            if (gridHelper) {
+                scene.remove(gridHelper);
+                gridHelper = null;
+                gridBtn.textContent = 'Grid: Off';
+            } else {
+                gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0x444444);
+                scene.add(gridHelper);
+                gridBtn.textContent = 'Grid: On';
+            }
+        });
+
+        wireframeBtn.addEventListener('click', () => {
+            if (currentModel) {
+                wireframeMode = !wireframeMode;
+                currentModel.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        child.material.wireframe = wireframeMode;
+                    }
+                });
+                wireframeBtn.textContent = wireframeMode ? 'Wireframe: On' : 'Wireframe';
+            }
+        });
+
+        edgesBtn.addEventListener('click', () => {
+            if (currentModel && !currentModel.userData.edgesHelper) {
+                const edges = new THREE.EdgesGeometry(currentModel.geometry || new THREE.BufferGeometry());
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+                currentModel.add(line);
+                currentModel.userData.edgesHelper = line;
+                edgesBtn.textContent = 'Edges: On';
+            } else if (currentModel && currentModel.userData.edgesHelper) {
+                currentModel.remove(currentModel.userData.edgesHelper);
+                currentModel.userData.edgesHelper = null;
+                edgesBtn.textContent = 'Edges';
+            }
+        });
+
+        verticesBtn.addEventListener('click', () => {
+            if (currentModel && !currentModel.userData.pointsHelper) {
+                const points = new THREE.Points(currentModel.geometry || new THREE.BufferGeometry(), new THREE.PointsMaterial({ color: 0xff0000, size: 0.05 }));
+                currentModel.add(points);
+                currentModel.userData.pointsHelper = points;
+                verticesBtn.textContent = 'Vertices: On';
+            } else if (currentModel && currentModel.userData.pointsHelper) {
+                currentModel.remove(currentModel.userData.pointsHelper);
+                currentModel.userData.pointsHelper = null;
+                verticesBtn.textContent = 'Vertices';
+            }
+        });
+
+        materialBtn.addEventListener('click', () => {
+            if (!currentModel) return;
+            const modes = ['original', 'metal', 'plastic', 'wood'];
+            const currentIdx = modes.indexOf(materialMode);
+            materialMode = modes[(currentIdx + 1) % modes.length];
+            applyMaterial(materialMode);
+            materialBtn.textContent = 'Material: ' + materialMode;
+        });
+
+        function applyMaterial(mode) {
+            if (!currentModel) return;
+            currentModel.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    if (mode === 'original') {
+                        child.material = originalMaterials.find(m => m.mesh === child)?.material || child.material;
+                    } else {
+                        child.material = materials[mode].clone();
+                    }
+                    child.material.wireframe = wireframeMode;
+                }
+            });
+        }
+
+        screenshotBtn.addEventListener('click', () => {
+            renderer.render(scene, camera);
+            const a = document.createElement('a');
+            a.href = renderer.domElement.toDataURL('image/png');
+            a.download = '3d-screenshot.png';
+            a.click();
+        });
+
         const ext = file.name.split('.').pop().toLowerCase();
 
         if (ext === 'glb' || ext === 'gltf') {
@@ -482,17 +678,29 @@ function initMediaShop() {
             const url = URL.createObjectURL(file);
             loader.load(url, (gltf) => {
                 infoEl.style.display = 'none';
-                const model = gltf.scene;
-                const box = new THREE.Box3().setFromObject(model);
+                currentModel = gltf.scene;
+                const box = new THREE.Box3().setFromObject(currentModel);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const scale = 3 / maxDim;
-                model.scale.setScalar(scale);
-                model.position.sub(center.multiplyScalar(scale));
-                scene.add(model);
+                currentModel.scale.setScalar(scale);
+                currentModel.position.sub(center.multiplyScalar(scale));
+                scene.add(currentModel);
                 controls.target.set(0, 0, 0);
                 controls.update();
+                originalMaterials = [];
+                currentModel.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        originalMaterials.push({ mesh: child, material: child.material });
+                    }
+                });
+                if (gltf.animations && gltf.animations.length > 0) {
+                    const mixer = new THREE.AnimationMixer(currentModel);
+                    const action = mixer.clipAction(gltf.animations[0]);
+                    action.play();
+                    currentModel.userData.mixer = mixer;
+                }
                 URL.revokeObjectURL(url);
             }, undefined, (error) => {
                 infoEl.textContent = 'Failed to load 3D model';
@@ -502,16 +710,23 @@ function initMediaShop() {
             const url = URL.createObjectURL(file);
             loader.load(url, (obj) => {
                 infoEl.style.display = 'none';
-                const box = new THREE.Box3().setFromObject(obj);
+                currentModel = obj;
+                const box = new THREE.Box3().setFromObject(currentModel);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const scale = 3 / maxDim;
-                obj.scale.setScalar(scale);
-                obj.position.sub(center.multiplyScalar(scale));
-                scene.add(obj);
+                currentModel.scale.setScalar(scale);
+                currentModel.position.sub(center.multiplyScalar(scale));
+                scene.add(currentModel);
                 controls.target.set(0, 0, 0);
                 controls.update();
+                originalMaterials = [];
+                currentModel.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        originalMaterials.push({ mesh: child, material: child.material });
+                    }
+                });
                 URL.revokeObjectURL(url);
             }, undefined, (error) => {
                 infoEl.textContent = 'Failed to load 3D model';
@@ -521,6 +736,9 @@ function initMediaShop() {
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+            if (currentModel && currentModel.userData.mixer) {
+                currentModel.userData.mixer.update(0.016);
+            }
             renderer.render(scene, camera);
         }
         animate();
