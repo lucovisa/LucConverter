@@ -79,7 +79,7 @@ function initPhotoEditor() {
         } else {
             ctx.clearRect(0, 0, width, height);
         }
-        return { name, canvas: layerCanvas, ctx, opacity: 1, visible: true };
+        return { name, canvas: layerCanvas, ctx, opacity: 1, visible: true, rotation: 0 };
     }
 
     function addLayer(name = 'Layer ' + (layers.length + 1), imageData = null) {
@@ -113,7 +113,18 @@ function initPhotoEditor() {
         for (const layer of layers) {
             if (!layer.visible) continue;
             mainCtx.globalAlpha = layer.opacity;
-            mainCtx.drawImage(layer.canvas, 0, 0);
+            if (layer.rotation) {
+                const rad = layer.rotation * Math.PI / 180;
+                const cx = layer.canvas.width / 2;
+                const cy = layer.canvas.height / 2;
+                mainCtx.save();
+                mainCtx.translate(cx, cy);
+                mainCtx.rotate(rad);
+                mainCtx.drawImage(layer.canvas, -cx, -cy);
+                mainCtx.restore();
+            } else {
+                mainCtx.drawImage(layer.canvas, 0, 0);
+            }
         }
         mainCtx.globalAlpha = 1;
     }
@@ -337,7 +348,6 @@ function initPhotoEditor() {
         layer.ctx.putImageData(imageData, 0, 0);
     }
 
-    // Toolbar buttons
     function addButton(text, title, onClick) {
         const btn = document.createElement('button');
         btn.textContent = text;
@@ -434,6 +444,30 @@ function initPhotoEditor() {
     toolbar.appendChild(heightInput);
     toolbar.appendChild(resizeBtn);
 
+    const rotateInput = document.createElement('input');
+    rotateInput.type = 'number';
+    rotateInput.placeholder = 'Degrees';
+    rotateInput.value = '0';
+    rotateInput.style.width = '70px';
+    const rotateBtn = document.createElement('button');
+    rotateBtn.textContent = 'Rotate';
+    rotateBtn.style.padding = '0.4rem 0.8rem';
+    rotateBtn.style.background = 'var(--button-bg)';
+    rotateBtn.style.color = 'white';
+    rotateBtn.style.border = 'none';
+    rotateBtn.style.borderRadius = '4px';
+    rotateBtn.style.cursor = 'pointer';
+    rotateBtn.addEventListener('click', () => {
+        if (activeLayerIndex < 0) return;
+        const degrees = parseFloat(rotateInput.value);
+        if (isNaN(degrees)) { showError(rotateInput, 'Enter valid degrees'); return; }
+        const layer = layers[activeLayerIndex];
+        layer.rotation = (layer.rotation || 0) + degrees;
+        redrawCanvas();
+    });
+    toolbar.appendChild(rotateInput);
+    toolbar.appendChild(rotateBtn);
+
     const filterContainer = document.createElement('div');
     filterContainer.style.display = 'flex';
     filterContainer.style.flexWrap = 'wrap';
@@ -515,6 +549,7 @@ function initPhotoEditor() {
         if (layers.length > 0) {
             layers.forEach(layer => {
                 layer.ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                layer.rotation = 0;
             });
             redrawCanvas();
         }
@@ -525,7 +560,6 @@ function initPhotoEditor() {
             const img = new Image();
             img.onload = () => {
                 canvas.getContext('2d').drawImage(img, 0, 0);
-                // Восстанавливаем только визуально, слои не трогаем
             };
             img.src = snapshot;
         }
@@ -593,9 +627,6 @@ function initPhotoEditor() {
         document.body.appendChild(container);
     });
 
-    actionContainer.querySelectorAll('button').forEach(btn => toolbar.appendChild(btn));
-
-    // File input
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
@@ -627,10 +658,8 @@ function initPhotoEditor() {
     photoSection.appendChild(mainLayout);
     photoSection.appendChild(fileInput);
 
-    // Initialize one layer
     addLayer('Layer 1');
 
-    // Canvas drawing events
     canvas.addEventListener('mousedown', (e) => {
         if (activeLayerIndex < 0) return;
         const rect = canvas.getBoundingClientRect();

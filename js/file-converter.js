@@ -81,8 +81,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (extension === 'html' || extension === 'htm') return ['TXT', 'Markdown', 'PDF'];
         if (extension === 'docx') return ['TXT', 'HTML', 'PDF'];
         if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
-        if (extension === 'glb' || extension === 'gltf') return ['BLEND'];
-        // включая RAR и любые другие — generic
+        if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL'];
+        if (extension === 'obj') return ['STL', 'GLB'];
+        if (extension === 'zip' || extension === 'rar' || extension === '7z') return ['ZIP'];
         return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
     }
 
@@ -92,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const isImage = fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension);
         const isVideo = fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension);
         const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension);
+        const isArchive = ['zip', 'rar', '7z'].includes(extension);
 
         if (isImage) {
             if (format === 'txt (ocr)') extractTextFromImage(file);
@@ -99,10 +101,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (isVideo) {
             if (format === 'jpg' || format === 'png') extractFrameFromVideo(file, format);
             else if (format === 'mp3' || format === 'wav') extractAudioFromVideo(file, format);
-            else convertVideo(file, format);
+            else if (window.FFmpeg && isFFmpegAvailable()) convertWithFFmpeg(file, format);
+            else convertVideoFallback(file, format);
         } else if (isAudio) {
             if (format === 'mp4' || format === 'webm') audioToVideo(file, format);
-            else convertAudio(file, format);
+            else if (window.FFmpeg && isFFmpegAvailable()) convertWithFFmpeg(file, format);
+            else convertAudioFallback(file, format);
         } else if (extension === 'pdf') {
             convertPDF(file, format);
         } else if (extension === 'html' || extension === 'htm') {
@@ -112,12 +116,143 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (extension === 'xlsx' || extension === 'xls') {
             convertXLSX(file, format);
         } else if (extension === 'glb' || extension === 'gltf') {
-            if (format === 'blend') convertGLB(file);
+            convert3D(file, format);
+        } else if (extension === 'obj') {
+            convert3D(file, format);
+        } else if (isArchive) {
+            if (format === 'zip') handleArchive(file, format);
+            else convertGeneric(file, format);
         } else {
-            // RAR и другие generic
             if (format === 'zip') convertToZip(file);
             else convertGeneric(file, format);
         }
+    }
+
+    let ffmpegLoaded = false;
+    let ffmpegInstance = null;
+
+    function isFFmpegAvailable() {
+        return typeof SharedArrayBuffer !== 'undefined' && typeof FFmpeg !== 'undefined';
+    }
+
+    async function loadFFmpeg() {
+        if (ffmpegLoaded) return ffmpegInstance;
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        ffmpegInstance = createFFmpeg({ log: false });
+        await ffmpegInstance.load();
+        ffmpegLoaded = true;
+        return ffmpegInstance;
+    }
+
+    async function convertWithFFmpeg(file, format) {
+        try {
+            const ffmpeg = await loadFFmpeg();
+            const inputName = 'input' + getExtension(file.name);
+            const outputName = 'output.' + format;
+            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+            const args = ['-i', inputName];
+            if (['jpg', 'png'].includes(format)) args.push('-vframes', '1');
+            if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) args.push('-vn');
+            if (['mp4', 'webm', 'avi', 'mov'].includes(format)) args.push('-c:v', 'libx264', '-c:a', 'aac');
+            args.push(outputName);
+            await ffmpeg.run(...args);
+            const data = ffmpeg.FS('readFile', outputName);
+            const blob = new Blob([data.buffer], { type: getMimeType(format) });
+            ffmpeg.FS('unlink', inputName);
+            ffmpeg.FS('unlink', outputName);
+            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
+        } catch (e) {
+            showError(fileList, 'FFmpeg conversion failed: ' + e.message);
+        }
+    }
+
+    function convertVideoFallback(file, format) {
+        const blob = new Blob([file], { type: `video/${format}` });
+        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
+    }
+
+    function convertAudioFallback(file, format) {
+        const blob = new Blob([file], { type: `audio/${format}` });
+        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
+    }
+
+    async function convert3D(file, format) {
+        try {
+            if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+                const url = URL.createObjectURL(file);
+                const loader = new THREE.GLTFLoader();
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load(url, resolve, undefined, reject);
+                });
+                if (format === 'obj') {
+                    const exporter = new THREE.OBJExporter();
+                    const objData = exporter.parse(gltf.scene);
+                    const blob = new Blob([objData], { type: 'text/plain' });
+                    downloadFile(blob, file.name.replace(/\.[^.]+$/, '.obj'));
+                } else if (format === 'stl') {
+                    const exporter = new THREE.STLExporter();
+                    const stlData = exporter.parse(gltf.scene);
+                    const blob = new Blob([stlData], { type: 'text/plain' });
+                    downloadFile(blob, file.name.replace(/\.[^.]+$/, '.stl'));
+                }
+                URL.revokeObjectURL(url);
+            } else if (file.name.endsWith('.obj')) {
+                if (format === 'glb') {
+                    showError(fileList, 'OBJ to GLB requires Blender or server-side tool. Use OBJ to STL instead.');
+                    return;
+                } else if (format === 'stl') {
+                    const text = await file.text();
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    downloadFile(blob, file.name.replace(/\.[^.]+$/, '.stl'));
+                }
+            } else {
+                showError(fileList, 'Unsupported 3D format');
+            }
+        } catch (e) {
+            showError(fileList, '3D conversion failed: ' + e.message);
+        }
+    }
+
+    async function handleArchive(file, format) {
+        if (format === 'zip') {
+            if (file.name.endsWith('.zip')) {
+                downloadFile(file, file.name);
+                return;
+            }
+            try {
+                const archive = await Archive.open(file);
+                const extracted = await archive.extractFiles();
+                const zip = new JSZip();
+                for (const f of extracted) {
+                    zip.file(f.name, f.blob);
+                }
+                const blob = await zip.generateAsync({ type: 'blob' });
+                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.zip'));
+            } catch (e) {
+                showError(fileList, 'Archive extraction failed: ' + e.message);
+            }
+        }
+    }
+
+    async function convertToZip(file) {
+        try {
+            const zip = new JSZip();
+            zip.file(file.name, file);
+            const blob = await zip.generateAsync({ type: 'blob' });
+            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.zip'));
+        } catch (e) {
+            showError(fileList, 'ZIP conversion failed');
+        }
+    }
+
+    function convertGeneric(file, format) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            const blob = new Blob([content], { type: 'text/plain' });
+            downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     function convertImage(file, format) {
@@ -152,18 +287,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const blob = new Blob([result.data.text], { type: 'text/plain' });
             downloadFile(blob, file.name.replace(/\.[^.]+$/, '.txt'));
         } catch (e) {
-            showError(fileList, 'OCR failed. Please try another image.');
+            showError(fileList, 'OCR failed: ' + e.message);
         }
-    }
-
-    function convertVideo(file, format) {
-        const blob = new Blob([file], { type: `video/${format}` });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-    }
-
-    function convertAudio(file, format) {
-        const blob = new Blob([file], { type: `audio/${format}` });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
     }
 
     async function convertPDF(file, format) {
@@ -205,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } catch (e) {
-            showError(fileList, 'PDF conversion failed');
+            showError(fileList, 'PDF conversion failed: ' + e.message);
         }
     }
 
@@ -262,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 downloadFile(blob, file.name.replace(/\.[^.]+$/, '.pdf'));
             }
         } catch (e) {
-            showError(fileList, 'DOCX conversion failed');
+            showError(fileList, 'DOCX conversion failed: ' + e.message);
         }
     }
 
@@ -285,34 +410,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 downloadFile(blob, file.name.replace(/\.[^.]+$/, '.html'));
             }
         } catch (e) {
-            showError(fileList, 'XLSX conversion failed');
+            showError(fileList, 'XLSX conversion failed: ' + e.message);
         }
-    }
-
-    function convertGLB(file) {
-        const blob = new Blob([file], { type: 'application/octet-stream' });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, '.blend'));
-    }
-
-    async function convertToZip(file) {
-        try {
-            const zip = new JSZip();
-            zip.file(file.name, file);
-            const blob = await zip.generateAsync({ type: 'blob' });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.zip'));
-        } catch (e) {
-            showError(fileList, 'ZIP conversion failed');
-        }
-    }
-
-    function convertGeneric(file, format) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const content = e.target.result;
-            const blob = new Blob([content], { type: 'text/plain' });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-        };
-        reader.readAsArrayBuffer(file);
     }
 
     function extractFrameFromVideo(file, format) {
@@ -460,5 +559,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
         if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    }
+
+    function getExtension(filename) {
+        return filename.substring(filename.lastIndexOf('.'));
+    }
+
+    function getMimeType(format) {
+        const types = {
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'gif': 'image/gif',
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'ogg': 'audio/ogg',
+            'aac': 'audio/aac',
+            'flac': 'audio/flac',
+            'm4a': 'audio/mp4',
+            'jpg': 'image/jpeg',
+            'png': 'image/png'
+        };
+        return types[format] || 'application/octet-stream';
     }
 });

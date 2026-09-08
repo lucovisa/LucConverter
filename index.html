@@ -27,6 +27,11 @@
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/exporters/OBJExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/libarchive.js@1.3.0/dist/libarchive.js"></script>
 </head>
 <body>
     <header>
@@ -118,7 +123,8 @@
                     <span class="format-tag">XLSX → CSV, JSON, HTML</span>
                     <span class="format-tag">HTML → TXT, Markdown, PDF</span>
                     <span class="format-tag">Any file → ZIP</span>
-                    <span class="format-tag">3D: GLB → BLEND</span>
+                    <span class="format-tag">3D: GLB → OBJ, STL</span>
+                    <span class="format-tag">Archives: RAR, 7z → ZIP</span>
                 </div>
             </div>
             
@@ -530,8 +536,10 @@
                         <li>XLSX → CSV, JSON, HTML</li>
                         <li>HTML → TXT, Markdown, PDF</li>
                         <li>Any file → ZIP</li>
-                        <li>3D: GLB → BLEND (rename only, not true conversion)</li>
+                        <li>3D: GLB → OBJ, STL</li>
+                        <li>Archives: RAR, 7z → ZIP</li>
                     </ul>
+                    <p><strong>Important:</strong> Full video conversion (MP4, AVI, MOV) requires FFmpeg, which needs Vercel hosting. On GitHub Pages, fallback to simple rename (may not play correctly).</p>
                 </div>
                 
                 <div class="guide-section">
@@ -601,11 +609,11 @@
                     </ul>
                     <p><strong>Limitations:</strong></p>
                     <ul>
-                        <li>Video conversion to WebM only (no MP4/AVI/MOV)</li>
+                        <li>Video conversion to WebM only (no MP4/AVI/MOV) on GitHub Pages</li>
                         <li>Video to JPG/PNG (frame extraction) works</li>
                         <li>Audio to WAV or MP3 works</li>
                         <li>OGG audio may not work in Safari; use Chrome or Firefox</li>
-                        <li>Full video conversion (MP4, AVI, MOV) is not available in browser</li>
+                        <li>Full video conversion requires Vercel hosting with FFmpeg</li>
                     </ul>
                 </div>
                 
@@ -618,6 +626,8 @@
                         <li>Eraser — remove parts</li>
                         <li>Fill — fill area with color</li>
                         <li>Resize canvas</li>
+                        <li>Rotate layer by degrees</li>
+                        <li>Layers — add, delete, move, opacity, visibility</li>
                         <li>Filters — brightness, contrast, saturation, blur, sharpen</li>
                         <li>Download edited image</li>
                     </ul>
@@ -669,6 +679,42 @@
                             <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" class="faq-btn">Yes — Download IDE</a>
                             <a href="https://silvertests.ru/Compiler.aspx" target="_blank" class="faq-btn">No — Use online compiler</a>
                         </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>How do conversions work?</h4>
+                        <p>Conversions are performed entirely in your browser using JavaScript and WebAssembly libraries. No files are uploaded to any server.</p>
+                        <ul>
+                            <li>Images: canvas API</li>
+                            <li>PDF: pdf.js and jsPDF</li>
+                            <li>Documents: mammoth (DOCX), SheetJS (XLSX)</li>
+                            <li>Video/Audio: MediaRecorder, Web Audio API, and if available, FFmpeg.wasm</li>
+                            <li>3D: three.js exporters</li>
+                            <li>Archives: JSZip and libarchive.js</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Why might some conversions fail?</h4>
+                        <p>Some formats require heavy processing or proprietary codecs that browsers cannot handle without additional server resources.</p>
+                        <ul>
+                            <li>MP4/AVI/MOV video conversion needs FFmpeg.wasm, which requires SharedArrayBuffer (available on Vercel, not on GitHub Pages)</li>
+                            <li>BLEND (Blender) files cannot be created or converted in browser</li>
+                            <li>Creating RAR or 7z archives is not possible in browser; only extraction is supported</li>
+                            <li>Very large files may exceed memory limits</li>
+                            <li>Some OGG/Opus codecs may not be supported in Safari</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Why does the site sometimes fail?</h4>
+                        <p>The site is hosted on both GitHub Pages (primary link) and Vercel (optional). If Vercel is down, the fallback GitHub Pages version will load, but FFmpeg-based conversions will be skipped.</p>
+                        <ul>
+                            <li>Primary link: <a href="https://lucovisa.github.io/LucConverter/" target="_blank" class="faq-link">GitHub Pages</a></li>
+                            <li>Vercel version: <a href="https://luc-converter.vercel.app" target="_blank" class="faq-link">Vercel</a> (if configured)</li>
+                            <li>If neither works, check your internet connection or try again later</li>
+                            <li>Offline: GitHub Pages version works without Vercel, but some file conversions will be limited</li>
+                        </ul>
                     </div>
                 </div>
             </div>
