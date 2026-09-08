@@ -111,19 +111,19 @@ function initTextEditor() {
     const boldBtn = document.createElement('button');
     boldBtn.innerHTML = '<b>B</b>';
     boldBtn.title = 'Bold';
-    boldBtn.addEventListener('click', () => wrapSelection(textarea, '**', '**'));
+    boldBtn.addEventListener('click', () => applyFormatting('**', '**'));
     toolbar.appendChild(boldBtn);
 
     const italicBtn = document.createElement('button');
     italicBtn.innerHTML = '<i>I</i>';
     italicBtn.title = 'Italic';
-    italicBtn.addEventListener('click', () => wrapSelection(textarea, '*', '*'));
+    italicBtn.addEventListener('click', () => applyFormatting('*', '*'));
     toolbar.appendChild(italicBtn);
 
     const underlineBtn = document.createElement('button');
     underlineBtn.innerHTML = '<u>U</u>';
     underlineBtn.title = 'Underline';
-    underlineBtn.addEventListener('click', () => wrapSelection(textarea, '__', '__'));
+    underlineBtn.addEventListener('click', () => applyFormatting('__', '__'));
     toolbar.appendChild(underlineBtn);
 
     const languageSelect = document.createElement('select');
@@ -164,41 +164,92 @@ function initTextEditor() {
     const uppercaseBtn = document.createElement('button');
     uppercaseBtn.textContent = 'ABC';
     uppercaseBtn.title = 'UPPERCASE';
-    uppercaseBtn.addEventListener('click', () => textarea.value = textarea.value.toUpperCase());
+    uppercaseBtn.addEventListener('click', () => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start !== end) {
+            const selected = textarea.value.substring(start, end).toUpperCase();
+            replaceSelection(selected, start, end);
+        } else {
+            textarea.value = textarea.value.toUpperCase();
+        }
+    });
     toolbar.appendChild(uppercaseBtn);
 
     const lowercaseBtn = document.createElement('button');
     lowercaseBtn.textContent = 'abc';
     lowercaseBtn.title = 'lowercase';
-    lowercaseBtn.addEventListener('click', () => textarea.value = textarea.value.toLowerCase());
+    lowercaseBtn.addEventListener('click', () => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start !== end) {
+            const selected = textarea.value.substring(start, end).toLowerCase();
+            replaceSelection(selected, start, end);
+        } else {
+            textarea.value = textarea.value.toLowerCase();
+        }
+    });
     toolbar.appendChild(lowercaseBtn);
 
     const reverseBtn = document.createElement('button');
     reverseBtn.textContent = '↔️';
     reverseBtn.title = 'Reverse';
-    reverseBtn.addEventListener('click', () => textarea.value = textarea.value.split('').reverse().join(''));
+    reverseBtn.addEventListener('click', () => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start !== end) {
+            const selected = textarea.value.substring(start, end).split('').reverse().join('');
+            replaceSelection(selected, start, end);
+        } else {
+            textarea.value = textarea.value.split('').reverse().join('');
+        }
+    });
     toolbar.appendChild(reverseBtn);
 
     const sortBtn = document.createElement('button');
     sortBtn.textContent = '↓';
     sortBtn.title = 'Sort Lines';
-    sortBtn.addEventListener('click', () => textarea.value = textarea.value.split('\n').sort().join('\n'));
+    sortBtn.addEventListener('click', () => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start !== end) {
+            const selected = textarea.value.substring(start, end).split('\n').sort().join('\n');
+            replaceSelection(selected, start, end);
+        } else {
+            textarea.value = textarea.value.split('\n').sort().join('\n');
+        }
+    });
     toolbar.appendChild(sortBtn);
 
     const dedupeBtn = document.createElement('button');
     dedupeBtn.textContent = '⊜';
     dedupeBtn.title = 'Remove Duplicates';
-    dedupeBtn.addEventListener('click', () => textarea.value = [...new Set(textarea.value.split('\n'))].join('\n'));
+    dedupeBtn.addEventListener('click', () => {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start !== end) {
+            const selected = [...new Set(textarea.value.substring(start, end).split('\n'))].join('\n');
+            replaceSelection(selected, start, end);
+        } else {
+            textarea.value = [...new Set(textarea.value.split('\n'))].join('\n');
+        }
+    });
     toolbar.appendChild(dedupeBtn);
 
     const wordCountBtn = document.createElement('button');
     wordCountBtn.textContent = 'Σ';
     wordCountBtn.title = 'Word Count';
     wordCountBtn.addEventListener('click', () => {
-        const words = textarea.value.trim() ? textarea.value.trim().split(/\s+/).length : 0;
-        const chars = textarea.value.length;
-        const lines = textarea.value ? textarea.value.split('\n').length : 0;
-        alert(`Words: ${words}\nCharacters: ${chars}\nLines: ${lines}`);
+        const text = textarea.value;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const chars = text.length;
+        const lines = text ? text.split('\n').length : 0;
+        const message = `Words: ${words}\nCharacters: ${chars}\nLines: ${lines}`;
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'success-message';
+        infoDiv.textContent = message;
+        textSection.insertBefore(infoDiv, toolbar);
+        setTimeout(() => infoDiv.remove(), 3000);
     });
     toolbar.appendChild(wordCountBtn);
 
@@ -222,11 +273,24 @@ function initTextEditor() {
 
     textSection.appendChild(mainContainer);
 
-    function wrapSelection(textarea, before, after) {
+    function applyFormatting(before, after) {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
-        const selected = textarea.value.substring(start, end);
-        textarea.value = textarea.value.substring(0, start) + before + selected + after + textarea.value.substring(end);
+        if (start !== end) {
+            const selected = textarea.value.substring(start, end);
+            replaceSelection(before + selected + after, start, end);
+        } else {
+            textarea.value = textarea.value.substring(0, start) + before + after + textarea.value.substring(end);
+            textarea.selectionStart = start + before.length;
+            textarea.selectionEnd = start + before.length;
+        }
+        textarea.focus();
+    }
+
+    function replaceSelection(newText, start, end) {
+        textarea.value = textarea.value.substring(0, start) + newText + textarea.value.substring(end);
+        textarea.selectionStart = start;
+        textarea.selectionEnd = start + newText.length;
     }
 
     function clearConsole() {

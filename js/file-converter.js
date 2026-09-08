@@ -34,55 +34,109 @@ document.addEventListener('DOMContentLoaded', function() {
             convertBtn.style.border = 'none';
             convertBtn.style.borderRadius = '4px';
             convertBtn.style.cursor = 'pointer';
-            convertBtn.addEventListener('click', () => showConvertOptions(file));
+            convertBtn.addEventListener('click', () => showFormatSelector(file));
             fileItem.appendChild(fileInfo);
             fileItem.appendChild(convertBtn);
             fileList.appendChild(fileItem);
         });
     }
 
-    function formatFileSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
-    }
-
-    function showConvertOptions(file) {
+    function showFormatSelector(file) {
         const fileType = file.type.split('/')[0];
         const extension = file.name.split('.').pop().toLowerCase();
-        if (fileType === 'image') showImageOptions(file);
-        else if (fileType === 'video') showVideoOptions(file);
-        else if (fileType === 'audio') showAudioOptions(file);
-        else if (extension === 'pdf') showPDFOptions(file);
-        else if (extension === 'html' || extension === 'htm') showHTMLOptions(file);
-        else if (extension === 'docx') showDOCXOptions(file);
-        else if (extension === 'xlsx' || extension === 'xls') showXLSXOptions(file);
-        else if (extension === 'glb' || extension === 'gltf') showGLBOptions(file);
-        else showGenericOptions(file);
+        let formats = [];
+
+        if (fileType === 'image') {
+            formats = ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
+        } else if (fileType === 'video') {
+            formats = ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
+        } else if (fileType === 'audio') {
+            formats = ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
+        } else if (extension === 'pdf') {
+            formats = ['TXT', 'HTML', 'JPG', 'PNG'];
+        } else if (extension === 'html' || extension === 'htm') {
+            formats = ['TXT', 'Markdown', 'PDF'];
+        } else if (extension === 'docx') {
+            formats = ['TXT', 'HTML', 'PDF'];
+        } else if (extension === 'xlsx' || extension === 'xls') {
+            formats = ['CSV', 'JSON', 'HTML'];
+        } else if (extension === 'glb' || extension === 'gltf') {
+            formats = ['BLEND'];
+        } else {
+            formats = ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
+        }
+
+        const container = document.createElement('div');
+        container.style.marginTop = '1rem';
+        container.style.padding = '1rem';
+        container.style.background = 'var(--panel-bg)';
+        container.style.border = '1px solid var(--border)';
+        container.style.borderRadius = '4px';
+        container.innerHTML = '<p style="color: var(--accent); margin-bottom: 0.5rem;">Select output format:</p>';
+
+        const select = document.createElement('select');
+        select.style.width = '100%';
+        select.style.marginBottom = '0.5rem';
+        formats.forEach(f => select.add(new Option(f, f.toLowerCase())));
+        container.appendChild(select);
+
+        const convertBtn = document.createElement('button');
+        convertBtn.textContent = 'Convert Now';
+        convertBtn.style.padding = '0.5rem 1rem';
+        convertBtn.style.background = 'var(--button-bg)';
+        convertBtn.style.color = 'white';
+        convertBtn.style.border = 'none';
+        convertBtn.style.borderRadius = '4px';
+        convertBtn.style.cursor = 'pointer';
+        convertBtn.addEventListener('click', () => {
+            const format = select.value;
+            performConversion(file, format);
+        });
+        container.appendChild(convertBtn);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.marginLeft = '0.5rem';
+        cancelBtn.style.padding = '0.5rem 1rem';
+        cancelBtn.style.background = 'var(--border)';
+        cancelBtn.style.color = 'var(--text)';
+        cancelBtn.style.border = 'none';
+        cancelBtn.style.borderRadius = '4px';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.addEventListener('click', () => container.remove());
+        container.appendChild(cancelBtn);
+
+        fileList.appendChild(container);
     }
 
-    function showImageOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert image to:');
-        const formats = ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => {
-                if (format === 'TXT (OCR)') extractTextFromImage(file);
-                else convertImage(file, format.toLowerCase());
-            });
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
+    function performConversion(file, format) {
+        const fileType = file.type.split('/')[0];
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        if (fileType === 'image') {
+            if (format === 'txt (ocr)') extractTextFromImage(file);
+            else convertImage(file, format);
+        } else if (fileType === 'video') {
+            if (format === 'jpg' || format === 'png') extractFrameFromVideo(file, format);
+            else if (format === 'mp3' || format === 'wav') extractAudioFromVideo(file, format);
+            else convertVideo(file, format);
+        } else if (fileType === 'audio') {
+            if (format === 'mp4' || format === 'webm') audioToVideo(file, format);
+            else convertAudio(file, format);
+        } else if (extension === 'pdf') {
+            convertPDF(file, format);
+        } else if (extension === 'html' || extension === 'htm') {
+            convertHTML(file, format);
+        } else if (extension === 'docx') {
+            convertDOCX(file, format);
+        } else if (extension === 'xlsx' || extension === 'xls') {
+            convertXLSX(file, format);
+        } else if (extension === 'glb' || extension === 'gltf') {
+            if (format === 'blend') convertGLB(file);
+        } else {
+            if (format === 'zip') convertToZip(file);
+            else convertGeneric(file, format);
+        }
     }
 
     function convertImage(file, format) {
@@ -121,81 +175,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showVideoOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert video to:');
-        const formats = ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => convertVideo(file, format.toLowerCase()));
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
-    }
-
     function convertVideo(file, format) {
-        if (format === 'jpg' || format === 'png') extractFrameFromVideo(file, format);
-        else if (format === 'mp3' || format === 'wav') extractAudioFromVideo(file, format);
-        else {
-            const blob = new Blob([file], { type: `video/${format}` });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-        }
-    }
-
-    function showAudioOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert audio to:');
-        const formats = ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => convertAudio(file, format.toLowerCase()));
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
+        const blob = new Blob([file], { type: `video/${format}` });
+        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
     }
 
     function convertAudio(file, format) {
-        if (format === 'mp4' || format === 'webm') audioToVideo(file, format);
-        else {
-            const blob = new Blob([file], { type: `audio/${format}` });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-        }
-    }
-
-    function showPDFOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert PDF to:');
-        const formats = ['TXT', 'HTML', 'JPG', 'PNG'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => convertPDF(file, format.toLowerCase()));
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
+        const blob = new Blob([file], { type: `audio/${format}` });
+        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
     }
 
     async function convertPDF(file, format) {
@@ -241,26 +228,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showHTMLOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert HTML to:');
-        const formats = ['TXT', 'Markdown', 'PDF'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => convertHTML(file, format.toLowerCase()));
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
-    }
-
     function convertHTML(file, format) {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -293,26 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.readAsText(file);
     }
 
-    function showDOCXOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert DOCX to:');
-        const formats = ['TXT', 'HTML', 'PDF'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => convertDOCX(file, format.toLowerCase()));
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
-    }
-
     async function convertDOCX(file, format) {
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -338,26 +285,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showXLSXOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert XLSX to:');
-        const formats = ['CSV', 'JSON', 'HTML'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => convertXLSX(file, format.toLowerCase()));
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
-    }
-
     async function convertXLSX(file, format) {
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -381,47 +308,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showGLBOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert 3D model to:');
-        const btn = document.createElement('button');
-        btn.textContent = 'BLEND';
-        btn.style.marginRight = '0.5rem';
-        btn.style.marginBottom = '0.5rem';
-        btn.style.padding = '0.5rem 1rem';
-        btn.style.background = 'var(--button-bg)';
-        btn.style.color = 'white';
-        btn.style.border = 'none';
-        btn.style.borderRadius = '4px';
-        btn.style.cursor = 'pointer';
-        btn.addEventListener('click', () => {
-            const newBlob = new Blob([file], { type: 'application/octet-stream' });
-            downloadFile(newBlob, file.name.replace(/\.[^.]+$/, '.blend'));
-        });
-        optionsDiv.appendChild(btn);
-        fileList.appendChild(optionsDiv);
-    }
-
-    function showGenericOptions(file) {
-        const optionsDiv = createOptionsContainer('Convert to:');
-        const formats = ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
-        formats.forEach(format => {
-            const btn = document.createElement('button');
-            btn.textContent = format;
-            btn.style.marginRight = '0.5rem';
-            btn.style.marginBottom = '0.5rem';
-            btn.style.padding = '0.5rem 1rem';
-            btn.style.background = 'var(--button-bg)';
-            btn.style.color = 'white';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.addEventListener('click', () => {
-                if (format === 'ZIP') convertToZip(file);
-                else convertGeneric(file, format.toLowerCase());
-            });
-            optionsDiv.appendChild(btn);
-        });
-        fileList.appendChild(optionsDiv);
+    function convertGLB(file) {
+        const blob = new Blob([file], { type: 'application/octet-stream' });
+        downloadFile(blob, file.name.replace(/\.[^.]+$/, '.blend'));
     }
 
     async function convertToZip(file) {
@@ -443,21 +332,6 @@ document.addEventListener('DOMContentLoaded', function() {
             downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
         };
         reader.readAsArrayBuffer(file);
-    }
-
-    function createOptionsContainer(title) {
-        const optionsDiv = document.createElement('div');
-        optionsDiv.style.marginTop = '1rem';
-        optionsDiv.style.padding = '1rem';
-        optionsDiv.style.background = 'var(--panel-bg)';
-        optionsDiv.style.border = '1px solid var(--border)';
-        optionsDiv.style.borderRadius = '4px';
-        const titleEl = document.createElement('p');
-        titleEl.textContent = title;
-        titleEl.style.marginBottom = '0.5rem';
-        titleEl.style.color = 'var(--accent)';
-        optionsDiv.appendChild(titleEl);
-        return optionsDiv;
     }
 
     function extractFrameFromVideo(file, format) {
@@ -598,5 +472,12 @@ document.addEventListener('DOMContentLoaded', function() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
     }
 });

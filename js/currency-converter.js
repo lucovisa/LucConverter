@@ -76,12 +76,24 @@ function initCurrencyConverter() {
     fromSelect.value = 'USD';
     toSelect.value = 'EUR';
 
+    const apiKeyInput = document.createElement('input');
+    apiKeyInput.type = 'password';
+    apiKeyInput.placeholder = 'Enter API key (optional, for own data source)';
+    apiKeyInput.style.width = '100%';
+    apiKeyInput.style.marginBottom = '1rem';
+    apiKeyInput.style.padding = '0.6rem';
+    apiKeyInput.style.background = 'var(--bg)';
+    apiKeyInput.style.border = '1px solid var(--border)';
+    apiKeyInput.style.borderRadius = '4px';
+    apiKeyInput.style.color = 'var(--text)';
+    const currencyBox = document.querySelector('.currency-converter-box');
+    currencyBox.insertBefore(apiKeyInput, currencyBox.querySelector('.currency-input-group'));
+
     const searchHint = document.createElement('p');
     searchHint.textContent = '💡 Type a letter to search currencies';
     searchHint.style.fontSize = '0.8rem';
     searchHint.style.opacity = '0.7';
     searchHint.style.marginBottom = '1rem';
-    const currencyBox = document.querySelector('.currency-converter-box');
     currencyBox.insertBefore(searchHint, currencyBox.querySelector('.currency-input-group'));
 
     fromSelect.addEventListener('keydown', (e) => searchInSelect(fromSelect, e));
@@ -111,33 +123,46 @@ function initCurrencyConverter() {
         }
         const from = fromSelect.value;
         const to = toSelect.value;
+        const apiKey = apiKeyInput.value.trim();
         if (from === to) {
             resultDiv.style.display = 'block';
             resultDiv.textContent = `${amount} ${from} = ${amount} ${to}`;
             rateInfo.textContent = '';
             return;
         }
-        fetchRate(from, to, amount);
+        fetchRate(from, to, amount, apiKey);
     });
 
-    async function fetchRate(from, to, amount) {
+    async function fetchRate(from, to, amount, apiKey) {
         resultDiv.style.display = 'none';
         rateInfo.textContent = 'Fetching...';
         try {
-            const resp = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
-            const data = await resp.json();
-            if (data.rates && data.rates[to]) {
-                const rate = data.rates[to];
-                const result = amount * rate;
-                resultDiv.style.display = 'block';
-                resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
-                rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${new Date(data.time_last_updated * 1000).toLocaleString()}`;
+            let rate;
+            if (apiKey) {
+                const resp = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`);
+                const data = await resp.json();
+                if (data.result === 'success') {
+                    rate = data.conversion_rates[to];
+                    rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${data.time_last_update_utc}`;
+                } else {
+                    throw new Error('Invalid API key');
+                }
             } else {
-                throw new Error('Rate not found');
+                const resp = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+                const data = await resp.json();
+                if (data.rates && data.rates[to]) {
+                    rate = data.rates[to];
+                    rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${new Date(data.time_last_updated * 1000).toLocaleString()}`;
+                } else {
+                    throw new Error('Rate not found');
+                }
             }
+            const result = amount * rate;
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
         } catch (e) {
             rateInfo.textContent = '';
-            showError(amountInput, 'Failed to fetch rates. Please try again later.');
+            showError(amountInput, 'Failed to fetch rates. Check API key or try later.');
         }
     }
 }

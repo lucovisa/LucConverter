@@ -18,6 +18,7 @@ function showSection(sectionId) {
         info: 'Info'
     };
     document.title = 'LucConverter - ' + (titles[sectionId] || sectionId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()));
+    history.pushState(null, '', '#' + sectionId);
 }
 
 function showMainMenu() {
@@ -27,6 +28,7 @@ function showMainMenu() {
         section.style.display = 'none';
     });
     document.title = 'LucConverter';
+    history.pushState(null, '', window.location.pathname);
 }
 
 function showConverter(converterId) {
@@ -90,3 +92,21 @@ function decodeURL() {
         showError(input, 'Invalid encoded text');
     }
 }
+
+window.addEventListener('hashchange', function() {
+    const hash = window.location.hash.substring(1);
+    if (hash && document.getElementById(hash)) {
+        showSection(hash);
+    } else if (!hash) {
+        showMainMenu();
+    }
+});
+
+window.addEventListener('load', function() {
+    const hash = window.location.hash.substring(1);
+    if (hash && document.getElementById(hash)) {
+        showSection(hash);
+    } else {
+        showMainMenu();
+    }
+});

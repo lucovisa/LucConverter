@@ -167,7 +167,7 @@ function initMediaShop() {
         formatSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Output Format</h4>';
         const formatSelect = document.createElement('select');
         formatSelect.style.width = '100%';
-        const formats = file.type.startsWith('video') ? ['webm', 'jpg', 'png'] : ['wav', 'mp3', 'ogg'];
+        const formats = file.type.startsWith('video') ? ['webm', 'jpg', 'png'] : ['wav'];
         formats.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f;
@@ -300,13 +300,7 @@ function initMediaShop() {
             }
         }
 
-        if (format === 'wav') {
-            return bufferToWav(newBuffer);
-        } else if (format === 'mp3' || format === 'ogg') {
-            // Просто вернём WAV, так как кодировщиков нет, но изменим расширение
-            return bufferToWav(newBuffer);
-        }
-        return null;
+        return bufferToWav(newBuffer);
     }
 
     async function trimVideo(file, start, end, volumePercent) {
