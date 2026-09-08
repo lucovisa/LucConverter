@@ -10,7 +10,7 @@ function initCurrencyConverter() {
     const convertBtn = document.querySelector('.convert-currency-btn');
     const resultDiv = document.querySelector('.currency-result');
     const rateInfo = document.querySelector('.exchange-rate-info');
-    
+
     const currencies = {
         USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen',
         CNY: 'Chinese Yuan', RUB: 'Russian Ruble', INR: 'Indian Rupee',
@@ -66,7 +66,7 @@ function initCurrencyConverter() {
         DOT: 'Polkadot', LTC: 'Litecoin', BCH: 'Bitcoin Cash', LINK: 'Chainlink',
         MATIC: 'Polygon', SHIB: 'Shiba Inu', AVAX: 'Avalanche', UNI: 'Uniswap'
     };
-    
+
     fromSelect.innerHTML = '';
     toSelect.innerHTML = '';
     Object.keys(currencies).sort().forEach(code => {
@@ -75,30 +75,18 @@ function initCurrencyConverter() {
     });
     fromSelect.value = 'USD';
     toSelect.value = 'EUR';
-    
-    const apiKeyInput = document.createElement('input');
-    apiKeyInput.type = 'password';
-    apiKeyInput.placeholder = 'Enter API key (optional)';
-    apiKeyInput.style.width = '100%';
-    apiKeyInput.style.marginBottom = '1rem';
-    apiKeyInput.style.padding = '0.6rem';
-    apiKeyInput.style.background = 'var(--bg)';
-    apiKeyInput.style.border = '1px solid var(--border)';
-    apiKeyInput.style.borderRadius = '4px';
-    apiKeyInput.style.color = 'var(--text)';
-    const currencyBox = document.querySelector('.currency-converter-box');
-    currencyBox.insertBefore(apiKeyInput, currencyBox.querySelector('.currency-input-group'));
-    
+
     const searchHint = document.createElement('p');
     searchHint.textContent = '💡 Type a letter to search currencies';
     searchHint.style.fontSize = '0.8rem';
     searchHint.style.opacity = '0.7';
     searchHint.style.marginBottom = '1rem';
+    const currencyBox = document.querySelector('.currency-converter-box');
     currencyBox.insertBefore(searchHint, currencyBox.querySelector('.currency-input-group'));
-    
+
     fromSelect.addEventListener('keydown', (e) => searchInSelect(fromSelect, e));
     toSelect.addEventListener('keydown', (e) => searchInSelect(toSelect, e));
-    
+
     function searchInSelect(select, e) {
         if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
             e.preventDefault();
@@ -108,13 +96,13 @@ function initCurrencyConverter() {
             if (match) select.value = match.value;
         }
     }
-    
+
     swapBtn.addEventListener('click', () => {
         const temp = fromSelect.value;
         fromSelect.value = toSelect.value;
         toSelect.value = temp;
     });
-    
+
     convertBtn.addEventListener('click', () => {
         const amount = parseFloat(amountInput.value);
         if (!amount || amount <= 0) {
@@ -129,43 +117,27 @@ function initCurrencyConverter() {
             rateInfo.textContent = '';
             return;
         }
-        const apiKey = apiKeyInput.value.trim();
-        fetchRate(from, to, amount, apiKey);
+        fetchRate(from, to, amount);
     });
-    
-    async function fetchRate(from, to, amount, apiKey) {
+
+    async function fetchRate(from, to, amount) {
         resultDiv.style.display = 'none';
         rateInfo.textContent = 'Fetching...';
         try {
-            let rate;
-            if (apiKey) {
-                const resp = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`);
-                const data = await resp.json();
-                if (data.result === 'success') {
-                    rate = data.conversion_rates[to];
-                    rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${data.time_last_update_utc}`;
-                } else {
-                    throw new Error('Invalid API key');
-                }
+            const resp = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+            const data = await resp.json();
+            if (data.rates && data.rates[to]) {
+                const rate = data.rates[to];
+                const result = amount * rate;
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
+                rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${new Date(data.time_last_updated * 1000).toLocaleString()}`;
             } else {
-                const resp = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`);
-                const data = await resp.json();
-                if (data.rates && data.rates[to]) {
-                    rate = data.rates[to];
-                    rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Date: ${data.date}`;
-                } else {
-                    const resp2 = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
-                    const data2 = await resp2.json();
-                    rate = data2.rates[to];
-                    rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${new Date(data2.time_last_updated * 1000).toLocaleString()}`;
-                }
+                throw new Error('Rate not found');
             }
-            const result = amount * rate;
-            resultDiv.style.display = 'block';
-            resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
-        } catch(e) {
+        } catch (e) {
             rateInfo.textContent = '';
-            showError(amountInput, 'Failed to fetch rates. Check API key or try later.');
+            showError(amountInput, 'Failed to fetch rates. Please try again later.');
         }
     }
 }

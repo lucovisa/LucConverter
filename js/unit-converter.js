@@ -5,37 +5,38 @@ document.addEventListener('DOMContentLoaded', function() {
 function initUnitConverter() {
     const timezoneFrom = document.getElementById('timezoneFrom');
     const timezoneTo = document.getElementById('timezoneTo');
-    
-    if (timezoneFrom && timezoneTo && timezoneFrom.options.length === 0) {
+    if (timezoneFrom && timezoneTo) {
         fillSelect(timezoneFrom, timezones);
         fillSelect(timezoneTo, timezones);
     }
-    
-    const selects = document.querySelectorAll('#unitConverter select');
-    selects.forEach(select => {
-        if (select.id !== 'timezoneFrom' && select.id !== 'timezoneTo' && select.options.length === 0) {
-            const parent = select.closest('.converter-content');
-            if (parent) {
-                if (parent.id === 'weightConverter') fillSelect(select, weightUnits);
-                else if (parent.id === 'temperatureConverter') fillSelect(select, tempUnits);
-                else if (parent.id === 'distanceConverter') fillSelect(select, distanceUnits);
-                else if (parent.id === 'durationConverter') fillSelect(select, durationUnits);
-                else if (parent.id === 'speedConverter') fillSelect(select, speedUnits);
-                else if (parent.id === 'areaConverter') fillSelect(select, areaUnits);
-                else if (parent.id === 'volumeConverter') fillSelect(select, volumeUnits);
-                else if (parent.id === 'pressureConverter') fillSelect(select, pressureUnits);
-                else if (parent.id === 'energyConverter') fillSelect(select, energyUnits);
-                else if (parent.id === 'powerConverter') fillSelect(select, powerUnits);
-                else if (parent.id === 'angleConverter') fillSelect(select, angleUnits);
-            }
+
+    const selectMap = {
+        weightConverter: weightUnits,
+        distanceConverter: distanceUnits,
+        durationConverter: durationUnits,
+        speedConverter: speedUnits,
+        areaConverter: areaUnits,
+        volumeConverter: volumeUnits,
+        pressureConverter: pressureUnits,
+        energyConverter: energyUnits,
+        powerConverter: powerUnits,
+        angleConverter: angleUnits,
+        temperatureConverter: tempUnits
+    };
+
+    for (const [id, units] of Object.entries(selectMap)) {
+        const container = document.getElementById(id);
+        if (!container) continue;
+        const select = container.querySelector('select');
+        if (select && select.options.length === 0) {
+            fillSelect(select, units);
         }
-    });
-    
+    }
+
     const colorPicker = document.getElementById('colorPicker');
     const hexInput = document.getElementById('hexInput');
     const rgbInput = document.getElementById('rgbInput');
     const hslInput = document.getElementById('hslInput');
-    
     if (colorPicker && hexInput && rgbInput && hslInput) {
         colorPicker.addEventListener('input', function() {
             const rgb = hexToRgb(this.value);
@@ -45,7 +46,7 @@ function initUnitConverter() {
             hslInput.value = `${hsl.h}, ${hsl.s}%, ${hsl.l}%`;
         });
     }
-    
+
     setupConverter('weightConverter', weightUnits, genericConvert);
     setupConverter('distanceConverter', distanceUnits, genericConvert);
     setupConverter('durationConverter', durationUnits, genericConvert);
@@ -56,7 +57,7 @@ function initUnitConverter() {
     setupConverter('energyConverter', energyUnits, genericConvert);
     setupConverter('powerConverter', powerUnits, genericConvert);
     setupConverter('angleConverter', angleUnits, genericConvert);
-    
+
     const tempSelect = document.querySelector('#temperatureConverter select');
     const tempInput = document.querySelector('#temperatureConverter input[type="number"]');
     const tempBtn = document.querySelector('#temperatureConverter button');
@@ -71,18 +72,18 @@ function initUnitConverter() {
             const unit = tempSelect.value;
             let celsius;
             if (unit === 'Celsius (°C)') celsius = value;
-            else if (unit === 'Fahrenheit (°F)') celsius = (value - 32) * 5/9;
+            else if (unit === 'Fahrenheit (°F)') celsius = (value - 32) * 5 / 9;
             else if (unit === 'Kelvin (K)') celsius = value - 273.15;
-            else if (unit === 'Rankine (°R)') celsius = (value - 491.67) * 5/9;
-            else if (unit === 'Réaumur (°Ré)') celsius = value * 5/4;
-            const fahrenheit = celsius * 9/5 + 32;
+            else if (unit === 'Rankine (°R)') celsius = (value - 491.67) * 5 / 9;
+            else if (unit === 'Réaumur (°Ré)') celsius = value * 5 / 4;
+            const fahrenheit = celsius * 9 / 5 + 32;
             const kelvin = celsius + 273.15;
-            const rankine = (celsius + 273.15) * 9/5;
-            const reaumur = celsius * 4/5;
+            const rankine = (celsius + 273.15) * 9 / 5;
+            const reaumur = celsius * 4 / 5;
             tempResult.textContent = `${celsius.toFixed(2)}°C | ${fahrenheit.toFixed(2)}°F | ${kelvin.toFixed(2)}K | ${rankine.toFixed(2)}°R | ${reaumur.toFixed(2)}°Ré`;
         });
     }
-    
+
     const timeBtn = document.querySelector('#timeConverter button');
     const timeResult = document.querySelector('#timeConverter .result-display');
     if (timeBtn && timeResult) {
@@ -96,7 +97,7 @@ function initUnitConverter() {
             timeResult.textContent = `${timezoneFrom.value}: ${fromTime.toLocaleTimeString()} | ${timezoneTo.value}: ${toTime.toLocaleTimeString()}`;
         });
     }
-    
+
     const fractionInput = document.querySelector('#fractionConverter input');
     const fractionBtn = document.querySelector('#fractionConverter button');
     const fractionResult = document.querySelector('#fractionConverter .result-display');
@@ -118,7 +119,7 @@ function initUnitConverter() {
             fractionResult.textContent = `${fraction} = ${decimal.toFixed(6)}`;
         });
     }
-    
+
     const romanInput = document.querySelector('#romanConverter input');
     const romanBtn = document.querySelector('#romanConverter button');
     const romanResult = document.querySelector('#romanConverter .result-display');
@@ -130,7 +131,7 @@ function initUnitConverter() {
             else showError(romanInput, 'Please enter a valid number or Roman numeral');
         });
     }
-    
+
     const numSysInput = document.querySelector('#numberSystemConverter input');
     const numSysSelect = document.querySelector('#numberSystemConverter select');
     const numSysBtn = document.querySelector('#numberSystemConverter button');
@@ -147,12 +148,12 @@ function initUnitConverter() {
                 else if (system === 'hexadecimal') decimal = parseInt(input, 16);
                 if (isNaN(decimal)) throw new Error('Invalid');
                 numSysResult.textContent = `Binary: ${decimal.toString(2)}\nOctal: ${decimal.toString(8)}\nDecimal: ${decimal.toString(10)}\nHexadecimal: ${decimal.toString(16).toUpperCase()}`;
-            } catch(e) {
+            } catch (e) {
                 showError(numSysInput, 'Invalid number for selected system');
             }
         });
     }
-    
+
     const dateInput = document.getElementById('dateInput');
     const dateBtn = document.querySelector('#dateConverter button');
     const dateResult = document.querySelector('#dateConverter .result-display');
@@ -167,7 +168,7 @@ function initUnitConverter() {
             dateResult.textContent = `ISO: ${date.toISOString()}\nUnix timestamp: ${unixTimestamp}\nDay of week: ${date.toLocaleDateString('en-US', { weekday: 'long' })}\nWeek number: ${getWeekNumber(date)}`;
         });
     }
-    
+
     const uuidBtn = document.querySelector('#uuidGenerator button');
     const uuidResult = document.querySelector('#uuidGenerator .result-display');
     if (uuidBtn && uuidResult) {
@@ -220,7 +221,7 @@ function genericConvert(value, unit, units) {
 }
 
 function toRoman(num) {
-    const values = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+    const values = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
     let result = '';
     for (const [value, symbol] of values) {
         while (num >= value) {
@@ -232,11 +233,11 @@ function toRoman(num) {
 }
 
 function fromRoman(roman) {
-    const values = {'I':1,'V':5,'X':10,'L':50,'C':100,'D':500,'M':1000};
+    const values = { 'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000 };
     let result = 0;
-    for (let i=0; i<roman.length; i++) {
+    for (let i = 0; i < roman.length; i++) {
         const current = values[roman[i]];
-        const next = values[roman[i+1]];
+        const next = values[roman[i + 1]];
         if (next && current < next) result -= current;
         else result += current;
     }
@@ -245,9 +246,9 @@ function fromRoman(roman) {
 
 function getWeekNumber(date) {
     const d = new Date(date);
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-    const yearStart = new Date(d.getFullYear(),0,1);
+    const yearStart = new Date(d.getFullYear(), 0, 1);
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
@@ -268,40 +269,40 @@ const timezones = {
     'BST': 6, 'WIB': 7, 'WITA': 8, 'WIT': 9, 'SGT': 8, 'HKT': 8, 'PHT': 8
 };
 
-const weightUnits = {'Milligrams (mg)':0.000001,'Grams (g)':0.001,'Kilograms (kg)':1,'Tons (t)':1000,'Ounces (oz)':0.0283495,'Pounds (lbs)':0.453592,'Stones (st)':6.35029,'Carats (ct)':0.0002};
-const tempUnits = {'Celsius (°C)':1,'Fahrenheit (°F)':1,'Kelvin (K)':1,'Rankine (°R)':1,'Réaumur (°Ré)':1};
-const distanceUnits = {'Millimeters (mm)':0.001,'Centimeters (cm)':0.01,'Meters (m)':1,'Kilometers (km)':1000,'Inches (in)':0.0254,'Feet (ft)':0.3048,'Yards (yd)':0.9144,'Miles (mi)':1609.344,'Nautical Miles (nmi)':1852};
-const durationUnits = {'Milliseconds (ms)':0.001,'Seconds (s)':1,'Minutes (min)':60,'Hours (h)':3600,'Days (d)':86400,'Weeks (wk)':604800,'Months (mo)':2592000,'Years (yr)':31536000};
-const speedUnits = {'Meters per second (m/s)':1,'Kilometers per hour (km/h)':0.277778,'Miles per hour (mph)':0.44704,'Knots (kn)':0.514444,'Feet per second (ft/s)':0.3048,'Mach (M)':340.29};
-const areaUnits = {'Square meters (m²)':1,'Square kilometers (km²)':1000000,'Square feet (ft²)':0.092903,'Square yards (yd²)':0.836127,'Acres':4046.86,'Hectares (ha)':10000,'Square miles (mi²)':2589988.11};
-const volumeUnits = {'Liters (L)':1,'Milliliters (mL)':0.001,'Cubic meters (m³)':1000,'Gallons (gal)':3.78541,'Quarts (qt)':0.946353,'Pints (pt)':0.473176,'Cups':0.236588,'Fluid ounces (fl oz)':0.0295735};
-const pressureUnits = {'Pascal (Pa)':1,'Kilopascal (kPa)':1000,'Bar':100000,'Atmosphere (atm)':101325,'mmHg':133.322,'PSI':6894.76};
-const energyUnits = {'Joules (J)':1,'Kilojoules (kJ)':1000,'Calories (cal)':4.184,'Kilocalories (kcal)':4184,'Watt-hours (Wh)':3600,'BTU':1055.06};
-const powerUnits = {'Watts (W)':1,'Kilowatts (kW)':1000,'Horsepower (hp)':745.7,'BTU per hour':0.293071};
-const angleUnits = {'Degrees (°)':1,'Radians (rad)':57.2958,'Gradians (grad)':0.9,"Minutes (')":0.0166667,'Seconds (")':0.000277778};
+const weightUnits = {'Milligrams (mg)': 0.000001, 'Grams (g)': 0.001, 'Kilograms (kg)': 1, 'Tons (t)': 1000, 'Ounces (oz)': 0.0283495, 'Pounds (lbs)': 0.453592, 'Stones (st)': 6.35029, 'Carats (ct)': 0.0002};
+const tempUnits = {'Celsius (°C)': 1, 'Fahrenheit (°F)': 1, 'Kelvin (K)': 1, 'Rankine (°R)': 1, 'Réaumur (°Ré)': 1};
+const distanceUnits = {'Millimeters (mm)': 0.001, 'Centimeters (cm)': 0.01, 'Meters (m)': 1, 'Kilometers (km)': 1000, 'Inches (in)': 0.0254, 'Feet (ft)': 0.3048, 'Yards (yd)': 0.9144, 'Miles (mi)': 1609.344, 'Nautical Miles (nmi)': 1852};
+const durationUnits = {'Milliseconds (ms)': 0.001, 'Seconds (s)': 1, 'Minutes (min)': 60, 'Hours (h)': 3600, 'Days (d)': 86400, 'Weeks (wk)': 604800, 'Months (mo)': 2592000, 'Years (yr)': 31536000};
+const speedUnits = {'Meters per second (m/s)': 1, 'Kilometers per hour (km/h)': 0.277778, 'Miles per hour (mph)': 0.44704, 'Knots (kn)': 0.514444, 'Feet per second (ft/s)': 0.3048, 'Mach (M)': 340.29};
+const areaUnits = {'Square meters (m²)': 1, 'Square kilometers (km²)': 1000000, 'Square feet (ft²)': 0.092903, 'Square yards (yd²)': 0.836127, 'Acres': 4046.86, 'Hectares (ha)': 10000, 'Square miles (mi²)': 2589988.11};
+const volumeUnits = {'Liters (L)': 1, 'Milliliters (mL)': 0.001, 'Cubic meters (m³)': 1000, 'Gallons (gal)': 3.78541, 'Quarts (qt)': 0.946353, 'Pints (pt)': 0.473176, 'Cups': 0.236588, 'Fluid ounces (fl oz)': 0.0295735};
+const pressureUnits = {'Pascal (Pa)': 1, 'Kilopascal (kPa)': 1000, 'Bar': 100000, 'Atmosphere (atm)': 101325, 'mmHg': 133.322, 'PSI': 6894.76};
+const energyUnits = {'Joules (J)': 1, 'Kilojoules (kJ)': 1000, 'Calories (cal)': 4.184, 'Kilocalories (kcal)': 4184, 'Watt-hours (Wh)': 3600, 'BTU': 1055.06};
+const powerUnits = {'Watts (W)': 1, 'Kilowatts (kW)': 1000, 'Horsepower (hp)': 745.7, 'BTU per hour': 0.293071};
+const angleUnits = {'Degrees (°)': 1, 'Radians (rad)': 57.2958, 'Gradians (grad)': 0.9, "Minutes (')": 0.0166667, 'Seconds (")': 0.000277778};
 
 function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1,3),16);
-    const g = parseInt(hex.slice(3,5),16);
-    const b = parseInt(hex.slice(5,7),16);
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
     return { r, g, b };
 }
 
 function rgbToHsl(r, g, b) {
     r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r,g,b), min = Math.min(r,g,b);
-    let h, s, l = (max+min)/2;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
     if (max === min) {
         h = s = 0;
     } else {
         const d = max - min;
         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch(max) {
+        switch (max) {
             case r: h = (g - b) / d + (g < b ? 6 : 0); break;
             case g: h = (b - r) / d + 2; break;
             case b: h = (r - g) / d + 4; break;
         }
         h /= 6;
     }
-    return { h: Math.round(h*360), s: Math.round(s*100), l: Math.round(l*100) };
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }

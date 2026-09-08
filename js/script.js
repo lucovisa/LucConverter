@@ -6,7 +6,18 @@ function showSection(sectionId) {
     });
     document.getElementById(sectionId).style.display = 'block';
     
-    document.title = 'LucConverter - ' + sectionId.replace(/([A-Z])/g, ' $1').trim();
+    const titles = {
+        fileConverter: 'File Converter',
+        unitConverter: 'Unit Converter',
+        linkConverter: 'Link Converter',
+        currencyConverter: 'Currency Converter',
+        mediaShop: 'Media Shop',
+        photoEditor: 'Photoshop',
+        textEditor: 'Text Editor',
+        calculator: 'Calculator',
+        info: 'Info'
+    };
+    document.title = 'LucConverter - ' + (titles[sectionId] || sectionId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()));
 }
 
 function showMainMenu() {

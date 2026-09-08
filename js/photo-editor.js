@@ -6,13 +6,13 @@ function initPhotoEditor() {
     const photoSection = document.getElementById('photoEditor');
     if (!photoSection) return;
     photoSection.innerHTML = '';
-    
+
     const backBtn = document.createElement('button');
     backBtn.className = 'back-btn';
     backBtn.textContent = '← Back';
     backBtn.addEventListener('click', () => showMainMenu());
     photoSection.appendChild(backBtn);
-    
+
     const toolbar = document.createElement('div');
     toolbar.style.display = 'flex';
     toolbar.style.flexWrap = 'wrap';
@@ -23,12 +23,12 @@ function initPhotoEditor() {
     toolbar.style.border = '1px solid var(--border)';
     toolbar.style.borderRadius = '4px';
     toolbar.style.alignItems = 'center';
-    
+
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     fileInput.style.display = 'none';
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = 800;
     canvas.height = 600;
@@ -36,18 +36,18 @@ function initPhotoEditor() {
     canvas.style.cursor = 'crosshair';
     canvas.style.touchAction = 'none';
     canvas.style.display = 'block';
-    
+
     const scrollContainer = document.createElement('div');
     scrollContainer.style.overflow = 'auto';
     scrollContainer.style.maxHeight = '70vh';
     scrollContainer.style.border = '1px solid var(--border)';
     scrollContainer.style.borderRadius = '4px';
     scrollContainer.appendChild(canvas);
-    
+
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     let originalImage = null;
     let currentImage = null;
     let isDrawing = false;
@@ -57,12 +57,12 @@ function initPhotoEditor() {
     let brushOpacity = 100;
     let currentTool = 'brush';
     let history = [];
-    
+
     function saveState() {
         history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
         if (history.length > 20) history.shift();
     }
-    
+
     const uploadBtn = document.createElement('button');
     uploadBtn.textContent = '📁 Upload';
     uploadBtn.style.padding = '0.5rem 0.8rem';
@@ -74,7 +74,7 @@ function initPhotoEditor() {
     uploadBtn.style.cursor = 'pointer';
     uploadBtn.addEventListener('click', () => fileInput.click());
     toolbar.appendChild(uploadBtn);
-    
+
     const brushBtn = document.createElement('button');
     brushBtn.textContent = '✏️ Brush';
     brushBtn.style.padding = '0.5rem 0.8rem';
@@ -86,7 +86,7 @@ function initPhotoEditor() {
     brushBtn.style.cursor = 'pointer';
     brushBtn.addEventListener('click', () => { currentTool = 'brush'; canvas.style.cursor = 'crosshair'; });
     toolbar.appendChild(brushBtn);
-    
+
     const eraserBtn = document.createElement('button');
     eraserBtn.textContent = '🧹 Eraser';
     eraserBtn.style.padding = '0.5rem 0.8rem';
@@ -98,7 +98,7 @@ function initPhotoEditor() {
     eraserBtn.style.cursor = 'pointer';
     eraserBtn.addEventListener('click', () => { currentTool = 'eraser'; canvas.style.cursor = 'cell'; });
     toolbar.appendChild(eraserBtn);
-    
+
     const fillBtn = document.createElement('button');
     fillBtn.textContent = '🪣 Fill';
     fillBtn.style.padding = '0.5rem 0.8rem';
@@ -110,7 +110,7 @@ function initPhotoEditor() {
     fillBtn.style.cursor = 'pointer';
     fillBtn.addEventListener('click', () => { currentTool = 'fill'; canvas.style.cursor = 'pointer'; });
     toolbar.appendChild(fillBtn);
-    
+
     const colorPicker = document.createElement('input');
     colorPicker.type = 'color';
     colorPicker.value = '#000000';
@@ -121,7 +121,7 @@ function initPhotoEditor() {
     colorPicker.style.cursor = 'pointer';
     colorPicker.addEventListener('change', function() { brushColor = this.value; });
     toolbar.appendChild(colorPicker);
-    
+
     const opacityInput = document.createElement('input');
     opacityInput.type = 'range';
     opacityInput.min = '1';
@@ -137,7 +137,7 @@ function initPhotoEditor() {
     });
     toolbar.appendChild(opacityInput);
     toolbar.appendChild(opacityLabel);
-    
+
     const sizeInput = document.createElement('input');
     sizeInput.type = 'range';
     sizeInput.min = '1';
@@ -153,7 +153,7 @@ function initPhotoEditor() {
     });
     toolbar.appendChild(sizeInput);
     toolbar.appendChild(sizeLabel);
-    
+
     const widthInput = document.createElement('input');
     widthInput.type = 'number';
     widthInput.placeholder = 'Width';
@@ -201,14 +201,14 @@ function initPhotoEditor() {
     toolbar.appendChild(widthInput);
     toolbar.appendChild(heightInput);
     toolbar.appendChild(resizeBtn);
-    
+
     const filterContainer = document.createElement('div');
     filterContainer.style.display = 'flex';
     filterContainer.style.flexWrap = 'wrap';
     filterContainer.style.gap = '0.5rem';
     filterContainer.style.marginTop = '0.5rem';
     filterContainer.style.width = '100%';
-    
+
     const filters = [
         { name: 'Brightness', min: -100, max: 100, value: 0 },
         { name: 'Contrast', min: -100, max: 100, value: 0 },
@@ -219,6 +219,7 @@ function initPhotoEditor() {
     const sliders = {};
     filters.forEach(filter => {
         const cont = document.createElement('div');
+        cont.className = 'filter-row';
         cont.style.display = 'flex';
         cont.style.alignItems = 'center';
         cont.style.gap = '0.3rem';
@@ -269,14 +270,14 @@ function initPhotoEditor() {
         sliders[filter.name.toLowerCase()] = filter.value;
     });
     toolbar.appendChild(filterContainer);
-    
+
     const actionContainer = document.createElement('div');
     actionContainer.style.display = 'flex';
     actionContainer.style.gap = '0.5rem';
     actionContainer.style.marginTop = '0.5rem';
     actionContainer.style.width = '100%';
     actionContainer.style.flexWrap = 'wrap';
-    
+
     const applyBtn = document.createElement('button');
     applyBtn.textContent = '✅ Apply';
     applyBtn.style.padding = '0.5rem 0.8rem';
@@ -288,7 +289,7 @@ function initPhotoEditor() {
     applyBtn.style.cursor = 'pointer';
     applyBtn.addEventListener('click', () => { saveState(); applyFilters(); });
     actionContainer.appendChild(applyBtn);
-    
+
     const resetBtn = document.createElement('button');
     resetBtn.textContent = '🔄 Reset';
     resetBtn.style.padding = '0.5rem 0.8rem';
@@ -307,7 +308,7 @@ function initPhotoEditor() {
         filters.forEach(f => sliders[f.name.toLowerCase()] = f.value);
     });
     actionContainer.appendChild(resetBtn);
-    
+
     const undoBtn = document.createElement('button');
     undoBtn.textContent = '↩️ Undo';
     undoBtn.style.padding = '0.5rem 0.8rem';
@@ -325,7 +326,7 @@ function initPhotoEditor() {
         }
     });
     actionContainer.appendChild(undoBtn);
-    
+
     const clearBtn = document.createElement('button');
     clearBtn.textContent = '🗑️ Clear';
     clearBtn.style.padding = '0.5rem 0.8rem';
@@ -343,7 +344,7 @@ function initPhotoEditor() {
         history = [];
     });
     actionContainer.appendChild(clearBtn);
-    
+
     const downloadBtn = document.createElement('button');
     downloadBtn.textContent = '💾 Download';
     downloadBtn.style.padding = '0.5rem 0.8rem';
@@ -355,7 +356,7 @@ function initPhotoEditor() {
     downloadBtn.style.cursor = 'pointer';
     downloadBtn.addEventListener('click', () => {
         const formatSelect = document.createElement('select');
-        ['png','jpg','webp','bmp','ico','svg'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+        ['png', 'jpg', 'webp', 'bmp', 'ico', 'svg'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
         const container = document.createElement('div');
         container.style.position = 'fixed';
         container.style.top = '50%';
@@ -410,13 +411,13 @@ function initPhotoEditor() {
         document.body.appendChild(container);
     });
     actionContainer.appendChild(downloadBtn);
-    
+
     toolbar.appendChild(actionContainer);
-    
+
     photoSection.appendChild(toolbar);
     photoSection.appendChild(scrollContainer);
     photoSection.appendChild(fileInput);
-    
+
     fileInput.addEventListener('change', function() {
         const file = this.files[0];
         if (!file) return;
@@ -442,7 +443,7 @@ function initPhotoEditor() {
         };
         img.src = URL.createObjectURL(file);
     });
-    
+
     canvas.addEventListener('mousedown', (e) => {
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -480,7 +481,7 @@ function initPhotoEditor() {
         currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     });
     canvas.addEventListener('mouseleave', () => { isDrawing = false; });
-    
+
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
@@ -497,7 +498,7 @@ function initPhotoEditor() {
         e.preventDefault();
         canvas.dispatchEvent(new MouseEvent('mouseup'));
     });
-    
+
     function floodFill(startX, startY, fillColor, opacity) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
@@ -527,7 +528,7 @@ function initPhotoEditor() {
         ctx.putImageData(imageData, 0, 0);
         currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
-    
+
     function applyFilters() {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -560,7 +561,7 @@ function initPhotoEditor() {
         if (sharpen > 0) applySharpen(sharpen);
         currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
-    
+
     function applyBlur(amount) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
@@ -585,7 +586,7 @@ function initPhotoEditor() {
         }
         ctx.putImageData(imageData, 0, 0);
     }
-    
+
     function applySharpen(amount) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
@@ -608,7 +609,7 @@ function initPhotoEditor() {
         }
         ctx.putImageData(imageData, 0, 0);
     }
-    
+
     function canvasToBMP(canvas) {
         const ctx = canvas.getContext('2d');
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -642,7 +643,7 @@ function initPhotoEditor() {
         }
         return buffer;
     }
-    
+
     function downloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

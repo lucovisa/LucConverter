@@ -6,7 +6,7 @@ function initLinkConverter() {
     const qrInput = document.querySelector('#qrConverter input[type="text"]');
     const qrBtn = document.querySelector('#qrConverter button');
     const qrCode = document.getElementById('qrCode');
-    
+
     qrBtn.addEventListener('click', () => {
         const text = qrInput.value.trim();
         if (!text) { showError(qrInput, 'Please enter text or URL'); return; }
@@ -24,7 +24,7 @@ function initLinkConverter() {
             txtBtn.style.borderRadius = '4px';
             txtBtn.style.cursor = 'pointer';
             txtBtn.addEventListener('click', () => {
-                const blob = new Blob([text], {type:'text/plain'});
+                const blob = new Blob([text], { type: 'text/plain' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 a.download = 'text.txt';
@@ -41,7 +41,7 @@ function initLinkConverter() {
             zipBtn.addEventListener('click', async () => {
                 const zip = new JSZip();
                 zip.file('text.txt', text);
-                const blob = await zip.generateAsync({type:'blob'});
+                const blob = await zip.generateAsync({ type: 'blob' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 a.download = 'text.zip';
@@ -55,26 +55,48 @@ function initLinkConverter() {
         }
         qrCode.innerHTML = '';
         if (typeof QRCode !== 'undefined') {
-            const canvas = document.createElement('canvas');
-            qrCode.appendChild(canvas);
-            QRCode.toCanvas(canvas, text, {width:200, margin:1}, (error) => {
-                if (error) { qrCode.textContent = 'QR generation failed'; return; }
-                addQRDownload(canvas, text);
+            const qrContainer = document.createElement('div');
+            qrCode.appendChild(qrContainer);
+            new QRCode(qrContainer, {
+                text: text,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
             });
+            const canvas = qrContainer.querySelector('canvas');
+            const img = qrContainer.querySelector('img');
+            if (canvas) {
+                addQRDownload(canvas, text);
+            } else if (img) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = 200;
+                tempCanvas.height = 200;
+                const ctx = tempCanvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                addQRDownload(tempCanvas, text);
+            }
         } else {
             const canvas = document.createElement('canvas');
-            canvas.width = 200; canvas.height = 200;
+            canvas.width = 200;
+            canvas.height = 200;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white'; ctx.fillRect(0,0,200,200);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, 200, 200);
             ctx.fillStyle = 'black';
             const data = generateQRData(text);
-            const cell = 200/25;
-            for (let i=0; i<data.length; i++) for (let j=0; j<data[i].length; j++) if (data[i][j]) ctx.fillRect(j*cell, i*cell, cell, cell);
+            const cell = 200 / 25;
+            for (let i = 0; i < data.length; i++) {
+                for (let j = 0; j < data[i].length; j++) {
+                    if (data[i][j]) ctx.fillRect(j * cell, i * cell, cell, cell);
+                }
+            }
             qrCode.appendChild(canvas);
             addQRDownload(canvas, text);
         }
     });
-    
+
     function addQRDownload(canvas, text) {
         const btn = document.createElement('button');
         btn.textContent = 'Download QR Code';
@@ -94,12 +116,12 @@ function initLinkConverter() {
         qrCode.appendChild(btn);
         qrCode.dataset.text = text;
     }
-    
+
     const qrDropZone = document.getElementById('qrDropZone');
     const qrImageInput = document.getElementById('qrImageInput');
     const qrScanBtn = document.querySelector('#qrScanner button');
     const qrScanResult = document.querySelector('#qrScanner .result-display');
-    
+
     qrDropZone.addEventListener('click', () => qrImageInput.click());
     qrDropZone.addEventListener('dragover', (e) => { e.preventDefault(); qrDropZone.classList.add('drag-over'); });
     qrDropZone.addEventListener('dragleave', () => qrDropZone.classList.remove('drag-over'));
@@ -111,18 +133,21 @@ function initLinkConverter() {
             scanQR(e.dataTransfer.files[0]);
         }
     });
-    qrImageInput.addEventListener('change', function() { if (this.files.length) scanQR(this.files[0]); });
+    qrImageInput.addEventListener('change', function() {
+        if (this.files.length) scanQR(this.files[0]);
+    });
     qrScanBtn.addEventListener('click', () => {
         if (qrImageInput.files.length) scanQR(qrImageInput.files[0]);
         else if (qrCode.dataset.text) qrScanResult.textContent = `Decoded: ${qrCode.dataset.text}`;
         else showError(qrImageInput, 'Please select an image with QR code');
     });
-    
+
     function scanQR(file) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = img.width; canvas.height = img.height;
+            canvas.width = img.width;
+            canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -135,44 +160,40 @@ function initLinkConverter() {
         };
         img.src = URL.createObjectURL(file);
     }
-    
+
     const urlTextarea = document.querySelector('#urlConverter textarea');
     const urlResult = document.getElementById('urlResult');
     const encodeBtn = document.querySelector('#urlConverter .button-group button:first-child');
     const decodeBtn = document.querySelector('#urlConverter .button-group button:last-child');
-    
     encodeBtn.addEventListener('click', () => {
         if (!urlTextarea.value.trim()) { showError(urlTextarea, 'Please enter text to encode'); return; }
         urlResult.value = encodeURIComponent(urlTextarea.value);
     });
-    
     decodeBtn.addEventListener('click', () => {
         if (!urlTextarea.value.trim()) { showError(urlTextarea, 'Please enter text to decode'); return; }
-        try { urlResult.value = decodeURIComponent(urlTextarea.value); } catch(e) { showError(urlTextarea, 'Invalid encoded text'); }
+        try { urlResult.value = decodeURIComponent(urlTextarea.value); } catch (e) { showError(urlTextarea, 'Invalid encoded text'); }
     });
-    
+
     const shortInput = document.querySelector('#linkShortener input');
     const shortBtn = document.querySelector('#linkShortener button');
     const shortResult = document.querySelector('#linkShortener .result-display');
-    
     shortBtn.addEventListener('click', () => {
         const url = shortInput.value.trim();
         if (!url.startsWith('http')) { showError(shortInput, 'Please enter a valid URL'); return; }
         const code = generateRandomString(6);
         shortResult.textContent = `Short URL: https://luc.tiny/${code}`;
     });
-    
+
     const lengthenInput = document.querySelector('#linkLengthener input');
     const lengthenBtn = document.querySelector('#linkLengthener button');
     const lengthenResult = document.querySelector('#linkLengthener .result-display');
-    
     lengthenBtn.addEventListener('click', () => {
         const url = lengthenInput.value.trim();
         if (!url) { showError(lengthenInput, 'Please enter a URL'); return; }
         const params = '?utm_source=lengthener&utm_medium=link&utm_campaign=luc_converter&ref=' + generateRandomString(20);
         lengthenResult.textContent = url + params;
     });
-    
+
     const passLengthInput = document.querySelector('#passwordGenerator input[type="number"]');
     const passBtn = document.querySelector('#passwordGenerator button');
     const passResult = document.querySelector('#passwordGenerator .result-display');
@@ -180,7 +201,6 @@ function initLinkConverter() {
     const useLowercase = document.getElementById('useLowercase');
     const useNumbers = document.getElementById('useNumbers');
     const useSymbols = document.getElementById('useSymbols');
-    
     passBtn.addEventListener('click', () => {
         const length = parseInt(passLengthInput.value);
         if (!length || length < 4) { showError(passLengthInput, 'Length must be at least 4'); return; }
@@ -191,52 +211,48 @@ function initLinkConverter() {
         if (useSymbols.checked) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
         if (!charset) { showError(passLengthInput, 'Select at least one character type'); return; }
         let password = '';
-        for (let i=0; i<length; i++) password += charset[Math.floor(Math.random()*charset.length)];
+        for (let i = 0; i < length; i++) password += charset[Math.floor(Math.random() * charset.length)];
         passResult.textContent = password;
     });
-    
+
     const minInput = document.querySelector('#randomNumber input:first-of-type');
     const maxInput = document.querySelector('#randomNumber input:last-of-type');
     const randomBtn = document.querySelector('#randomNumber button');
     const randomResult = document.querySelector('#randomNumber .result-display');
-    
     randomBtn.addEventListener('click', () => {
         const min = parseInt(minInput.value);
         const max = parseInt(maxInput.value);
         if (isNaN(min) || isNaN(max) || min >= max) { showError(minInput, 'Min must be less than max'); return; }
-        randomResult.textContent = `Random number: ${Math.floor(Math.random()*(max-min+1))+min}`;
+        randomResult.textContent = `Random number: ${Math.floor(Math.random() * (max - min + 1)) + min}`;
     });
-    
+
     const hashInput = document.querySelector('#hashGenerator input');
     const hashSelect = document.querySelector('#hashGenerator select');
     const hashBtn = document.querySelector('#hashGenerator button');
     const hashResult = document.querySelector('#hashGenerator .result-display');
-    
     hashBtn.addEventListener('click', async () => {
         const text = hashInput.value.trim();
         if (!text) { showError(hashInput, 'Please enter text to hash'); return; }
-        const algo = {sha1:'SHA-1', sha256:'SHA-256', sha512:'SHA-512'}[hashSelect.value];
+        const algo = { sha1: 'SHA-1', sha256: 'SHA-256', sha512: 'SHA-512' }[hashSelect.value];
         const data = new TextEncoder().encode(text);
         const hashBuffer = await crypto.subtle.digest(algo, data);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         hashResult.textContent = `${hashSelect.value.toUpperCase()}: ${hashHex}`;
     });
-    
+
     const textToBinaryTextarea = document.querySelector('#textToBinary textarea');
     const textToBinaryBtn = document.querySelector('#textToBinary button');
     const textToBinaryResult = document.querySelector('#textToBinary .result-display');
-    
     textToBinaryBtn.addEventListener('click', () => {
         const text = textToBinaryTextarea.value.trim();
         if (!text) { showError(textToBinaryTextarea, 'Please enter text'); return; }
-        textToBinaryResult.textContent = text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8,'0')).join(' ');
+        textToBinaryResult.textContent = text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
     });
-    
+
     const asciiTextarea = document.querySelector('#asciiConverter textarea');
     const asciiBtn = document.querySelector('#asciiConverter button');
     const asciiResult = document.querySelector('#asciiConverter .result-display');
-    
     asciiBtn.addEventListener('click', () => {
         const text = asciiTextarea.value.trim();
         if (!text) { showError(asciiTextarea, 'Please enter text'); return; }
@@ -247,7 +263,7 @@ function initLinkConverter() {
 function generateRandomString(length) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    for (let i = 0; i < length; i++) result += chars[Math.floor(Math.random()*chars.length)];
+    for (let i = 0; i < length; i++) result += chars[Math.floor(Math.random() * chars.length)];
     return result;
 }
 
@@ -268,15 +284,15 @@ function generateQRData(text) {
     for (let i = 0; i < 7; i++) {
         for (let j = 0; j < 7; j++) {
             qrData[i][j] = 1;
-            qrData[size-1-i][j] = 1;
-            qrData[i][size-1-j] = 1;
+            qrData[size - 1 - i][j] = 1;
+            qrData[i][size - 1 - j] = 1;
         }
     }
     for (let i = 2; i < 5; i++) {
         for (let j = 2; j < 5; j++) {
             qrData[i][j] = 0;
-            qrData[size-1-i][j] = 0;
-            qrData[i][size-1-j] = 0;
+            qrData[size - 1 - i][j] = 0;
+            qrData[i][size - 1 - j] = 0;
         }
     }
     return qrData;
