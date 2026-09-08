@@ -42,29 +42,39 @@ function initTextEditor() {
     toolbar.style.borderRadius = '4px';
     toolbar.style.alignItems = 'center';
 
-    const textarea = document.createElement('textarea');
-    textarea.style.width = '100%';
-    textarea.style.minHeight = '400px';
-    textarea.style.padding = '1rem';
-    textarea.style.background = 'var(--bg)';
-    textarea.style.border = '1px solid var(--border)';
-    textarea.style.borderRadius = '4px';
-    textarea.style.color = 'var(--text)';
-    textarea.style.fontSize = '1rem';
-    textarea.style.fontFamily = 'monospace';
-    textarea.style.resize = 'vertical';
-    textarea.placeholder = 'Start typing here...';
+    const editor = document.createElement('div');
+    editor.id = 'richEditor';
+    editor.contentEditable = 'true';
+    editor.style.width = '100%';
+    editor.style.minHeight = '400px';
+    editor.style.padding = '1rem';
+    editor.style.background = 'var(--bg)';
+    editor.style.border = '1px solid var(--border)';
+    editor.style.borderRadius = '4px';
+    editor.style.color = 'var(--text)';
+    editor.style.fontSize = '1rem';
+    editor.style.fontFamily = 'monospace';
+    editor.style.overflowY = 'auto';
+    editor.style.outline = 'none';
 
-    const newBtn = document.createElement('button');
-    newBtn.textContent = '📄';
-    newBtn.title = 'New';
-    newBtn.addEventListener('click', () => { textarea.value = ''; clearConsole(); });
-    toolbar.appendChild(newBtn);
+    function addButton(html, title, action) {
+        const btn = document.createElement('button');
+        btn.innerHTML = html;
+        btn.title = title;
+        btn.style.padding = '0.5rem 0.8rem';
+        btn.style.background = 'var(--button-bg)';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        btn.style.fontSize = '0.9rem';
+        btn.style.fontWeight = 'bold';
+        btn.addEventListener('click', action);
+        toolbar.appendChild(btn);
+    }
 
-    const openBtn = document.createElement('button');
-    openBtn.textContent = '📂';
-    openBtn.title = 'Open';
-    openBtn.addEventListener('click', () => {
+    addButton('📄', 'New', () => { editor.innerHTML = ''; clearConsole(); });
+    addButton('📂', 'Open', () => {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.txt,.md,.html,.css,.js,.json,.xml,.csv,.py,.lua,.sql';
@@ -72,59 +82,28 @@ function initTextEditor() {
             const file = this.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = e => textarea.value = e.target.result;
+            reader.onload = e => editor.textContent = e.target.result;
             reader.readAsText(file);
         });
         fileInput.click();
     });
-    toolbar.appendChild(openBtn);
-
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = '💾';
-    saveBtn.title = 'Save';
-    saveBtn.addEventListener('click', () => {
-        const blob = new Blob([textarea.value], { type: 'text/plain' });
+    addButton('💾', 'Save', () => {
+        const blob = new Blob([editor.innerText], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'document.txt';
         a.click();
     });
-    toolbar.appendChild(saveBtn);
-
-    const printBtn = document.createElement('button');
-    printBtn.textContent = '🖨️';
-    printBtn.title = 'Print';
-    printBtn.addEventListener('click', () => {
+    addButton('🖨️', 'Print', () => {
         const win = window.open('', '_blank');
-        win.document.write('<pre>' + textarea.value.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+        win.document.write('<pre>' + editor.innerText.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
         win.document.close();
         win.print();
     });
-    toolbar.appendChild(printBtn);
-
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = '🗑️';
-    clearBtn.title = 'Clear';
-    clearBtn.addEventListener('click', () => { textarea.value = ''; clearConsole(); });
-    toolbar.appendChild(clearBtn);
-
-    const boldBtn = document.createElement('button');
-    boldBtn.innerHTML = '<b>B</b>';
-    boldBtn.title = 'Bold';
-    boldBtn.addEventListener('click', () => applyFormatting('**', '**'));
-    toolbar.appendChild(boldBtn);
-
-    const italicBtn = document.createElement('button');
-    italicBtn.innerHTML = '<i>I</i>';
-    italicBtn.title = 'Italic';
-    italicBtn.addEventListener('click', () => applyFormatting('*', '*'));
-    toolbar.appendChild(italicBtn);
-
-    const underlineBtn = document.createElement('button');
-    underlineBtn.innerHTML = '<u>U</u>';
-    underlineBtn.title = 'Underline';
-    underlineBtn.addEventListener('click', () => applyFormatting('__', '__'));
-    toolbar.appendChild(underlineBtn);
+    addButton('🗑️', 'Clear', () => { editor.innerHTML = ''; clearConsole(); });
+    addButton('<b>B</b>', 'Bold', () => document.execCommand('bold'));
+    addButton('<i>I</i>', 'Italic', () => document.execCommand('italic'));
+    addButton('<u>U</u>', 'Underline', () => document.execCommand('underline'));
 
     const languageSelect = document.createElement('select');
     languageSelect.style.padding = '0.5rem';
@@ -153,7 +132,7 @@ function initTextEditor() {
     runBtn.style.borderRadius = '4px';
     runBtn.style.cursor = 'pointer';
     runBtn.style.display = 'none';
-    runBtn.addEventListener('click', () => runCode(languageSelect.value, textarea.value, consoleContainer));
+    runBtn.addEventListener('click', () => runCode(languageSelect.value, editor.innerText, consoleContainer));
     toolbar.appendChild(runBtn);
 
     languageSelect.addEventListener('change', function() {
@@ -161,86 +140,68 @@ function initTextEditor() {
         if (this.value === 'none') clearConsole();
     });
 
-    const uppercaseBtn = document.createElement('button');
-    uppercaseBtn.textContent = 'ABC';
-    uppercaseBtn.title = 'UPPERCASE';
-    uppercaseBtn.addEventListener('click', () => {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        if (start !== end) {
-            const selected = textarea.value.substring(start, end).toUpperCase();
-            replaceSelection(selected, start, end);
+    addButton('ABC', 'UPPERCASE', () => {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.toString().length > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString().toUpperCase();
+            range.deleteContents();
+            range.insertNode(document.createTextNode(selectedText));
         } else {
-            textarea.value = textarea.value.toUpperCase();
+            editor.innerText = editor.innerText.toUpperCase();
         }
     });
-    toolbar.appendChild(uppercaseBtn);
 
-    const lowercaseBtn = document.createElement('button');
-    lowercaseBtn.textContent = 'abc';
-    lowercaseBtn.title = 'lowercase';
-    lowercaseBtn.addEventListener('click', () => {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        if (start !== end) {
-            const selected = textarea.value.substring(start, end).toLowerCase();
-            replaceSelection(selected, start, end);
+    addButton('abc', 'lowercase', () => {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.toString().length > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString().toLowerCase();
+            range.deleteContents();
+            range.insertNode(document.createTextNode(selectedText));
         } else {
-            textarea.value = textarea.value.toLowerCase();
+            editor.innerText = editor.innerText.toLowerCase();
         }
     });
-    toolbar.appendChild(lowercaseBtn);
 
-    const reverseBtn = document.createElement('button');
-    reverseBtn.textContent = '↔️';
-    reverseBtn.title = 'Reverse';
-    reverseBtn.addEventListener('click', () => {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        if (start !== end) {
-            const selected = textarea.value.substring(start, end).split('').reverse().join('');
-            replaceSelection(selected, start, end);
+    addButton('↔️', 'Reverse', () => {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.toString().length > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString().split('').reverse().join('');
+            range.deleteContents();
+            range.insertNode(document.createTextNode(selectedText));
         } else {
-            textarea.value = textarea.value.split('').reverse().join('');
+            editor.innerText = editor.innerText.split('').reverse().join('');
         }
     });
-    toolbar.appendChild(reverseBtn);
 
-    const sortBtn = document.createElement('button');
-    sortBtn.textContent = '↓';
-    sortBtn.title = 'Sort Lines';
-    sortBtn.addEventListener('click', () => {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        if (start !== end) {
-            const selected = textarea.value.substring(start, end).split('\n').sort().join('\n');
-            replaceSelection(selected, start, end);
+    addButton('↓', 'Sort Lines', () => {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.toString().length > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString().split('\n').sort().join('\n');
+            range.deleteContents();
+            range.insertNode(document.createTextNode(selectedText));
         } else {
-            textarea.value = textarea.value.split('\n').sort().join('\n');
+            editor.innerText = editor.innerText.split('\n').sort().join('\n');
         }
     });
-    toolbar.appendChild(sortBtn);
 
-    const dedupeBtn = document.createElement('button');
-    dedupeBtn.textContent = '⊜';
-    dedupeBtn.title = 'Remove Duplicates';
-    dedupeBtn.addEventListener('click', () => {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        if (start !== end) {
-            const selected = [...new Set(textarea.value.substring(start, end).split('\n'))].join('\n');
-            replaceSelection(selected, start, end);
+    addButton('⊜', 'Remove Duplicates', () => {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.toString().length > 0) {
+            const range = selection.getRangeAt(0);
+            const selectedText = [...new Set(range.toString().split('\n'))].join('\n');
+            range.deleteContents();
+            range.insertNode(document.createTextNode(selectedText));
         } else {
-            textarea.value = [...new Set(textarea.value.split('\n'))].join('\n');
+            editor.innerText = [...new Set(editor.innerText.split('\n'))].join('\n');
         }
     });
-    toolbar.appendChild(dedupeBtn);
 
-    const wordCountBtn = document.createElement('button');
-    wordCountBtn.textContent = 'Σ';
-    wordCountBtn.title = 'Word Count';
-    wordCountBtn.addEventListener('click', () => {
-        const text = textarea.value;
+    addButton('Σ', 'Word Count', () => {
+        const text = editor.innerText;
         const words = text.trim() ? text.trim().split(/\s+/).length : 0;
         const chars = text.length;
         const lines = text ? text.split('\n').length : 0;
@@ -251,47 +212,22 @@ function initTextEditor() {
         textSection.insertBefore(infoDiv, toolbar);
         setTimeout(() => infoDiv.remove(), 3000);
     });
-    toolbar.appendChild(wordCountBtn);
 
-    const findReplaceBtn = document.createElement('button');
-    findReplaceBtn.textContent = '🔍';
-    findReplaceBtn.title = 'Find & Replace';
-    findReplaceBtn.addEventListener('click', () => {
+    addButton('🔍', 'Find & Replace', () => {
         const find = prompt('Find:');
         if (find === null) return;
         const replace = prompt('Replace with:');
         if (replace === null) return;
-        textarea.value = textarea.value.split(find).join(replace);
+        editor.innerText = editor.innerText.split(find).join(replace);
     });
-    toolbar.appendChild(findReplaceBtn);
 
     editorContainer.appendChild(toolbar);
-    editorContainer.appendChild(textarea);
+    editorContainer.appendChild(editor);
 
     mainContainer.appendChild(editorContainer);
     mainContainer.appendChild(consoleContainer);
 
     textSection.appendChild(mainContainer);
-
-    function applyFormatting(before, after) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        if (start !== end) {
-            const selected = textarea.value.substring(start, end);
-            replaceSelection(before + selected + after, start, end);
-        } else {
-            textarea.value = textarea.value.substring(0, start) + before + after + textarea.value.substring(end);
-            textarea.selectionStart = start + before.length;
-            textarea.selectionEnd = start + before.length;
-        }
-        textarea.focus();
-    }
-
-    function replaceSelection(newText, start, end) {
-        textarea.value = textarea.value.substring(0, start) + newText + textarea.value.substring(end);
-        textarea.selectionStart = start;
-        textarea.selectionEnd = start + newText.length;
-    }
 
     function clearConsole() {
         consoleContainer.style.display = 'none';

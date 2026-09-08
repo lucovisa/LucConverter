@@ -24,8 +24,27 @@ document.addEventListener('DOMContentLoaded', function() {
         files.forEach(file => {
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
-            const fileInfo = document.createElement('div');
+            fileItem.style.display = 'flex';
+            fileItem.style.alignItems = 'center';
+            fileItem.style.gap = '0.5rem';
+            fileItem.style.flexWrap = 'wrap';
+
+            const fileInfo = document.createElement('span');
             fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+            fileInfo.style.flex = '1';
+            fileInfo.style.minWidth = '150px';
+
+            const formatSelect = document.createElement('select');
+            formatSelect.style.width = 'auto';
+            formatSelect.style.minWidth = '120px';
+            const formats = getFormats(file);
+            formats.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.toLowerCase();
+                opt.textContent = f;
+                formatSelect.appendChild(opt);
+            });
+
             const convertBtn = document.createElement('button');
             convertBtn.textContent = 'Convert';
             convertBtn.style.padding = '0.5rem 1rem';
@@ -34,85 +53,34 @@ document.addEventListener('DOMContentLoaded', function() {
             convertBtn.style.border = 'none';
             convertBtn.style.borderRadius = '4px';
             convertBtn.style.cursor = 'pointer';
-            convertBtn.addEventListener('click', () => showFormatSelector(file));
+            convertBtn.addEventListener('click', () => {
+                performConversion(file, formatSelect.value);
+            });
+
             fileItem.appendChild(fileInfo);
+            fileItem.appendChild(formatSelect);
             fileItem.appendChild(convertBtn);
             fileList.appendChild(fileItem);
         });
     }
 
-    function showFormatSelector(file) {
+    function getFormats(file) {
         const fileType = file.type.split('/')[0];
         const extension = file.name.split('.').pop().toLowerCase();
-        let formats = [];
-
-        if (fileType === 'image') {
-            formats = ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
-        } else if (fileType === 'video') {
-            formats = ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
-        } else if (fileType === 'audio') {
-            formats = ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
-        } else if (extension === 'pdf') {
-            formats = ['TXT', 'HTML', 'JPG', 'PNG'];
-        } else if (extension === 'html' || extension === 'htm') {
-            formats = ['TXT', 'Markdown', 'PDF'];
-        } else if (extension === 'docx') {
-            formats = ['TXT', 'HTML', 'PDF'];
-        } else if (extension === 'xlsx' || extension === 'xls') {
-            formats = ['CSV', 'JSON', 'HTML'];
-        } else if (extension === 'glb' || extension === 'gltf') {
-            formats = ['BLEND'];
-        } else {
-            formats = ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
-        }
-
-        const container = document.createElement('div');
-        container.style.marginTop = '1rem';
-        container.style.padding = '1rem';
-        container.style.background = 'var(--panel-bg)';
-        container.style.border = '1px solid var(--border)';
-        container.style.borderRadius = '4px';
-        container.innerHTML = '<p style="color: var(--accent); margin-bottom: 0.5rem;">Select output format:</p>';
-
-        const select = document.createElement('select');
-        select.style.width = '100%';
-        select.style.marginBottom = '0.5rem';
-        formats.forEach(f => select.add(new Option(f, f.toLowerCase())));
-        container.appendChild(select);
-
-        const convertBtn = document.createElement('button');
-        convertBtn.textContent = 'Convert Now';
-        convertBtn.style.padding = '0.5rem 1rem';
-        convertBtn.style.background = 'var(--button-bg)';
-        convertBtn.style.color = 'white';
-        convertBtn.style.border = 'none';
-        convertBtn.style.borderRadius = '4px';
-        convertBtn.style.cursor = 'pointer';
-        convertBtn.addEventListener('click', () => {
-            const format = select.value;
-            performConversion(file, format);
-        });
-        container.appendChild(convertBtn);
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.style.marginLeft = '0.5rem';
-        cancelBtn.style.padding = '0.5rem 1rem';
-        cancelBtn.style.background = 'var(--border)';
-        cancelBtn.style.color = 'var(--text)';
-        cancelBtn.style.border = 'none';
-        cancelBtn.style.borderRadius = '4px';
-        cancelBtn.style.cursor = 'pointer';
-        cancelBtn.addEventListener('click', () => container.remove());
-        container.appendChild(cancelBtn);
-
-        fileList.appendChild(container);
+        if (fileType === 'image') return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
+        if (fileType === 'video') return ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
+        if (fileType === 'audio') return ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
+        if (extension === 'pdf') return ['TXT', 'HTML', 'JPG', 'PNG'];
+        if (extension === 'html' || extension === 'htm') return ['TXT', 'Markdown', 'PDF'];
+        if (extension === 'docx') return ['TXT', 'HTML', 'PDF'];
+        if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
+        if (extension === 'glb' || extension === 'gltf') return ['BLEND'];
+        return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
     }
 
     function performConversion(file, format) {
         const fileType = file.type.split('/')[0];
         const extension = file.name.split('.').pop().toLowerCase();
-
         if (fileType === 'image') {
             if (format === 'txt (ocr)') extractTextFromImage(file);
             else convertImage(file, format);
