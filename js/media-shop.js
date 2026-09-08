@@ -18,7 +18,7 @@ function initMediaShop() {
     dropZone.innerHTML = '<p>Drag and drop audio, video or 3D files here or click to select</p>';
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'audio/*,video/*,.glb,.gltf,.obj';
+    fileInput.accept = 'audio/*,video/*,.glb,.gltf,.obj,.mp3,.wav,.ogg,.aac,.flac,.m4a,.opus,.wma,.mp4,.webm,.avi,.mov,.gif,.mkv,.flv,.wmv';
     fileInput.multiple = true;
     fileInput.style.display = 'none';
     dropZone.appendChild(fileInput);
@@ -48,16 +48,28 @@ function initMediaShop() {
     let audioContext = null;
 
     function isAllowedFile(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    const allowedExt = ['glb', 'gltf', 'obj'];
-    const audioExt = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'];
-    const videoExt = ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'];
-    return file.type.startsWith('audio') || 
-           file.type.startsWith('video') || 
-           allowedExt.includes(ext) || 
-           audioExt.includes(ext) || 
-           videoExt.includes(ext);
-}
+        const ext = file.name.split('.').pop().toLowerCase();
+        const allowedExt = ['glb', 'gltf', 'obj'];
+        const audioExt = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'];
+        const videoExt = ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'];
+        return file.type.startsWith('audio') || 
+               file.type.startsWith('video') || 
+               allowedExt.includes(ext) || 
+               audioExt.includes(ext) || 
+               videoExt.includes(ext);
+    }
+
+    function isMediaFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const audioExt = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'];
+        const videoExt = ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'];
+        return file.type.startsWith('audio') || file.type.startsWith('video') || audioExt.includes(ext) || videoExt.includes(ext);
+    }
+
+    function is3DFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        return ['glb', 'gltf', 'obj'].includes(ext);
+    }
 
     function processFiles(files) {
         const validFiles = files.filter(isAllowedFile);
@@ -123,10 +135,7 @@ function initMediaShop() {
 
         editorContainer.appendChild(fileListContainer);
 
-        const has3D = validFiles.some(f => {
-            const ext = f.name.split('.').pop().toLowerCase();
-            return ['glb', 'gltf', 'obj'].includes(ext);
-        });
+        const has3D = validFiles.some(f => is3DFile(f));
 
         if (has3D) {
             const viewerContainer = document.createElement('div');
@@ -309,7 +318,7 @@ function initMediaShop() {
 
             init3DViewer(
                 viewerContainer,
-                validFiles.find(f => ['glb', 'gltf', 'obj'].includes(f.name.split('.').pop().toLowerCase())),
+                validFiles.find(f => is3DFile(f)),
                 viewerInfo,
                 autoRotateBtn,
                 bgColorBtn,
@@ -328,7 +337,7 @@ function initMediaShop() {
             );
         }
 
-        const hasMedia = validFiles.some(f => f.type.startsWith('audio') || f.type.startsWith('video'));
+        const hasMedia = validFiles.some(f => isMediaFile(f));
         if (hasMedia) {
             const controlsContainer = document.createElement('div');
             controlsContainer.style.padding = '1rem';
@@ -353,8 +362,8 @@ function initMediaShop() {
             formatSelect.style.border = '1px solid var(--border)';
             formatSelect.style.borderRadius = '4px';
             formatSelect.style.color = 'var(--text)';
-            const isVideo = validFiles.some(f => f.type.startsWith('video'));
-            const isAudio = validFiles.some(f => f.type.startsWith('audio'));
+            const isVideo = validFiles.some(f => f.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(f.name.split('.').pop().toLowerCase()));
+            const isAudio = validFiles.some(f => f.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(f.name.split('.').pop().toLowerCase()));
             if (isVideo && !isAudio) {
                 ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
             } else if (isAudio && !isVideo) {
@@ -537,7 +546,7 @@ function initMediaShop() {
                 statusDiv.textContent = 'Processing...';
                 controlsContainer.appendChild(statusDiv);
                 for (const file of mediaFiles) {
-                    if (file.type.startsWith('audio') || file.type.startsWith('video')) {
+                    if (isMediaFile(file)) {
                         const blob = await processMediaFile(file, start, end, format, volume, speed, quality, resolution, overlayText);
                         if (blob) {
                             processedBlobs.push({ blob, fileName: 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format) });
@@ -981,8 +990,8 @@ function initMediaShop() {
     }
 
     async function processMediaFile(file, start, end, format, volumePercent, speed, quality, resolution, overlayText) {
-        const isVideo = file.type.startsWith('video');
-        const isAudio = file.type.startsWith('audio');
+        const isVideo = file.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(file.name.split('.').pop().toLowerCase());
+        const isAudio = file.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(file.name.split('.').pop().toLowerCase());
         if (isAudio) {
             return await processAudio(file, start, end, volumePercent, speed, format, quality);
         } else if (isVideo) {
