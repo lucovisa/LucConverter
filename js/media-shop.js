@@ -167,7 +167,7 @@ function initMediaShop() {
         formatSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Output Format</h4>';
         const formatSelect = document.createElement('select');
         formatSelect.style.width = '100%';
-        const formats = file.type.startsWith('video') ? ['webm', 'jpg', 'png'] : ['wav'];
+        const formats = file.type.startsWith('video') ? ['webm', 'jpg', 'png'] : ['wav', 'mp3'];
         formats.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f;
@@ -284,7 +284,13 @@ function initMediaShop() {
     async function processAudio(file, start, end, volumePercent, format) {
         const arrayBuffer = await file.arrayBuffer();
         audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        try {
+            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        } catch (e) {
+            console.error('Audio decode error:', e);
+            return null;
+        }
 
         const startSample = Math.floor(start * audioBuffer.sampleRate);
         const endSample = Math.floor(end * audioBuffer.sampleRate);
@@ -300,6 +306,9 @@ function initMediaShop() {
             }
         }
 
+        if (format === 'mp3') {
+            return bufferToMp3(newBuffer);
+        }
         return bufferToWav(newBuffer);
     }
 
@@ -307,7 +316,6 @@ function initMediaShop() {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
-            video.muted = false;
             video.volume = volumePercent / 100;
             
             video.onloadedmetadata = () => {
@@ -315,37 +323,22 @@ function initMediaShop() {
             };
 
             video.onseeked = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 360;
-                const ctx = canvas.getContext('2d');
-                const stream = canvas.captureStream(30);
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioCtx.createMediaElementSource(video);
-                const dest = audioCtx.createMediaStreamDestination();
-                source.connect(dest);
-                dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-
+                const stream = video.captureStream();
                 const recorder = new MediaRecorder(stream);
                 const chunks = [];
                 recorder.ondataavailable = e => chunks.push(e.data);
                 recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    resolve(blob);
+                    resolve(new Blob(chunks, { type: 'video/webm' }));
                 };
-
                 recorder.start();
                 video.play();
-
                 setTimeout(() => {
                     recorder.stop();
                     video.pause();
-                    source.disconnect();
-                    audioCtx.close();
                 }, (end - start) * 1000);
             };
 
-            video.onerror = reject;
+            video.onerror = () => reject(new Error('Video error'));
         });
     }
 
@@ -406,6 +399,25 @@ function initMediaShop() {
         }
 
         return new Blob([arrayBuffer], { type: 'audio/wav' });
+    }
+
+    function bufferToMp3(buffer) {
+        const channels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+        const samples = new Int16Array(buffer.length * channels);
+        let offset = 0;
+        for (let i = 0; i < buffer.length; i++) {
+            for (let channel = 0; channel < channels; channel++) {
+                const sample = buffer.getChannelData(channel)[i];
+                const clamped = Math.max(-1, Math.min(1, sample));
+                samples[offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+            }
+        }
+        const mp3Data = mp3encoder.encodeBuffer(samples);
+        const endData = mp3encoder.flush();
+        const blob = new Blob([mp3Data, endData], { type: 'audio/mp3' });
+        return blob;
     }
 
     function writeString(view, offset, string) {

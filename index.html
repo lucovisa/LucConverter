@@ -26,6 +26,7 @@
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
 </head>
 <body>
     <header>
@@ -553,7 +554,7 @@
                         <li>Fraction to Decimal</li>
                         <li>Roman Numerals</li>
                         <li>Number Systems — binary, octal, hex</li>
-                        <li>Date Converter — ISO, Unix timestamp, week number</li>
+                        <li>Date Converter — ISO, Unix timestamp, week number, dd mm yyyy</li>
                         <li>UUID Generator</li>
                         <li>Every converter has a Clear button</li>
                     </ul>
@@ -585,6 +586,7 @@
                         <li>Real-time exchange rates via API</li>
                         <li>Swap button to switch currencies</li>
                         <li>Type a letter to search in dropdown</li>
+                        <li>Optional: enter your own API key for a data source</li>
                     </ul>
                 </div>
                 
@@ -594,10 +596,16 @@
                     <ul>
                         <li>Upload audio or video files</li>
                         <li>Trim — set start and end time</li>
-                        <li>Convert — MP4, WebM, MP3, WAV, etc.</li>
                         <li>Volume control</li>
                         <li>Download original or converted</li>
-                        <li>Note: Audio editing works fully in browser; video editing requires FFmpeg which may not load on GitHub Pages</li>
+                    </ul>
+                    <p><strong>Limitations:</strong></p>
+                    <ul>
+                        <li>Video conversion to WebM only (no MP4/AVI/MOV)</li>
+                        <li>Video to JPG/PNG (frame extraction) works</li>
+                        <li>Audio to WAV or MP3 works</li>
+                        <li>OGG audio may not work in Safari; use Chrome or Firefox</li>
+                        <li>Full video conversion (MP4, AVI, MOV) is not available in browser</li>
                     </ul>
                 </div>
                 
