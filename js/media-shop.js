@@ -230,6 +230,17 @@ function initMediaShop() {
             materialBtn.style.fontSize = '0.75rem';
             toolbar.appendChild(materialBtn);
 
+            const lightBtn = document.createElement('button');
+            lightBtn.textContent = 'Light: Normal';
+            lightBtn.style.padding = '0.4rem 0.6rem';
+            lightBtn.style.background = 'rgba(0,0,0,0.7)';
+            lightBtn.style.color = 'white';
+            lightBtn.style.border = '1px solid #444';
+            lightBtn.style.borderRadius = '4px';
+            lightBtn.style.cursor = 'pointer';
+            lightBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(lightBtn);
+
             const screenshotBtn = document.createElement('button');
             screenshotBtn.textContent = 'Screenshot';
             screenshotBtn.style.padding = '0.4rem 0.6rem';
@@ -240,6 +251,17 @@ function initMediaShop() {
             screenshotBtn.style.cursor = 'pointer';
             screenshotBtn.style.fontSize = '0.75rem';
             toolbar.appendChild(screenshotBtn);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.padding = '0.4rem 0.6rem';
+            closeBtn.style.background = 'rgba(139,0,0,0.8)';
+            closeBtn.style.color = 'white';
+            closeBtn.style.border = '1px solid #444';
+            closeBtn.style.borderRadius = '4px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.fontSize = '0.75rem';
+            toolbar.appendChild(closeBtn);
 
             init3DViewer(
                 viewerContainer,
@@ -253,7 +275,9 @@ function initMediaShop() {
                 verticesBtn,
                 materialBtn,
                 resetCameraBtn,
-                screenshotBtn
+                screenshotBtn,
+                lightBtn,
+                closeBtn
             );
         }
 
@@ -511,7 +535,7 @@ function initMediaShop() {
         }
     }
 
-    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn) {
+    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn, lightBtn, closeBtn) {
         if (!file || typeof THREE === 'undefined') {
             infoEl.textContent = '3D library not loaded';
             return;
@@ -555,6 +579,48 @@ function initMediaShop() {
         const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         scene.add(hemisphereLight);
 
+        let lightMode = 'normal';
+
+        lightBtn.addEventListener('click', () => {
+            if (lightMode === 'normal') {
+                ambientLight.intensity = 1.5;
+                directionalLight.intensity = 2.5;
+                hemisphereLight.intensity = 1.2;
+                lightMode = 'bright';
+                lightBtn.textContent = 'Light: Bright';
+            } else if (lightMode === 'bright') {
+                ambientLight.intensity = 2.5;
+                directionalLight.intensity = 4;
+                hemisphereLight.intensity = 2;
+                lightMode = 'ultra';
+                lightBtn.textContent = 'Light: Ultra';
+            } else {
+                ambientLight.intensity = 0.6;
+                directionalLight.intensity = 1.2;
+                hemisphereLight.intensity = 0.4;
+                lightMode = 'normal';
+                lightBtn.textContent = 'Light: Normal';
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            container.style.display = 'none';
+            const openBtn = document.createElement('button');
+            openBtn.textContent = 'Open 3D Viewer';
+            openBtn.style.padding = '0.5rem 1rem';
+            openBtn.style.background = 'var(--button-bg)';
+            openBtn.style.color = 'white';
+            openBtn.style.border = 'none';
+            openBtn.style.borderRadius = '4px';
+            openBtn.style.cursor = 'pointer';
+            openBtn.style.marginBottom = '1rem';
+            openBtn.addEventListener('click', () => {
+                container.style.display = 'block';
+                openBtn.remove();
+            });
+            container.parentElement.insertBefore(openBtn, container);
+        });
+
         let gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0x444444);
         scene.add(gridHelper);
 
@@ -564,7 +630,6 @@ function initMediaShop() {
         let wireframeMode = false;
 
         const materials = {
-            original: null,
             metal: new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 1, roughness: 0.2 }),
             plastic: new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0, roughness: 0.5 }),
             wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0, roughness: 0.8 })
@@ -614,61 +679,59 @@ function initMediaShop() {
         });
 
         edgesBtn.addEventListener('click', () => {
-    if (currentModel) {
-        const existingEdges = [];
-        currentModel.traverse((child) => {
-            if (child.userData && child.userData.edgesHelper) {
-                existingEdges.push(child);
+            if (currentModel) {
+                const existingEdges = [];
+                currentModel.traverse((child) => {
+                    if (child.userData && child.userData.edgesHelper) {
+                        existingEdges.push(child);
+                    }
+                });
+                if (existingEdges.length > 0) {
+                    existingEdges.forEach(child => {
+                        child.remove(child.userData.edgesHelper);
+                        child.userData.edgesHelper = null;
+                    });
+                    edgesBtn.textContent = 'Edges';
+                } else {
+                    currentModel.traverse((child) => {
+                        if (child.isMesh && child.geometry) {
+                            const edges = new THREE.EdgesGeometry(child.geometry);
+                            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+                            child.add(line);
+                            child.userData.edgesHelper = line;
+                        }
+                    });
+                    edgesBtn.textContent = 'Edges: On';
+                }
             }
         });
-        
-        if (existingEdges.length > 0) {
-            existingEdges.forEach(child => {
-                child.remove(child.userData.edgesHelper);
-                child.userData.edgesHelper = null;
-            });
-            edgesBtn.textContent = 'Edges';
-        } else {
-            currentModel.traverse((child) => {
-                if (child.isMesh && child.geometry) {
-                    const edges = new THREE.EdgesGeometry(child.geometry);
-                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
-                    child.add(line);
-                    child.userData.edgesHelper = line;
-                }
-            });
-            edgesBtn.textContent = 'Edges: On';
-        }
-    }
-});
 
-verticesBtn.addEventListener('click', () => {
-    if (currentModel) {
-        const existingPoints = [];
-        currentModel.traverse((child) => {
-            if (child.userData && child.userData.pointsHelper) {
-                existingPoints.push(child);
+        verticesBtn.addEventListener('click', () => {
+            if (currentModel) {
+                const existingPoints = [];
+                currentModel.traverse((child) => {
+                    if (child.userData && child.userData.pointsHelper) {
+                        existingPoints.push(child);
+                    }
+                });
+                if (existingPoints.length > 0) {
+                    existingPoints.forEach(child => {
+                        child.remove(child.userData.pointsHelper);
+                        child.userData.pointsHelper = null;
+                    });
+                    verticesBtn.textContent = 'Vertices';
+                } else {
+                    currentModel.traverse((child) => {
+                        if (child.isMesh && child.geometry) {
+                            const points = new THREE.Points(child.geometry, new THREE.PointsMaterial({ color: 0xff0000, size: 0.03 }));
+                            child.add(points);
+                            child.userData.pointsHelper = points;
+                        }
+                    });
+                    verticesBtn.textContent = 'Vertices: On';
+                }
             }
         });
-        
-        if (existingPoints.length > 0) {
-            existingPoints.forEach(child => {
-                child.remove(child.userData.pointsHelper);
-                child.userData.pointsHelper = null;
-            });
-            verticesBtn.textContent = 'Vertices';
-        } else {
-            currentModel.traverse((child) => {
-                if (child.isMesh && child.geometry) {
-                    const points = new THREE.Points(child.geometry, new THREE.PointsMaterial({ color: 0xff0000, size: 0.03 }));
-                    child.add(points);
-                    child.userData.pointsHelper = points;
-                }
-            });
-            verticesBtn.textContent = 'Vertices: On';
-        }
-    }
-});
 
         materialBtn.addEventListener('click', () => {
             if (!currentModel) return;
@@ -684,7 +747,8 @@ verticesBtn.addEventListener('click', () => {
             currentModel.traverse((child) => {
                 if (child.isMesh && child.material) {
                     if (mode === 'original') {
-                        child.material = originalMaterials.find(m => m.mesh === child)?.material || child.material;
+                        const original = originalMaterials.find(m => m.mesh === child);
+                        if (original) child.material = original.material;
                     } else {
                         child.material = materials[mode].clone();
                     }
