@@ -14,7 +14,7 @@ function initCalculator() {
     calcSection.appendChild(backBtn);
 
     const calcContainer = document.createElement('div');
-    calcContainer.style.maxWidth = '350px';
+    calcContainer.style.maxWidth = '400px';
     calcContainer.style.margin = '0 auto';
     calcContainer.style.background = 'transparent';
     calcContainer.style.padding = '0';
@@ -34,30 +34,37 @@ function initCalculator() {
 
     const buttonsContainer = document.createElement('div');
     buttonsContainer.style.display = 'grid';
-    buttonsContainer.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    buttonsContainer.style.gridTemplateColumns = 'repeat(5, 1fr)';
     buttonsContainer.style.gap = '0.5rem';
 
     const buttons = [
-        { text: 'C', type: 'clear', bg: '#8B0000', color: '#fff' },
-        { text: '±', type: 'negate', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: 'sin', type: 'sin', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: 'cos', type: 'cos', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: 'log', type: 'log', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: '√', type: 'sqrt', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: 'π', type: 'pi', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: '(', type: 'paren', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: ')', type: 'paren', bg: '#3d5a80', color: '#c7d5e0' },
         { text: '%', type: 'percent', bg: '#3d5a80', color: '#c7d5e0' },
         { text: '÷', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: 'C', type: 'clear', bg: '#8B0000', color: '#fff' },
         { text: '7', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '8', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '9', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '×', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '⌫', type: 'backspace', bg: '#3d5a80', color: '#c7d5e0' },
         { text: '4', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '5', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '6', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '-', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '±', type: 'negate', bg: '#3d5a80', color: '#c7d5e0' },
         { text: '1', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '2', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '3', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
         { text: '+', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '=', type: 'equals', bg: '#2e7d32', color: '#fff' },
         { text: '0', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
-        { text: '.', type: 'decimal', bg: '#2a475e', color: '#c7d5e0' },
-        { text: '⌫', type: 'backspace', bg: '#3d5a80', color: '#c7d5e0' },
-        { text: '=', type: 'equals', bg: '#2e7d32', color: '#fff' }
+        { text: '.', type: 'decimal', bg: '#2a475e', color: '#c7d5e0' }
     ];
 
     let currentInput = '0';
@@ -69,16 +76,19 @@ function initCalculator() {
     buttons.forEach(btn => {
         const button = document.createElement('button');
         button.textContent = btn.text;
-        button.style.padding = '1rem';
+        button.style.padding = '0.8rem';
         button.style.border = 'none';
         button.style.borderRadius = '4px';
         button.style.background = btn.bg;
         button.style.color = btn.color;
-        button.style.fontSize = '1.2rem';
+        button.style.fontSize = '1rem';
         button.style.cursor = 'pointer';
         button.style.transition = 'all 0.2s ease';
 
         if (btn.text === '0') {
+            button.style.gridColumn = 'span 2';
+        }
+        if (btn.text === '=') {
             button.style.gridColumn = 'span 2';
         }
 
@@ -137,31 +147,44 @@ function initCalculator() {
             case 'percent':
                 percent();
                 break;
+            case 'sqrt':
+                sqrt();
+                break;
+            case 'sin':
+                scientific('sin');
+                break;
+            case 'cos':
+                scientific('cos');
+                break;
+            case 'log':
+                scientific('log');
+                break;
+            case 'pi':
+                currentInput = String(Math.PI);
+                shouldResetDisplay = true;
+                break;
+            case 'paren':
+                inputParen(text);
+                break;
         }
         updateDisplay();
     }
 
     function inputNumber(num) {
-        if (errorState) {
+        if (shouldResetDisplay || errorState) {
             currentInput = num;
+            shouldResetDisplay = false;
             errorState = false;
-            shouldResetDisplay = false;
-        } else if (shouldResetDisplay) {
-            currentInput = num;
-            shouldResetDisplay = false;
         } else {
             currentInput = currentInput === '0' ? num : currentInput + num;
         }
     }
 
     function inputDecimal() {
-        if (errorState) {
+        if (shouldResetDisplay || errorState) {
             currentInput = '0.';
+            shouldResetDisplay = false;
             errorState = false;
-            shouldResetDisplay = false;
-        } else if (shouldResetDisplay) {
-            currentInput = '0.';
-            shouldResetDisplay = false;
         } else if (!currentInput.includes('.')) {
             currentInput += '.';
         }
@@ -177,29 +200,31 @@ function initCalculator() {
         shouldResetDisplay = true;
     }
 
-    function calculate() {
-        if (operator === null || shouldResetDisplay) return;
-        const prev = parseFloat(previousInput);
-        const current = parseFloat(currentInput);
-        let result;
-        switch(operator) {
-            case '+': result = prev + current; break;
-            case '-': result = prev - current; break;
-            case '×': result = prev * current; break;
-            case '÷':
-                if (current === 0) {
-                    display.textContent = 'Error';
-                    errorState = true;
-                    operator = null;
-                    shouldResetDisplay = false;
-                    return;
-                }
-                result = prev / current;
-                break;
+    function inputParen(paren) {
+        if (shouldResetDisplay) {
+            currentInput = paren;
+            shouldResetDisplay = false;
+        } else {
+            currentInput += paren;
         }
-        currentInput = String(result);
-        operator = null;
-        shouldResetDisplay = true;
+    }
+
+    function calculate() {
+        if (operator === null || shouldResetDisplay || errorState) return;
+        let expression = previousInput + operator + currentInput;
+        try {
+            expression = expression.replace(/×/g, '*').replace(/÷/g, '/');
+            const result = eval(expression);
+            currentInput = String(result);
+            operator = null;
+            shouldResetDisplay = true;
+        } catch (e) {
+            display.textContent = 'Error';
+            errorState = true;
+            operator = null;
+            shouldResetDisplay = false;
+            return;
+        }
     }
 
     function clearAll() {
@@ -230,6 +255,42 @@ function initCalculator() {
     function percent() {
         if (errorState) return;
         currentInput = String(parseFloat(currentInput) / 100);
+    }
+
+    function sqrt() {
+        if (errorState) return;
+        const value = parseFloat(currentInput);
+        if (value < 0) {
+            display.textContent = 'Error';
+            errorState = true;
+            return;
+        }
+        currentInput = String(Math.sqrt(value));
+        shouldResetDisplay = true;
+    }
+
+    function scientific(func) {
+        if (errorState) return;
+        const value = parseFloat(currentInput);
+        let result;
+        switch(func) {
+            case 'sin':
+                result = Math.sin(value * Math.PI / 180);
+                break;
+            case 'cos':
+                result = Math.cos(value * Math.PI / 180);
+                break;
+            case 'log':
+                if (value <= 0) {
+                    display.textContent = 'Error';
+                    errorState = true;
+                    return;
+                }
+                result = Math.log10(value);
+                break;
+        }
+        currentInput = String(result);
+        shouldResetDisplay = true;
     }
 
     function updateDisplay() {

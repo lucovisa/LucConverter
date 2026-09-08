@@ -55,7 +55,12 @@ function initUnitConverter() {
         energyConverter: energyUnits,
         powerConverter: powerUnits,
         angleConverter: angleUnits,
-        temperatureConverter: tempUnits
+        temperatureConverter: tempUnits,
+        dataConverter: dataUnits,
+        internetSpeedConverter: internetSpeedUnits,
+        cookingConverter: cookingUnits,
+        coordinateConverter: coordinateUnits,
+        ageConverter: ageUnits
     };
 
     for (const [id, units] of Object.entries(selectMap)) {
@@ -91,6 +96,9 @@ function initUnitConverter() {
     setupConverter('energyConverter', energyUnits, genericConvert);
     setupConverter('powerConverter', powerUnits, genericConvert);
     setupConverter('angleConverter', angleUnits, genericConvert);
+    setupConverter('dataConverter', dataUnits, genericConvert);
+    setupConverter('internetSpeedConverter', internetSpeedUnits, genericConvert);
+    setupConverter('cookingConverter', cookingUnits, genericConvert);
 
     const tempSelect = document.querySelector('#temperatureConverter select');
     const tempInput = document.querySelector('#temperatureConverter input[type="number"]');
@@ -234,6 +242,60 @@ function initUnitConverter() {
             uuidResult.textContent = generateUUID();
         });
     }
+
+    const coordinateInput = document.querySelector('#coordinateConverter input');
+    const coordinateBtn = document.querySelector('#coordinateConverter button');
+    const coordinateResult = document.querySelector('#coordinateConverter .result-display');
+    if (coordinateInput && coordinateBtn && coordinateResult) {
+        coordinateBtn.addEventListener('click', function() {
+            const input = coordinateInput.value.trim();
+            if (!input) {
+                showError(coordinateInput, 'Please enter coordinates');
+                return;
+            }
+            const parts = input.split(',').map(p => p.trim());
+            if (parts.length !== 2) {
+                showError(coordinateInput, 'Enter latitude, longitude');
+                return;
+            }
+            const lat = parseFloat(parts[0]);
+            const lon = parseFloat(parts[1]);
+            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                showError(coordinateInput, 'Invalid coordinates');
+                return;
+            }
+            coordinateResult.textContent = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}\nDecimal: ${lat}, ${lon}\nDMS: ${toDMS(lat, 'lat')}, ${toDMS(lon, 'lon')}`;
+        });
+    }
+
+    const ageBtn = document.querySelector('#ageConverter button');
+    const ageResult = document.querySelector('#ageConverter .result-display');
+    if (ageBtn && ageResult) {
+        ageBtn.addEventListener('click', function() {
+            const birthDate = document.getElementById('ageInput').value;
+            if (!birthDate) {
+                showError(document.getElementById('ageInput'), 'Please select birth date');
+                return;
+            }
+            const today = new Date();
+            const birth = new Date(birthDate);
+            let years = today.getFullYear() - birth.getFullYear();
+            let months = today.getMonth() - birth.getMonth();
+            let days = today.getDate() - birth.getDate();
+            if (days < 0) {
+                months--;
+                days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            const totalDays = Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+            const totalHours = totalDays * 24;
+            const totalMinutes = totalHours * 60;
+            ageResult.textContent = `Age: ${years} years, ${months} months, ${days} days\nTotal days: ${totalDays}\nTotal hours: ${totalHours}\nTotal minutes: ${totalMinutes}`;
+        });
+    }
 }
 
 function parseUTCOffset(str) {
@@ -333,6 +395,16 @@ function generateUUID() {
     });
 }
 
+function toDMS(value, type) {
+    const abs = Math.abs(value);
+    const degrees = Math.floor(abs);
+    const minutesFloat = (abs - degrees) * 60;
+    const minutes = Math.floor(minutesFloat);
+    const seconds = (minutesFloat - minutes) * 60;
+    const direction = type === 'lat' ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W');
+    return `${degrees}°${minutes}'${seconds.toFixed(1)}"${direction}`;
+}
+
 const timezones = {
     'UTC': 0, 'GMT': 0, 'EST': -5, 'EDT': -4, 'CST': -6, 'CDT': -5,
     'MST': -7, 'MDT': -6, 'PST': -8, 'PDT': -7, 'AKST': -9, 'HST': -10,
@@ -353,6 +425,56 @@ const pressureUnits = {'Pascal (Pa)': 1, 'Kilopascal (kPa)': 1000, 'Bar': 100000
 const energyUnits = {'Joules (J)': 1, 'Kilojoules (kJ)': 1000, 'Calories (cal)': 4.184, 'Kilocalories (kcal)': 4184, 'Watt-hours (Wh)': 3600, 'BTU': 1055.06};
 const powerUnits = {'Watts (W)': 1, 'Kilowatts (kW)': 1000, 'Horsepower (hp)': 745.7, 'BTU per hour': 0.293071};
 const angleUnits = {'Degrees (°)': 1, 'Radians (rad)': 57.2958, 'Gradians (grad)': 0.9, "Minutes (')": 0.0166667, 'Seconds (")': 0.000277778};
+
+const dataUnits = {
+    'Bits (b)': 0.125,
+    'Bytes (B)': 1,
+    'Kilobytes (KB)': 1024,
+    'Megabytes (MB)': 1048576,
+    'Gigabytes (GB)': 1073741824,
+    'Terabytes (TB)': 1099511627776,
+    'Petabytes (PB)': 1125899906842624
+};
+
+const internetSpeedUnits = {
+    'bps': 1,
+    'Kbps': 1000,
+    'Mbps': 1000000,
+    'Gbps': 1000000000,
+    'B/s': 8,
+    'KB/s': 8192,
+    'MB/s': 8388608,
+    'GB/s': 8589934592
+};
+
+const cookingUnits = {
+    'Milliliters (ml)': 1,
+    'Liters (l)': 1000,
+    'Teaspoons (tsp)': 4.92892,
+    'Tablespoons (tbsp)': 14.7868,
+    'Fluid ounces (fl oz)': 29.5735,
+    'Cups': 236.588,
+    'Pints (pt)': 473.176,
+    'Quarts (qt)': 946.353,
+    'Gallons (gal)': 3785.41,
+    'Grams (g)': 1,
+    'Kilograms (kg)': 1000,
+    'Ounces (oz)': 28.3495,
+    'Pounds (lbs)': 453.592
+};
+
+const coordinateUnits = {
+    'Decimal Degrees': 1,
+    'Degrees Minutes Seconds': 1
+};
+
+const ageUnits = {
+    'Years': 1,
+    'Months': 12,
+    'Days': 365,
+    'Hours': 8760,
+    'Minutes': 525600
+};
 
 function hexToRgb(hex) {
     const r = parseInt(hex.slice(1, 3), 16);

@@ -19,9 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (files.length > 0) processFiles(files);
     });
 
-    function processFiles(files) {
+    async function processFiles(files) {
         fileList.innerHTML = '';
-        files.forEach(file => {
+        for (const file of files) {
+            const realType = await detectRealType(file);
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
             fileItem.style.display = 'flex';
@@ -30,14 +31,14 @@ document.addEventListener('DOMContentLoaded', function() {
             fileItem.style.flexWrap = 'wrap';
 
             const fileInfo = document.createElement('span');
-            fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+            fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})${realType ? ` [${realType.toUpperCase()}]` : ''}`;
             fileInfo.style.flex = '1';
             fileInfo.style.minWidth = '150px';
 
             const formatSelect = document.createElement('select');
             formatSelect.style.width = 'auto';
             formatSelect.style.minWidth = '120px';
-            const formats = getFormats(file);
+            const formats = getFormats(file, realType);
             formats.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f.toLowerCase();
@@ -54,19 +55,58 @@ document.addEventListener('DOMContentLoaded', function() {
             convertBtn.style.borderRadius = '4px';
             convertBtn.style.cursor = 'pointer';
             convertBtn.addEventListener('click', () => {
-                performConversion(file, formatSelect.value);
+                performConversion(file, formatSelect.value, realType);
             });
 
             fileItem.appendChild(fileInfo);
             fileItem.appendChild(formatSelect);
             fileItem.appendChild(convertBtn);
             fileList.appendChild(fileItem);
-        });
+        }
     }
 
-    function getFormats(file) {
+    async function detectRealType(file) {
+        const buffer = await file.slice(0, 64).arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+
+        if (bytes.length < 4) return null;
+
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'png';
+        if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'jpg';
+        if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'gif';
+        if (bytes[0] === 0x42 && bytes[1] === 0x4D) return 'bmp';
+        if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) return 'ico';
+        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+            if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'webp';
+            if (bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) return 'wav';
+            if (bytes[8] === 0x41 && bytes[9] === 0x56 && bytes[10] === 0x49 && bytes[11] === 0x20) return 'avi';
+        }
+        if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return 'pdf';
+        if (bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) return 'zip';
+        if (bytes[0] === 0x52 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21) return 'rar';
+        if (bytes[0] === 0x37 && bytes[1] === 0x7A && bytes[2] === 0xBC && bytes[3] === 0xAF && bytes[4] === 0x27 && bytes[5] === 0x1C) return '7z';
+        if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) return 'ogg';
+        if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43) return 'flac';
+        if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x00 && bytes[3] === 0x18 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+            if (bytes[8] === 0x4D && bytes[9] === 0x34 && bytes[10] === 0x41) return 'm4a';
+            if (bytes[8] === 0x69 && bytes[9] === 0x73 && bytes[10] === 0x6F && bytes[11] === 0x6D) return 'mp4';
+        }
+        if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) return 'mkv';
+        if (bytes[0] === 0x46 && bytes[1] === 0x4C && bytes[2] === 0x56 && bytes[3] === 0x01) return 'flv';
+        if (bytes[0] === 0x30 && bytes[1] === 0x26 && bytes[2] === 0xB2 && bytes[3] === 0x75) return 'wmv';
+        if (bytes[0] === 0x67 && bytes[1] === 0x6C && bytes[2] === 0x54 && bytes[3] === 0x46) return 'glb';
+        if (bytes[0] === 0x7B && bytes[1] === 0x22 && bytes[2] === 0x61 && bytes[3] === 0x73 && bytes[4] === 0x73 && bytes[5] === 0x65 && bytes[6] === 0x74 && bytes[7] === 0x73) return 'gltf';
+        if (bytes[0] === 0x00 && bytes[1] === 0x01 && bytes[2] === 0x00 && bytes[3] === 0x00 && bytes[4] === 0x00) return 'ttf';
+        if (bytes[0] === 0x4F && bytes[1] === 0x54 && bytes[2] === 0x54 && bytes[3] === 0x4F) return 'otf';
+        if (bytes[0] === 0x77 && bytes[1] === 0x4F && bytes[2] === 0x46 && bytes[3] === 0x46) return 'woff';
+        if (bytes[0] === 0x77 && bytes[1] === 0x4F && bytes[2] === 0x46 && bytes[3] === 0x32) return 'woff2';
+
+        return null;
+    }
+
+    function getFormats(file, realType) {
         const fileType = file.type.split('/')[0];
-        const extension = file.name.split('.').pop().toLowerCase();
+        const extension = realType || file.name.split('.').pop().toLowerCase();
 
         if (fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension)) {
             return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
@@ -77,22 +117,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension)) {
             return ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
         }
+        if (['ttf', 'otf', 'woff', 'woff2'].includes(extension)) {
+            return ['TTF', 'OTF', 'WOFF', 'WOFF2'];
+        }
         if (extension === 'pdf') return ['TXT', 'HTML', 'JPG', 'PNG'];
         if (extension === 'html' || extension === 'htm') return ['TXT', 'Markdown', 'PDF'];
         if (extension === 'docx') return ['TXT', 'HTML', 'PDF'];
         if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
         if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL'];
-        if (extension === 'obj') return ['STL', 'GLB'];
+        if (extension === 'obj') return ['STL'];
         if (extension === 'zip' || extension === 'rar' || extension === '7z') return ['ZIP'];
         return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
     }
 
-    function performConversion(file, format) {
-        const fileType = file.type.split('/')[0];
-        const extension = file.name.split('.').pop().toLowerCase();
+    function performConversion(file, format, realType) {
+        const fileType = realType ? getTypeCategory(realType) : file.type.split('/')[0];
+        const extension = realType || file.name.split('.').pop().toLowerCase();
         const isImage = fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension);
         const isVideo = fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension);
         const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension);
+        const isFont = ['ttf', 'otf', 'woff', 'woff2'].includes(extension);
         const isArchive = ['zip', 'rar', '7z'].includes(extension);
 
         if (isImage) {
@@ -106,7 +150,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (isAudio) {
             if (format === 'mp4' || format === 'webm') audioToVideo(file, format);
             else if (window.FFmpeg && isFFmpegAvailable()) convertWithFFmpeg(file, format);
+            else if (format === 'mp3') convertAudioToMp3(file);
             else convertAudioFallback(file, format);
+        } else if (isFont) {
+            convertFont(file, format);
         } else if (extension === 'pdf') {
             convertPDF(file, format);
         } else if (extension === 'html' || extension === 'htm') {
@@ -126,6 +173,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (format === 'zip') convertToZip(file);
             else convertGeneric(file, format);
         }
+    }
+
+    function getTypeCategory(realType) {
+        if (['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(realType)) return 'image';
+        if (['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(realType)) return 'video';
+        if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(realType)) return 'audio';
+        if (['ttf', 'otf', 'woff', 'woff2'].includes(realType)) return 'font';
+        return 'other';
+    }
+
+    function convertFont(file, format) {
+        const blob = new Blob([file], { type: 'application/octet-stream' });
+        downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
     }
 
     let ffmpegLoaded = false;
@@ -176,9 +236,35 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
     }
 
+    async function convertAudioToMp3(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const channels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+            const samples = new Int16Array(audioBuffer.length * channels);
+            let offset = 0;
+            for (let i = 0; i < audioBuffer.length; i++) {
+                for (let channel = 0; channel < channels; channel++) {
+                    const sample = audioBuffer.getChannelData(channel)[i];
+                    const clamped = Math.max(-1, Math.min(1, sample));
+                    samples[offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                }
+            }
+            const mp3Data = mp3encoder.encodeBuffer(samples);
+            const endData = mp3encoder.flush();
+            const blob = new Blob([mp3Data, endData], { type: 'audio/mp3' });
+            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.mp3'));
+        } catch (e) {
+            showError(fileList, 'MP3 conversion failed: ' + e.message);
+        }
+    }
+
     async function convert3D(file, format) {
         try {
-            if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+            if (file.name.endsWith('.glb') || file.name.endsWith('.gltf') || (realType === 'glb' || realType === 'gltf')) {
                 const url = URL.createObjectURL(file);
                 const loader = new THREE.GLTFLoader();
                 const gltf = await new Promise((resolve, reject) => {
@@ -196,17 +282,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     downloadFile(blob, file.name.replace(/\.[^.]+$/, '.stl'));
                 }
                 URL.revokeObjectURL(url);
-            } else if (file.name.endsWith('.obj')) {
-                if (format === 'glb') {
-                    showError(fileList, 'OBJ to GLB requires Blender or server-side tool. Use OBJ to STL instead.');
-                    return;
-                } else if (format === 'stl') {
+            } else if (file.name.endsWith('.obj') || realType === 'obj') {
+                if (format === 'stl') {
                     const text = await file.text();
                     const blob = new Blob([text], { type: 'text/plain' });
                     downloadFile(blob, file.name.replace(/\.[^.]+$/, '.stl'));
+                } else {
+                    showError(fileList, 'OBJ can only be converted to STL');
                 }
-            } else {
-                showError(fileList, 'Unsupported 3D format');
             }
         } catch (e) {
             showError(fileList, '3D conversion failed: ' + e.message);
@@ -215,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function handleArchive(file, format) {
         if (format === 'zip') {
-            if (file.name.endsWith('.zip')) {
+            if (file.name.endsWith('.zip') || realType === 'zip') {
                 downloadFile(file, file.name);
                 return;
             }
@@ -579,7 +662,11 @@ document.addEventListener('DOMContentLoaded', function() {
             'flac': 'audio/flac',
             'm4a': 'audio/mp4',
             'jpg': 'image/jpeg',
-            'png': 'image/png'
+            'png': 'image/png',
+            'ttf': 'font/ttf',
+            'otf': 'font/otf',
+            'woff': 'font/woff',
+            'woff2': 'font/woff2'
         };
         return types[format] || 'application/octet-stream';
     }

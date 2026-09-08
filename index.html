@@ -18,7 +18,15 @@
     <link rel="canonical" href="https://lucovisa.github.io/LucConverter/">
     <link rel="icon" type="image/png" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-512.png">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            });
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -71,7 +79,7 @@
                 </div>
                 
                 <div class="function-card">
-                    <button class="menu-btn" onclick="showSection('mediaShop')">Media Shop</button>
+                    <button class="menu-btn" onclick="showSection('mediaShop')">MediaShop</button>
                 </div>
                 
                 <div class="function-card">
@@ -130,6 +138,7 @@
                     <span class="format-tag">Any file → ZIP</span>
                     <span class="format-tag">3D: GLB → OBJ, STL</span>
                     <span class="format-tag">Archives: RAR, 7z → ZIP</span>
+                    <span class="format-tag">Fonts: TTF, OTF, WOFF, WOFF2</span>
                 </div>
             </div>
             
@@ -154,6 +163,11 @@
                 <button class="converter-btn" onclick="showConverter('energyConverter')">Energy</button>
                 <button class="converter-btn" onclick="showConverter('powerConverter')">Power</button>
                 <button class="converter-btn" onclick="showConverter('angleConverter')">Angle</button>
+                <button class="converter-btn" onclick="showConverter('dataConverter')">Data</button>
+                <button class="converter-btn" onclick="showConverter('internetSpeedConverter')">Internet Speed</button>
+                <button class="converter-btn" onclick="showConverter('cookingConverter')">Cooking</button>
+                <button class="converter-btn" onclick="showConverter('coordinateConverter')">Coordinates</button>
+                <button class="converter-btn" onclick="showConverter('ageConverter')">Age</button>
                 <button class="converter-btn" onclick="showConverter('fractionConverter')">Fraction to Decimal</button>
                 <button class="converter-btn" onclick="showConverter('romanConverter')">Roman Numerals</button>
                 <button class="converter-btn" onclick="showConverter('numberSystemConverter')">Number Systems</button>
@@ -284,6 +298,49 @@
                 <div class="result-display"></div>
             </div>
             
+            <div id="dataConverter" class="converter-content">
+                <h3>Data Converter</h3>
+                <input type="number" placeholder="Enter value">
+                <select></select>
+                <button>Convert</button>
+                <button class="clear-btn" data-target="dataConverter">Clear</button>
+                <div class="result-display"></div>
+            </div>
+            
+            <div id="internetSpeedConverter" class="converter-content">
+                <h3>Internet Speed Converter</h3>
+                <input type="number" placeholder="Enter value">
+                <select></select>
+                <button>Convert</button>
+                <button class="clear-btn" data-target="internetSpeedConverter">Clear</button>
+                <div class="result-display"></div>
+            </div>
+            
+            <div id="cookingConverter" class="converter-content">
+                <h3>Cooking Converter</h3>
+                <input type="number" placeholder="Enter value">
+                <select></select>
+                <button>Convert</button>
+                <button class="clear-btn" data-target="cookingConverter">Clear</button>
+                <div class="result-display"></div>
+            </div>
+            
+            <div id="coordinateConverter" class="converter-content">
+                <h3>Coordinate Converter</h3>
+                <input type="text" placeholder="Enter latitude, longitude">
+                <button>Convert</button>
+                <button class="clear-btn" data-target="coordinateConverter">Clear</button>
+                <div class="result-display"></div>
+            </div>
+            
+            <div id="ageConverter" class="converter-content">
+                <h3>Age Converter</h3>
+                <input type="date" id="ageInput">
+                <button>Calculate Age</button>
+                <button class="clear-btn" data-target="ageConverter">Clear</button>
+                <div class="result-display"></div>
+            </div>
+            
             <div id="fractionConverter" class="converter-content">
                 <h3>Fraction to Decimal Converter</h3>
                 <input type="text" placeholder="Enter fraction (e.g., 3/4)">
@@ -345,6 +402,7 @@
                 <button class="converter-btn" onclick="showConverter('hashGenerator')">Hash Generator</button>
                 <button class="converter-btn" onclick="showConverter('textToBinary')">Text to Binary</button>
                 <button class="converter-btn" onclick="showConverter('asciiConverter')">ASCII Converter</button>
+                <button class="converter-btn" onclick="showConverter('downloadFromLink')">Download from Link</button>
             </div>
             
             <div id="urlConverter" class="converter-content">
@@ -434,6 +492,13 @@
                 <button>Convert</button>
                 <div class="result-display"></div>
             </div>
+            
+            <div id="downloadFromLink" class="converter-content">
+                <h3>Download from Link</h3>
+                <input type="url" placeholder="Enter any video or audio link">
+                <button>Try Download</button>
+                <div class="result-display"></div>
+            </div>
         </section>
         
         <section id="currencyConverter" class="tool-section">
@@ -466,7 +531,7 @@
         
         <section id="mediaShop" class="tool-section">
             <button class="back-btn" onclick="showMainMenu()">← Back</button>
-            <h2>Media Shop</h2>
+            <h2>MediaShop</h2>
             <p>Edit and convert audio and video files</p>
         </section>
         
@@ -543,6 +608,7 @@
                         <li>Any file → ZIP</li>
                         <li>3D: GLB → OBJ, STL</li>
                         <li>Archives: RAR, 7z → ZIP</li>
+                        <li>Fonts: TTF, OTF, WOFF, WOFF2</li>
                     </ul>
                     <p><strong>Important:</strong> Full video conversion (MP4, AVI, MOV) requires FFmpeg, which needs Vercel hosting. On GitHub Pages, fallback to simple rename (may not play correctly).</p>
                 </div>
@@ -551,23 +617,28 @@
                     <h3>Unit Converter</h3>
                     <p>Click on Unit Converter to convert between different units.</p>
                     <ul>
-                        <li>Color — HEX, RGB, HSL</li>
-                        <li>Time Zones — convert time between zones, supports custom UTC offsets like +10 or -5</li>
-                        <li>Weight — kg, lbs, oz, etc.</li>
-                        <li>Temperature — Celsius, Fahrenheit, Kelvin</li>
-                        <li>Distance — km, miles, meters, etc.</li>
-                        <li>Duration — seconds, minutes, hours, days, weeks, months, years</li>
-                        <li>Speed — km/h, mph, m/s</li>
-                        <li>Area — m², km², acres, hectares</li>
-                        <li>Volume — liters, gallons, m³</li>
-                        <li>Pressure — Pa, bar, atm, PSI</li>
-                        <li>Energy — J, kJ, calories, Wh</li>
-                        <li>Power — W, kW, hp</li>
-                        <li>Angle — degrees, radians</li>
+                        <li>Color - HEX, RGB, HSL</li>
+                        <li>Time Zones - convert time between zones, supports custom UTC offsets like +10 or -5</li>
+                        <li>Weight - kg, lbs, oz, etc.</li>
+                        <li>Temperature - Celsius, Fahrenheit, Kelvin</li>
+                        <li>Distance - km, miles, meters, etc.</li>
+                        <li>Duration - seconds, minutes, hours, days, weeks, months, years</li>
+                        <li>Speed - km/h, mph, m/s</li>
+                        <li>Area - m², km², acres, hectares</li>
+                        <li>Volume - liters, gallons, m³</li>
+                        <li>Pressure - Pa, bar, atm, PSI</li>
+                        <li>Energy - J, kJ, calories, Wh</li>
+                        <li>Power - W, kW, hp</li>
+                        <li>Angle - degrees, radians</li>
+                        <li>Data - bits, bytes, KB, MB, GB, TB</li>
+                        <li>Internet Speed - Mbps, MB/s, Gbps</li>
+                        <li>Cooking - cups, spoons, grams</li>
+                        <li>Coordinates - latitude, longitude</li>
+                        <li>Age - calculate exact age</li>
                         <li>Fraction to Decimal</li>
                         <li>Roman Numerals</li>
-                        <li>Number Systems — binary, octal, hex</li>
-                        <li>Date Converter — ISO, Unix timestamp, week number, dd mm yyyy</li>
+                        <li>Number Systems - binary, octal, hex</li>
+                        <li>Date Converter - ISO, Unix timestamp, week number, dd mm yyyy</li>
                         <li>UUID Generator</li>
                         <li>Every converter has a Clear button</li>
                     </ul>
@@ -579,14 +650,15 @@
                     <ul>
                         <li>URL Encoder/Decoder</li>
                         <li>QR Code Generator</li>
-                        <li>QR Scanner — upload or drag QR image</li>
+                        <li>QR Scanner - upload or drag QR image</li>
                         <li>Link Shortener</li>
                         <li>Link Lengthener</li>
-                        <li>Password Generator — with character options</li>
+                        <li>Password Generator - with character options</li>
                         <li>Random Number Generator</li>
-                        <li>Hash Generator — SHA-1, SHA-256, SHA-512</li>
+                        <li>Hash Generator - SHA-1, SHA-256, SHA-512</li>
                         <li>Text to Binary</li>
                         <li>ASCII Converter</li>
+                        <li>Download from Link - paste any video or audio link</li>
                     </ul>
                 </div>
                 
@@ -594,8 +666,8 @@
                     <h3>Currency Converter</h3>
                     <p>Click on Currency Converter to convert between 100+ currencies.</p>
                     <ul>
-                        <li>Fiat currencies — USD, EUR, RUB, JPY, etc.</li>
-                        <li>Cryptocurrencies — BTC, ETH, USDT, etc.</li>
+                        <li>Fiat currencies - USD, EUR, RUB, JPY, etc.</li>
+                        <li>Cryptocurrencies - BTC, ETH, USDT, etc.</li>
                         <li>Real-time exchange rates via API</li>
                         <li>Swap button to switch currencies</li>
                         <li>Type a letter to search in dropdown</li>
@@ -604,11 +676,11 @@
                 </div>
                 
                 <div class="guide-section">
-                    <h3>Media Shop</h3>
-                    <p>Click on Media Shop to edit audio and video.</p>
+                    <h3>MediaShop</h3>
+                    <p>Click on MediaShop to edit audio and video.</p>
                     <ul>
                         <li>Upload audio or video files</li>
-                        <li>Trim — set start and end time</li>
+                        <li>Trim - set start and end time</li>
                         <li>Volume control</li>
                         <li>Download original or converted</li>
                     </ul>
@@ -627,13 +699,13 @@
                     <p>Click on Photoshop to edit images.</p>
                     <ul>
                         <li>Upload image</li>
-                        <li>Brush — draw with color and size</li>
-                        <li>Eraser — remove parts</li>
-                        <li>Fill — fill area with color</li>
+                        <li>Brush - draw with color and size</li>
+                        <li>Eraser - remove parts</li>
+                        <li>Fill - fill area with color</li>
                         <li>Resize canvas</li>
                         <li>Rotate layer by degrees</li>
-                        <li>Layers — add, delete, move, opacity, visibility</li>
-                        <li>Filters — brightness, contrast, saturation, blur, sharpen</li>
+                        <li>Layers - add, delete, move, opacity, visibility</li>
+                        <li>Filters - brightness, contrast, saturation, blur, sharpen</li>
                         <li>Download edited image</li>
                     </ul>
                 </div>
@@ -657,7 +729,7 @@
                     <h3>Calculator</h3>
                     <p>Click on Calculator to perform calculations.</p>
                     <ul>
-                        <li>Basic operations — +, -, ×, ÷</li>
+                        <li>Basic operations - +, -, ×, ÷</li>
                         <li>Percentage</li>
                         <li>Keyboard support</li>
                         <li>Backspace, Clear</li>
@@ -681,8 +753,8 @@
                         <h4>What to do if I want to compile other code?</h4>
                         <p>Do you want to download the program?</p>
                         <div class="faq-answers">
-                            <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" class="faq-btn">Yes — Download IDE</a>
-                            <a href="https://silvertests.ru/Compiler.aspx" target="_blank" class="faq-btn">No — Use online compiler</a>
+                            <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" class="faq-btn">Yes - Download IDE</a>
+                            <a href="https://silvertests.ru/Compiler.aspx" target="_blank" class="faq-btn">No - Use online compiler</a>
                         </div>
                     </div>
                     
@@ -719,6 +791,16 @@
                             <li>Vercel version: <a href="https://luc-converter.vercel.app" target="_blank" class="faq-link">Vercel</a> (if configured)</li>
                             <li>If neither works, check your internet connection or try again later</li>
                             <li>Offline: GitHub Pages version works without Vercel, but some file conversions will be limited</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Does the site work offline?</h4>
+                        <p>Yes, after the first visit, the site is cached by the service worker and can be used offline. However, external libraries and some conversions may not work without internet.</p>
+                        <ul>
+                            <li>Basic tools (calculator, unit converter, text editor) work offline</li>
+                            <li>File conversion with PDF, DOCX, XLSX may need internet for libraries</li>
+                            <li>FFmpeg-based conversions always need internet (Vercel)</li>
                         </ul>
                     </div>
                 </div>

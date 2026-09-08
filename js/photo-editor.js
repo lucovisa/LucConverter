@@ -68,6 +68,16 @@ function initPhotoEditor() {
     let brushOpacity = 100;
     let currentTool = 'brush';
     let history = [];
+    let cropMode = false;
+    let cropStart = null;
+    let cropRect = null;
+    let textMode = false;
+    let bgRemoveMode = false;
+    let bgRemoveColor = '#ffffff';
+    let bgRemoveTolerance = 30;
+    let shapeMode = false;
+    let shapeStart = null;
+    let shapeType = null;
 
     function createLayer(name, width, height, imageData = null) {
         const layerCanvas = document.createElement('canvas');
@@ -127,6 +137,25 @@ function initPhotoEditor() {
             }
         }
         mainCtx.globalAlpha = 1;
+        if (cropRect) {
+            mainCtx.strokeStyle = '#66c0f4';
+            mainCtx.lineWidth = 2;
+            mainCtx.strokeRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+        }
+        if (shapeStart && shapeMode) {
+            mainCtx.strokeStyle = brushColor;
+            mainCtx.lineWidth = brushSize;
+            mainCtx.globalAlpha = brushOpacity / 100;
+            if (shapeType === 'circle') {
+                const radius = Math.sqrt(Math.pow(lastX - shapeStart.x, 2) + Math.pow(lastY - shapeStart.y, 2));
+                mainCtx.beginPath();
+                mainCtx.arc(shapeStart.x, shapeStart.y, radius, 0, Math.PI * 2);
+                mainCtx.stroke();
+            } else if (shapeType === 'square') {
+                mainCtx.strokeRect(shapeStart.x, shapeStart.y, lastX - shapeStart.x, lastY - shapeStart.y);
+            }
+            mainCtx.globalAlpha = 1;
+        }
     }
 
     function updateLayersPanel() {
@@ -364,9 +393,15 @@ function initPhotoEditor() {
     }
 
     addButton('📁 Upload', 'Upload', () => fileInput.click());
-    addButton('✏️ Brush', 'Brush', () => { currentTool = 'brush'; canvas.style.cursor = 'crosshair'; });
-    addButton('🧹 Eraser', 'Eraser', () => { currentTool = 'eraser'; canvas.style.cursor = 'cell'; });
-    addButton('🪣 Fill', 'Fill', () => { currentTool = 'fill'; canvas.style.cursor = 'pointer'; });
+    addButton('✏️ Brush', 'Brush', () => { currentTool = 'brush'; canvas.style.cursor = 'crosshair'; cropMode = false; textMode = false; bgRemoveMode = false; shapeMode = false; cropRect = null; redrawCanvas(); });
+    addButton('🧹 Eraser', 'Eraser', () => { currentTool = 'eraser'; canvas.style.cursor = 'cell'; cropMode = false; textMode = false; bgRemoveMode = false; shapeMode = false; cropRect = null; redrawCanvas(); });
+    addButton('🪣 Fill', 'Fill', () => { currentTool = 'fill'; canvas.style.cursor = 'pointer'; cropMode = false; textMode = false; bgRemoveMode = false; shapeMode = false; cropRect = null; redrawCanvas(); });
+    addButton('✂️ Crop', 'Crop', () => { cropMode = true; currentTool = 'crop'; canvas.style.cursor = 'crosshair'; cropRect = null; cropStart = null; textMode = false; bgRemoveMode = false; shapeMode = false; redrawCanvas(); });
+    addButton('📝 Text', 'Add Text', () => { textMode = true; currentTool = 'text'; canvas.style.cursor = 'text'; cropMode = false; bgRemoveMode = false; shapeMode = false; redrawCanvas(); });
+    addButton('○ Circle', 'Circle', () => { shapeMode = true; shapeType = 'circle'; currentTool = 'shape'; canvas.style.cursor = 'crosshair'; cropMode = false; textMode = false; bgRemoveMode = false; redrawCanvas(); });
+    addButton('□ Square', 'Square', () => { shapeMode = true; shapeType = 'square'; currentTool = 'shape'; canvas.style.cursor = 'crosshair'; cropMode = false; textMode = false; bgRemoveMode = false; redrawCanvas(); });
+    addButton('🌈 BG Remove', 'Remove Background by Color', () => { bgRemoveMode = true; currentTool = 'bgremove'; canvas.style.cursor = 'crosshair'; cropMode = false; textMode = false; shapeMode = false; redrawCanvas(); });
+    addButton('💾 Export Layers', 'Export Layers', exportLayers);
 
     const colorPicker = document.createElement('input');
     colorPicker.type = 'color';
@@ -659,12 +694,53 @@ function initPhotoEditor() {
     photoSection.appendChild(fileInput);
 
     addLayer('Layer 1');
+    redrawCanvas();
 
     canvas.addEventListener('mousedown', (e) => {
-        if (activeLayerIndex < 0) return;
+        if (activeLayerIndex < 0 && !cropMode && !textMode && !bgRemoveMode && !shapeMode) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        if (cropMode) {
+            cropStart = { x, y };
+            cropRect = { x, y, w: 0, h: 0 };
+            redrawCanvas();
+            return;
+        }
+
+        if (textMode) {
+            const text = prompt('Enter text:');
+            if (text) {
+                const layer = layers[activeLayerIndex];
+                layer.ctx.fillStyle = brushColor;
+                layer.ctx.font = `${brushSize * 2}px Arial`;
+                layer.ctx.fillText(text, x, y);
+                saveState();
+                redrawCanvas();
+            }
+            textMode = false;
+            currentTool = 'brush';
+            canvas.style.cursor = 'crosshair';
+            return;
+        }
+
+        if (bgRemoveMode) {
+            removeBackgroundByColor(activeLayerIndex, Math.floor(x), Math.floor(y), brushColor, bgRemoveTolerance);
+            bgRemoveMode = false;
+            currentTool = 'brush';
+            canvas.style.cursor = 'crosshair';
+            return;
+        }
+
+        if (shapeMode) {
+            shapeStart = { x, y };
+            lastX = x;
+            lastY = y;
+            redrawCanvas();
+            return;
+        }
+
         if (currentTool === 'brush' || currentTool === 'eraser') {
             isDrawing = true;
             lastX = x;
@@ -675,7 +751,30 @@ function initPhotoEditor() {
             floodFill(activeLayerIndex, Math.floor(x), Math.floor(y), brushColor, brushOpacity);
         }
     });
+
     canvas.addEventListener('mousemove', (e) => {
+        if (cropMode && cropStart) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            cropRect = {
+                x: Math.min(cropStart.x, x),
+                y: Math.min(cropStart.y, y),
+                w: Math.abs(x - cropStart.x),
+                h: Math.abs(y - cropStart.y)
+            };
+            redrawCanvas();
+            return;
+        }
+
+        if (shapeMode && shapeStart) {
+            const rect = canvas.getBoundingClientRect();
+            lastX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            lastY = (e.clientY - rect.top) * (canvas.height / rect.height);
+            redrawCanvas();
+            return;
+        }
+
         if (!isDrawing || activeLayerIndex < 0) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -695,25 +794,113 @@ function initPhotoEditor() {
         lastY = y;
         redrawCanvas();
     });
-    canvas.addEventListener('mouseup', () => { isDrawing = false; });
-    canvas.addEventListener('mouseleave', () => { isDrawing = false; });
 
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY });
-        canvas.dispatchEvent(mouseEvent);
+    canvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+        if (cropMode && cropRect && cropRect.w > 0 && cropRect.h > 0) {
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Confirm Crop';
+            confirmBtn.style.position = 'absolute';
+            confirmBtn.style.left = '10px';
+            confirmBtn.style.top = '10px';
+            confirmBtn.style.zIndex = '1000';
+            confirmBtn.addEventListener('click', () => {
+                applyCrop();
+                confirmBtn.remove();
+            });
+            document.body.appendChild(confirmBtn);
+        }
+        if (shapeMode && shapeStart) {
+            const layer = layers[activeLayerIndex];
+            layer.ctx.globalAlpha = brushOpacity / 100;
+            layer.ctx.strokeStyle = brushColor;
+            layer.ctx.lineWidth = brushSize;
+            if (shapeType === 'circle') {
+                const radius = Math.sqrt(Math.pow(lastX - shapeStart.x, 2) + Math.pow(lastY - shapeStart.y, 2));
+                layer.ctx.beginPath();
+                layer.ctx.arc(shapeStart.x, shapeStart.y, radius, 0, Math.PI * 2);
+                layer.ctx.stroke();
+            } else if (shapeType === 'square') {
+                layer.ctx.strokeRect(shapeStart.x, shapeStart.y, lastX - shapeStart.x, lastY - shapeStart.y);
+            }
+            layer.ctx.globalAlpha = 1;
+            shapeStart = null;
+            shapeMode = false;
+            currentTool = 'brush';
+            canvas.style.cursor = 'crosshair';
+            saveState();
+            redrawCanvas();
+        }
     });
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY });
-        canvas.dispatchEvent(mouseEvent);
+
+    canvas.addEventListener('mouseleave', () => {
+        isDrawing = false;
     });
-    canvas.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        canvas.dispatchEvent(new MouseEvent('mouseup'));
-    });
+
+    function applyCrop() {
+        if (!cropRect) return;
+        const x = Math.round(cropRect.x);
+        const y = Math.round(cropRect.y);
+        const w = Math.round(cropRect.w);
+        const h = Math.round(cropRect.h);
+        if (w > 0 && h > 0) {
+            saveState();
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            tempCanvas.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, w, h);
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(tempCanvas, 0, 0);
+            layers = [];
+            const imgData = canvas.getContext('2d').getImageData(0, 0, w, h);
+            addLayer('Cropped', imgData);
+            cropMode = false;
+            cropRect = null;
+            redrawCanvas();
+        }
+    }
+
+    function removeBackgroundByColor(layerIndex, x, y, targetColor, tolerance) {
+        const layer = layers[layerIndex];
+        const imageData = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+        const data = imageData.data;
+        const targetR = parseInt(targetColor.slice(1, 3), 16);
+        const targetG = parseInt(targetColor.slice(3, 5), 16);
+        const targetB = parseInt(targetColor.slice(5, 7), 16);
+        const w = layer.canvas.width, h = layer.canvas.height;
+        const startIdx = (y * w + x) * 4;
+        const startR = data[startIdx], startG = data[startIdx+1], startB = data[startIdx+2];
+        const queue = [[x, y]];
+        const visited = new Set();
+        while (queue.length) {
+            const [cx, cy] = queue.shift();
+            const key = `${cx},${cy}`;
+            if (cx < 0 || cx >= w || cy < 0 || cy >= h || visited.has(key)) continue;
+            const idx = (cy * w + cx) * 4;
+            const r = data[idx], g = data[idx+1], b = data[idx+2];
+            if (Math.abs(r - startR) > tolerance || Math.abs(g - startG) > tolerance || Math.abs(b - startB) > tolerance) continue;
+            visited.add(key);
+            data[idx+3] = 0;
+            queue.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
+        }
+        layer.ctx.putImageData(imageData, 0, 0);
+        redrawCanvas();
+    }
+
+    function exportLayers() {
+        if (layers.length === 0) return;
+        layers.forEach((layer, i) => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = layer.canvas.width;
+            tempCanvas.height = layer.canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(layer.canvas, 0, 0);
+            tempCanvas.toBlob(blob => {
+                downloadBlob(blob, `layer_${i+1}.png`);
+            }, 'image/png');
+        });
+    }
 
     function floodFill(layerIndex, startX, startY, fillColor, opacity) {
         const layer = layers[layerIndex];

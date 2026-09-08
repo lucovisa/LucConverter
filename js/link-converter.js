@@ -181,7 +181,7 @@ function initLinkConverter() {
         const url = shortInput.value.trim();
         if (!url.startsWith('http')) { showError(shortInput, 'Please enter a valid URL'); return; }
         const code = generateRandomString(6);
-        shortResult.textContent = `Short URL: https://luc.tiny/${code}`;
+        shortResult.textContent = `https://luc.tiny/${code}`;
     });
 
     const lengthenInput = document.querySelector('#linkLengthener input');
@@ -257,6 +257,27 @@ function initLinkConverter() {
         const text = asciiTextarea.value.trim();
         if (!text) { showError(asciiTextarea, 'Please enter text'); return; }
         asciiResult.textContent = text.split('').map(c => c.charCodeAt(0)).join(' ');
+    });
+
+    const downloadFromLinkInput = document.querySelector('#downloadFromLink input');
+    const downloadFromLinkBtn = document.querySelector('#downloadFromLink button');
+    const downloadFromLinkResult = document.querySelector('#downloadFromLink .result-display');
+    downloadFromLinkBtn.addEventListener('click', async () => {
+        const url = downloadFromLinkInput.value.trim();
+        if (!url) { showError(downloadFromLinkInput, 'Please enter a link'); return; }
+        downloadFromLinkResult.textContent = 'Trying to fetch...';
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network error');
+            const blob = await response.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = url.split('/').pop().split('?')[0] || 'download';
+            a.click();
+            downloadFromLinkResult.textContent = 'Download started';
+        } catch (e) {
+            downloadFromLinkResult.textContent = 'Download failed. The site may block direct downloads. Try a different link.';
+        }
     });
 }
 

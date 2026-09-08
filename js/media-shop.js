@@ -19,6 +19,7 @@ function initMediaShop() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'audio/*,video/*';
+    fileInput.multiple = true;
     fileInput.style.display = 'none';
     dropZone.appendChild(fileInput);
     dropZone.addEventListener('click', () => fileInput.click());
@@ -27,83 +28,49 @@ function initMediaShop() {
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
-        if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) processFiles(files);
     });
     fileInput.addEventListener('change', function() {
-        if (this.files.length > 0) processFile(this.files[0]);
+        const files = Array.from(this.files);
+        if (files.length > 0) processFiles(files);
     });
 
     const editorContainer = document.createElement('div');
     editorContainer.id = 'mediaEditor';
     editorContainer.style.display = 'none';
+    editorContainer.style.marginTop = '2rem';
     mediaSection.appendChild(dropZone);
     mediaSection.appendChild(editorContainer);
 
-    let mediaDuration = 0;
-    let originalFile = null;
-    let processedBlob = null;
-    let audioBuffer = null;
+    let mediaFiles = [];
+    let processedBlobs = [];
     let audioContext = null;
 
-    function processFile(file) {
-        originalFile = file;
-        processedBlob = null;
-        audioBuffer = null;
+    function processFiles(files) {
+        mediaFiles = files;
+        processedBlobs = [];
         editorContainer.style.display = 'block';
         editorContainer.innerHTML = '';
+
         const title = document.createElement('h3');
-        title.textContent = `Editing: ${file.name}`;
+        title.textContent = `Loaded ${files.length} file(s)`;
         title.style.color = 'var(--accent)';
+        title.style.marginBottom = '1rem';
         editorContainer.appendChild(title);
 
-        const previewContainer = document.createElement('div');
-        previewContainer.style.display = 'flex';
-        previewContainer.style.gap = '1rem';
-        previewContainer.style.flexWrap = 'wrap';
-        previewContainer.style.marginBottom = '1rem';
-
-        const originalPreview = document.createElement('div');
-        originalPreview.style.flex = '1';
-        originalPreview.style.minWidth = '300px';
-        const originalLabel = document.createElement('h4');
-        originalLabel.textContent = 'Original';
-        originalLabel.style.color = 'var(--accent)';
-        originalPreview.appendChild(originalLabel);
-        const mediaElement = document.createElement(file.type.startsWith('video') ? 'video' : 'audio');
-        mediaElement.controls = true;
-        mediaElement.style.width = '100%';
-        mediaElement.src = URL.createObjectURL(file);
-        mediaElement.addEventListener('loadedmetadata', () => {
-            mediaDuration = mediaElement.duration;
-            endTimeInput.max = mediaDuration;
-            endTimeInput.value = mediaDuration;
-            durationLabel.textContent = `Duration: ${formatTime(mediaDuration)}`;
+        const fileListContainer = document.createElement('div');
+        fileListContainer.style.marginBottom = '1rem';
+        files.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.style.padding = '0.5rem';
+            fileItem.style.border = '1px solid var(--border)';
+            fileItem.style.borderRadius = '4px';
+            fileItem.style.marginBottom = '0.3rem';
+            fileItem.textContent = `${index + 1}. ${file.name}`;
+            fileListContainer.appendChild(fileItem);
         });
-        originalPreview.appendChild(mediaElement);
-        previewContainer.appendChild(originalPreview);
-
-        const resultPreview = document.createElement('div');
-        resultPreview.style.flex = '1';
-        resultPreview.style.minWidth = '300px';
-        const resultLabel = document.createElement('h4');
-        resultLabel.textContent = 'Result';
-        resultLabel.style.color = 'var(--accent)';
-        resultPreview.appendChild(resultLabel);
-        const resultPlaceholder = document.createElement('div');
-        resultPlaceholder.style.width = '100%';
-        resultPlaceholder.style.minHeight = '200px';
-        resultPlaceholder.style.background = 'var(--bg)';
-        resultPlaceholder.style.border = '1px solid var(--border)';
-        resultPlaceholder.style.borderRadius = '4px';
-        resultPlaceholder.style.display = 'flex';
-        resultPlaceholder.style.alignItems = 'center';
-        resultPlaceholder.style.justifyContent = 'center';
-        resultPlaceholder.style.color = 'var(--text)';
-        resultPlaceholder.style.opacity = '0.5';
-        resultPlaceholder.textContent = 'Result will appear here';
-        resultPreview.appendChild(resultPlaceholder);
-        previewContainer.appendChild(resultPreview);
-        editorContainer.appendChild(previewContainer);
+        editorContainer.appendChild(fileListContainer);
 
         const controlsContainer = document.createElement('div');
         controlsContainer.style.padding = '1rem';
@@ -111,41 +78,80 @@ function initMediaShop() {
         controlsContainer.style.border = '1px solid var(--border)';
         controlsContainer.style.borderRadius = '4px';
 
-        const trimSection = document.createElement('div');
-        trimSection.style.marginBottom = '1rem';
-        trimSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Select Start and End</h4>';
-        const trimControls = document.createElement('div');
-        trimControls.style.display = 'flex';
-        trimControls.style.gap = '1rem';
-        trimControls.style.flexWrap = 'wrap';
-        const startTimeInput = document.createElement('input');
-        startTimeInput.type = 'number';
-        startTimeInput.placeholder = 'Start (seconds)';
-        startTimeInput.min = '0';
-        startTimeInput.step = '0.1';
-        startTimeInput.value = '0';
-        startTimeInput.style.flex = '1';
-        startTimeInput.style.minWidth = '120px';
-        const endTimeInput = document.createElement('input');
-        endTimeInput.type = 'number';
-        endTimeInput.placeholder = 'End (seconds)';
-        endTimeInput.min = '0';
-        endTimeInput.step = '0.1';
-        endTimeInput.value = '0';
-        endTimeInput.style.flex = '1';
-        endTimeInput.style.minWidth = '120px';
-        const durationLabel = document.createElement('span');
-        durationLabel.textContent = 'Duration: 0:00';
-        durationLabel.style.fontSize = '0.85rem';
-        trimControls.appendChild(startTimeInput);
-        trimControls.appendChild(endTimeInput);
-        trimControls.appendChild(durationLabel);
-        trimSection.appendChild(trimControls);
-        controlsContainer.appendChild(trimSection);
+        const settingsRow = document.createElement('div');
+        settingsRow.style.display = 'flex';
+        settingsRow.style.gap = '1rem';
+        settingsRow.style.flexWrap = 'wrap';
+        settingsRow.style.marginBottom = '1rem';
 
-        const volumeSection = document.createElement('div');
-        volumeSection.style.marginBottom = '1rem';
-        volumeSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Volume</h4>';
+        const formatGroup = document.createElement('div');
+        formatGroup.style.flex = '1';
+        formatGroup.style.minWidth = '150px';
+        formatGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Output Format</label>';
+        const formatSelect = document.createElement('select');
+        formatSelect.style.width = '100%';
+        formatSelect.style.padding = '0.5rem';
+        formatSelect.style.background = 'var(--bg)';
+        formatSelect.style.border = '1px solid var(--border)';
+        formatSelect.style.borderRadius = '4px';
+        formatSelect.style.color = 'var(--text)';
+        const isVideo = files.some(f => f.type.startsWith('video'));
+        const isAudio = files.some(f => f.type.startsWith('audio'));
+        if (isVideo && !isAudio) {
+            ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+        } else if (isAudio && !isVideo) {
+            ['wav', 'mp3'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+        } else {
+            ['webm', 'mp4', 'gif', 'wav', 'mp3', 'jpg', 'png'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+        }
+        formatGroup.appendChild(formatSelect);
+        settingsRow.appendChild(formatGroup);
+
+        const qualityGroup = document.createElement('div');
+        qualityGroup.style.flex = '1';
+        qualityGroup.style.minWidth = '150px';
+        qualityGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Quality / Bitrate</label>';
+        const qualitySelect = document.createElement('select');
+        qualitySelect.style.width = '100%';
+        qualitySelect.style.padding = '0.5rem';
+        qualitySelect.style.background = 'var(--bg)';
+        qualitySelect.style.border = '1px solid var(--border)';
+        qualitySelect.style.borderRadius = '4px';
+        qualitySelect.style.color = 'var(--text)';
+        [
+            { value: 'low', label: 'Low (96 kbps)' },
+            { value: 'medium', label: 'Medium (128 kbps)' },
+            { value: 'high', label: 'High (192 kbps)' },
+            { value: 'best', label: 'Best (320 kbps)' }
+        ].forEach(q => qualitySelect.add(new Option(q.label, q.value)));
+        qualityGroup.appendChild(qualitySelect);
+        settingsRow.appendChild(qualityGroup);
+
+        const resolutionGroup = document.createElement('div');
+        resolutionGroup.style.flex = '1';
+        resolutionGroup.style.minWidth = '150px';
+        resolutionGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Resolution</label>';
+        const resolutionSelect = document.createElement('select');
+        resolutionSelect.style.width = '100%';
+        resolutionSelect.style.padding = '0.5rem';
+        resolutionSelect.style.background = 'var(--bg)';
+        resolutionSelect.style.border = '1px solid var(--border)';
+        resolutionSelect.style.borderRadius = '4px';
+        resolutionSelect.style.color = 'var(--text)';
+        [
+            { value: 'original', label: 'Original' },
+            { value: '1080p', label: '1080p (1920x1080)' },
+            { value: '720p', label: '720p (1280x720)' },
+            { value: '480p', label: '480p (854x480)' },
+            { value: '360p', label: '360p (640x360)' }
+        ].forEach(r => resolutionSelect.add(new Option(r.label, r.value)));
+        resolutionGroup.appendChild(resolutionSelect);
+        settingsRow.appendChild(resolutionGroup);
+
+        const volumeGroup = document.createElement('div');
+        volumeGroup.style.flex = '1';
+        volumeGroup.style.minWidth = '150px';
+        volumeGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Volume</label>';
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
         volumeSlider.min = '0';
@@ -154,36 +160,83 @@ function initMediaShop() {
         volumeSlider.style.width = '100%';
         const volumeLabel = document.createElement('span');
         volumeLabel.textContent = '100%';
-        volumeSlider.addEventListener('input', function() {
-            volumeLabel.textContent = this.value + '%';
-            mediaElement.volume = this.value / 100;
+        volumeLabel.style.fontSize = '0.85rem';
+        volumeSlider.addEventListener('input', () => {
+            volumeLabel.textContent = volumeSlider.value + '%';
         });
-        volumeSection.appendChild(volumeSlider);
-        volumeSection.appendChild(volumeLabel);
-        controlsContainer.appendChild(volumeSection);
+        volumeGroup.appendChild(volumeSlider);
+        volumeGroup.appendChild(volumeLabel);
+        settingsRow.appendChild(volumeGroup);
 
-        const formatSection = document.createElement('div');
-        formatSection.style.marginBottom = '1rem';
-        formatSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Output Format</h4>';
-        const formatSelect = document.createElement('select');
-        formatSelect.style.width = '100%';
-        const formats = file.type.startsWith('video') ? ['webm', 'jpg', 'png'] : ['wav', 'mp3'];
-        formats.forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f;
-            opt.textContent = f.toUpperCase();
-            formatSelect.appendChild(opt);
-        });
-        formatSection.appendChild(formatSelect);
-        controlsContainer.appendChild(formatSection);
+        controlsContainer.appendChild(settingsRow);
 
-        const actionContainer = document.createElement('div');
-        actionContainer.style.display = 'flex';
-        actionContainer.style.gap = '0.5rem';
-        actionContainer.style.flexWrap = 'wrap';
+        const trimRow = document.createElement('div');
+        trimRow.style.display = 'flex';
+        trimRow.style.gap = '1rem';
+        trimRow.style.flexWrap = 'wrap';
+        trimRow.style.marginBottom = '1rem';
+
+        const startGroup = document.createElement('div');
+        startGroup.style.flex = '1';
+        startGroup.style.minWidth = '120px';
+        startGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Start (seconds)</label>';
+        const startInput = document.createElement('input');
+        startInput.type = 'number';
+        startInput.min = '0';
+        startInput.step = '0.1';
+        startInput.value = '0';
+        startInput.style.width = '100%';
+        startInput.style.padding = '0.5rem';
+        startInput.style.background = 'var(--bg)';
+        startInput.style.border = '1px solid var(--border)';
+        startInput.style.borderRadius = '4px';
+        startInput.style.color = 'var(--text)';
+        startGroup.appendChild(startInput);
+        trimRow.appendChild(startGroup);
+
+        const endGroup = document.createElement('div');
+        endGroup.style.flex = '1';
+        endGroup.style.minWidth = '120px';
+        endGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">End (seconds)</label>';
+        const endInput = document.createElement('input');
+        endInput.type = 'number';
+        endInput.min = '0';
+        endInput.step = '0.1';
+        endInput.value = '0';
+        endInput.style.width = '100%';
+        endInput.style.padding = '0.5rem';
+        endInput.style.background = 'var(--bg)';
+        endInput.style.border = '1px solid var(--border)';
+        endInput.style.borderRadius = '4px';
+        endInput.style.color = 'var(--text)';
+        endGroup.appendChild(endInput);
+        trimRow.appendChild(endGroup);
+
+        const textOverlayGroup = document.createElement('div');
+        textOverlayGroup.style.flex = '1';
+        textOverlayGroup.style.minWidth = '200px';
+        textOverlayGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Text Overlay (for video)</label>';
+        const textOverlayInput = document.createElement('input');
+        textOverlayInput.type = 'text';
+        textOverlayInput.placeholder = 'Enter text to overlay';
+        textOverlayInput.style.width = '100%';
+        textOverlayInput.style.padding = '0.5rem';
+        textOverlayInput.style.background = 'var(--bg)';
+        textOverlayInput.style.border = '1px solid var(--border)';
+        textOverlayInput.style.borderRadius = '4px';
+        textOverlayInput.style.color = 'var(--text)';
+        textOverlayGroup.appendChild(textOverlayInput);
+        trimRow.appendChild(textOverlayGroup);
+
+        controlsContainer.appendChild(trimRow);
+
+        const actionRow = document.createElement('div');
+        actionRow.style.display = 'flex';
+        actionRow.style.gap = '0.5rem';
+        actionRow.style.flexWrap = 'wrap';
 
         const processBtn = document.createElement('button');
-        processBtn.textContent = 'Process';
+        processBtn.textContent = 'Process All';
         processBtn.style.padding = '0.7rem 1.5rem';
         processBtn.style.background = 'var(--button-bg)';
         processBtn.style.color = 'white';
@@ -191,170 +244,212 @@ function initMediaShop() {
         processBtn.style.borderRadius = '4px';
         processBtn.style.cursor = 'pointer';
         processBtn.addEventListener('click', async () => {
-            const start = parseFloat(startTimeInput.value);
-            const end = parseFloat(endTimeInput.value);
             const format = formatSelect.value;
-            const volumePercent = parseInt(volumeSlider.value);
-
-            if (isNaN(start) || start < 0) { showError(startTimeInput, 'Invalid start time'); return; }
-            if (isNaN(end) || end <= start) { showError(endTimeInput, 'End must be greater than start'); return; }
-            if (mediaDuration > 0 && end > mediaDuration) { showError(endTimeInput, 'End exceeds duration'); return; }
-
-            const status = document.createElement('div');
-            status.className = 'success-message';
-            status.textContent = 'Processing...';
-            controlsContainer.appendChild(status);
-
-            processedBlob = await processMediaFile(file, start, end, format, volumePercent);
-            status.remove();
-
-            if (processedBlob) {
-                const url = URL.createObjectURL(processedBlob);
-                const resultEl = document.createElement(format === 'jpg' || format === 'png' ? 'img' : format === 'webm' ? 'video' : 'audio');
-                if (resultEl.tagName !== 'IMG') {
-                    resultEl.controls = true;
+            const quality = qualitySelect.value;
+            const resolution = resolutionSelect.value;
+            const volume = parseInt(volumeSlider.value);
+            const start = parseFloat(startInput.value) || 0;
+            const end = parseFloat(endInput.value) || 0;
+            const overlayText = textOverlayInput.value.trim();
+            processedBlobs = [];
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'success-message';
+            statusDiv.textContent = 'Processing...';
+            controlsContainer.appendChild(statusDiv);
+            for (const file of mediaFiles) {
+                const blob = await processMediaFile(file, start, end, format, volume, quality, resolution, overlayText);
+                if (blob) {
+                    processedBlobs.push({ blob, fileName: 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format) });
                 }
-                resultEl.src = url;
-                resultEl.style.width = '100%';
-                resultPlaceholder.innerHTML = '';
-                resultPlaceholder.style.opacity = '1';
-                resultPlaceholder.appendChild(resultEl);
-            } else {
-                showError(processBtn, 'Processing failed. Unsupported conversion.');
+            }
+            statusDiv.textContent = `Processed ${processedBlobs.length}/${mediaFiles.length} files`;
+            setTimeout(() => statusDiv.remove(), 3000);
+            if (processedBlobs.length > 0) {
+                showDownloadButtons(processedBlobs, controlsContainer);
             }
         });
-        actionContainer.appendChild(processBtn);
+        actionRow.appendChild(processBtn);
 
-        const downloadBtn = document.createElement('button');
-        downloadBtn.textContent = 'Download Result';
-        downloadBtn.style.padding = '0.7rem 1.5rem';
-        downloadBtn.style.background = '#2e7d32';
-        downloadBtn.style.color = 'white';
-        downloadBtn.style.border = 'none';
-        downloadBtn.style.borderRadius = '4px';
-        downloadBtn.style.cursor = 'pointer';
-        downloadBtn.addEventListener('click', () => {
-            if (processedBlob) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(processedBlob);
-                a.download = 'processed_' + originalFile.name.replace(/\.[^.]+$/, '.' + formatSelect.value);
-                a.click();
-            } else {
-                showError(downloadBtn, 'No processed file');
+        const downloadZipBtn = document.createElement('button');
+        downloadZipBtn.textContent = 'Download All as ZIP';
+        downloadZipBtn.style.padding = '0.7rem 1.5rem';
+        downloadZipBtn.style.background = '#2e7d32';
+        downloadZipBtn.style.color = 'white';
+        downloadZipBtn.style.border = 'none';
+        downloadZipBtn.style.borderRadius = '4px';
+        downloadZipBtn.style.cursor = 'pointer';
+        downloadZipBtn.addEventListener('click', async () => {
+            if (processedBlobs.length === 0) {
+                showError(downloadZipBtn, 'No processed files');
+                return;
             }
-        });
-        actionContainer.appendChild(downloadBtn);
-
-        const downloadOriginalBtn = document.createElement('button');
-        downloadOriginalBtn.textContent = 'Download Original';
-        downloadOriginalBtn.style.padding = '0.7rem 1.5rem';
-        downloadOriginalBtn.style.background = 'var(--border)';
-        downloadOriginalBtn.style.color = 'var(--text)';
-        downloadOriginalBtn.style.border = 'none';
-        downloadOriginalBtn.style.borderRadius = '4px';
-        downloadOriginalBtn.style.cursor = 'pointer';
-        downloadOriginalBtn.addEventListener('click', () => {
+            const zip = new JSZip();
+            processedBlobs.forEach(item => {
+                zip.file(item.fileName, item.blob);
+            });
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(originalFile);
-            a.download = originalFile.name;
+            a.href = URL.createObjectURL(zipBlob);
+            a.download = 'processed_media.zip';
             a.click();
         });
-        actionContainer.appendChild(downloadOriginalBtn);
+        actionRow.appendChild(downloadZipBtn);
 
-        controlsContainer.appendChild(actionContainer);
+        controlsContainer.appendChild(actionRow);
         editorContainer.appendChild(controlsContainer);
     }
 
-    async function processMediaFile(file, start, end, format, volumePercent) {
+    function showDownloadButtons(blobs, container) {
+        const existing = container.querySelector('.download-results');
+        if (existing) existing.remove();
+        const downloadContainer = document.createElement('div');
+        downloadContainer.className = 'download-results';
+        downloadContainer.style.marginTop = '1rem';
+        downloadContainer.innerHTML = '<h4 style="color:var(--accent);margin-bottom:0.5rem">Download Results</h4>';
+        blobs.forEach(item => {
+            const btn = document.createElement('button');
+            btn.textContent = item.fileName;
+            btn.style.display = 'block';
+            btn.style.marginBottom = '0.3rem';
+            btn.style.padding = '0.5rem';
+            btn.style.background = 'var(--button-bg)';
+            btn.style.color = 'white';
+            btn.style.border = 'none';
+            btn.style.borderRadius = '4px';
+            btn.style.cursor = 'pointer';
+            btn.addEventListener('click', () => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(item.blob);
+                a.download = item.fileName;
+                a.click();
+            });
+            downloadContainer.appendChild(btn);
+        });
+        container.appendChild(downloadContainer);
+    }
+
+    async function processMediaFile(file, start, end, format, volumePercent, quality, resolution, overlayText) {
         const isVideo = file.type.startsWith('video');
         const isAudio = file.type.startsWith('audio');
-
         if (isAudio) {
-            return await processAudio(file, start, end, volumePercent, format);
+            return await processAudio(file, start, end, volumePercent, format, quality);
         } else if (isVideo) {
             if (format === 'jpg' || format === 'png') {
-                return await extractVideoFrame(file, start);
-            } else if (format === 'webm') {
-                return await trimVideo(file, start, end, volumePercent);
+                return await extractVideoFrame(file, start || 0, quality, resolution);
+            } else if (format === 'webm' || format === 'mp4') {
+                return await trimVideo(file, start, end, volumePercent, quality, resolution, overlayText);
+            } else if (format === 'gif') {
+                return await videoToGif(file, start, end, quality, resolution);
+            } else if (format === 'mp3' || format === 'wav') {
+                return await extractAudioFromVideo(file, start, end, volumePercent, quality, format);
             }
         }
         return null;
     }
 
-    async function processAudio(file, start, end, volumePercent, format) {
+    async function processAudio(file, start, end, volumePercent, format, quality) {
         const arrayBuffer = await file.arrayBuffer();
         audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-
         try {
-            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const startSample = Math.floor((start || 0) * audioBuffer.sampleRate);
+            const endSample = end > 0 ? Math.floor(end * audioBuffer.sampleRate) : audioBuffer.length;
+            const newLength = endSample - startSample;
+            const newBuffer = audioContext.createBuffer(audioBuffer.numberOfChannels, newLength, audioBuffer.sampleRate);
+            for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+                const oldData = audioBuffer.getChannelData(channel);
+                const newData = newBuffer.getChannelData(channel);
+                for (let i = 0; i < newLength; i++) {
+                    newData[i] = oldData[startSample + i] * (volumePercent / 100);
+                }
+            }
+            if (format === 'mp3') {
+                return bufferToMp3(newBuffer, quality);
+            }
+            return bufferToWav(newBuffer, quality);
         } catch (e) {
             console.error('Audio decode error:', e);
             return null;
         }
-
-        const startSample = Math.floor(start * audioBuffer.sampleRate);
-        const endSample = Math.floor(end * audioBuffer.sampleRate);
-        const duration = end - start;
-        const newLength = Math.floor(duration * audioBuffer.sampleRate);
-        const newBuffer = audioContext.createBuffer(audioBuffer.numberOfChannels, newLength, audioBuffer.sampleRate);
-
-        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-            const oldData = audioBuffer.getChannelData(channel);
-            const newData = newBuffer.getChannelData(channel);
-            for (let i = 0; i < newLength; i++) {
-                newData[i] = oldData[startSample + i] * (volumePercent / 100);
-            }
-        }
-
-        if (format === 'mp3') {
-            return bufferToMp3(newBuffer);
-        }
-        return bufferToWav(newBuffer);
     }
 
-    async function trimVideo(file, start, end, volumePercent) {
+    async function trimVideo(file, start, end, volumePercent, quality, resolution, overlayText) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
             video.volume = volumePercent / 100;
-            
             video.onloadedmetadata = () => {
-                video.currentTime = start;
+                video.currentTime = start || 0;
             };
-
             video.onseeked = () => {
-                const stream = video.captureStream();
-                const recorder = new MediaRecorder(stream);
+                let width = video.videoWidth || 640;
+                let height = video.videoHeight || 360;
+                if (resolution === '1080p') { width = 1920; height = 1080; }
+                else if (resolution === '720p') { width = 1280; height = 720; }
+                else if (resolution === '480p') { width = 854; height = 480; }
+                else if (resolution === '360p') { width = 640; height = 360; }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                const stream = canvas.captureStream(30);
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioCtx.createMediaElementSource(video);
+                const dest = audioCtx.createMediaStreamDestination();
+                source.connect(dest);
+                dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+                const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
                 const chunks = [];
                 recorder.ondataavailable = e => chunks.push(e.data);
                 recorder.onstop = () => {
-                    resolve(new Blob(chunks, { type: 'video/webm' }));
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    resolve(blob);
                 };
+                const drawOverlay = () => {
+                    ctx.drawImage(video, 0, 0, width, height);
+                    if (overlayText) {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '30px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(overlayText, width / 2, height / 2);
+                    }
+                };
+                drawOverlay();
                 recorder.start();
                 video.play();
+                const duration = end > start ? (end - start) * 1000 : 5000;
+                const interval = setInterval(drawOverlay, 100);
                 setTimeout(() => {
+                    clearInterval(interval);
                     recorder.stop();
                     video.pause();
-                }, (end - start) * 1000);
+                    source.disconnect();
+                    audioCtx.close();
+                }, duration);
             };
-
-            video.onerror = () => reject(new Error('Video error'));
+            video.onerror = reject;
         });
     }
 
-    async function extractVideoFrame(file, time) {
+    async function extractVideoFrame(file, time, quality, resolution) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
             video.onloadedmetadata = () => {
-                video.currentTime = time;
+                video.currentTime = time || 0;
             };
             video.onseeked = () => {
+                let width = video.videoWidth;
+                let height = video.videoHeight;
+                if (resolution === '1080p') { width = 1920; height = 1080; }
+                else if (resolution === '720p') { width = 1280; height = 720; }
+                else if (resolution === '480p') { width = 854; height = 480; }
+                else if (resolution === '360p') { width = 640; height = 360; }
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                canvas.width = width;
+                canvas.height = height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0);
+                ctx.drawImage(video, 0, 0, width, height);
                 canvas.toBlob(blob => resolve(blob), 'image/png');
                 video.src = '';
             };
@@ -362,7 +457,86 @@ function initMediaShop() {
         });
     }
 
-    function bufferToWav(buffer) {
+    async function videoToGif(file, start, end, quality, resolution) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = () => {
+                video.currentTime = start || 0;
+            };
+            video.onseeked = () => {
+                const width = video.videoWidth || 640;
+                const height = video.videoHeight || 360;
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                const gif = new GIF({
+                    workers: 2,
+                    quality: 10,
+                    width: width,
+                    height: height
+                });
+                const duration = end > start ? (end - start) * 1000 : 2000;
+                const fps = 10;
+                const frameInterval = 1000 / fps;
+                let frameCount = 0;
+                const maxFrames = Math.floor(duration / frameInterval);
+                const captureFrame = () => {
+                    ctx.drawImage(video, 0, 0, width, height);
+                    gif.addFrame(ctx, { copy: true, delay: frameInterval });
+                    frameCount++;
+                    if (frameCount >= maxFrames || video.ended) {
+                        gif.render();
+                    } else {
+                        setTimeout(captureFrame, frameInterval);
+                    }
+                };
+                gif.on('finished', (blob) => {
+                    resolve(blob);
+                });
+                gif.on('error', reject);
+                video.play();
+                captureFrame();
+            };
+            video.onerror = reject;
+        });
+    }
+
+    async function extractAudioFromVideo(file, start, end, volumePercent, quality, format) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = () => {
+                video.currentTime = start || 0;
+            };
+            video.onseeked = () => {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaElementSource(video);
+                const destination = audioContext.createMediaStreamDestination();
+                source.connect(destination);
+                const mediaRecorder = new MediaRecorder(destination.stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: format === 'mp3' ? 'audio/mpeg' : 'audio/wav' });
+                    resolve(blob);
+                };
+                mediaRecorder.start();
+                video.play();
+                const duration = end > start ? (end - start) * 1000 : 5000;
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    video.pause();
+                    source.disconnect();
+                    audioContext.close();
+                }, duration);
+            };
+            video.onerror = reject;
+        });
+    }
+
+    function bufferToWav(buffer, quality) {
         const numChannels = buffer.numberOfChannels;
         const sampleRate = buffer.sampleRate;
         const format = 1;
@@ -373,7 +547,6 @@ function initMediaShop() {
         const bufferSize = 44 + dataLength;
         const arrayBuffer = new ArrayBuffer(bufferSize);
         const view = new DataView(arrayBuffer);
-
         writeString(view, 0, 'RIFF');
         view.setUint32(4, bufferSize - 8, true);
         writeString(view, 8, 'WAVE');
@@ -387,7 +560,6 @@ function initMediaShop() {
         view.setUint16(34, bitDepth, true);
         writeString(view, 36, 'data');
         view.setUint32(40, dataLength, true);
-
         let offset = 44;
         for (let i = 0; i < buffer.length; i++) {
             for (let channel = 0; channel < numChannels; channel++) {
@@ -397,14 +569,15 @@ function initMediaShop() {
                 offset += 2;
             }
         }
-
         return new Blob([arrayBuffer], { type: 'audio/wav' });
     }
 
-    function bufferToMp3(buffer) {
+    function bufferToMp3(buffer, quality) {
+        const bitrates = { low: 96, medium: 128, high: 192, best: 320 };
+        const bitrate = bitrates[quality] || 128;
         const channels = buffer.numberOfChannels;
         const sampleRate = buffer.sampleRate;
-        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, bitrate);
         const samples = new Int16Array(buffer.length * channels);
         let offset = 0;
         for (let i = 0; i < buffer.length; i++) {
@@ -416,8 +589,7 @@ function initMediaShop() {
         }
         const mp3Data = mp3encoder.encodeBuffer(samples);
         const endData = mp3encoder.flush();
-        const blob = new Blob([mp3Data, endData], { type: 'audio/mp3' });
-        return blob;
+        return new Blob([mp3Data, endData], { type: 'audio/mp3' });
     }
 
     function writeString(view, offset, string) {
@@ -429,6 +601,7 @@ function initMediaShop() {
     function getExtension(filename) {
         return filename.substring(filename.lastIndexOf('.'));
     }
+
     function formatTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
