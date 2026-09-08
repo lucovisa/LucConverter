@@ -60,6 +60,8 @@ document.addEventListener('DOMContentLoaded', function() {
     mediaSection.appendChild(editorContainer);
     
     let ffmpegInstance = null;
+    let mediaDuration = 0;
+    let isPlaying = false;
     
     async function initFFmpeg() {
         if (ffmpegInstance) return ffmpegInstance;
@@ -119,6 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
         mediaElement.style.display = 'block';
         mediaElement.style.margin = '0 auto 1rem';
         mediaElement.src = URL.createObjectURL(file);
+        
+        mediaElement.addEventListener('loadedmetadata', function() {
+            mediaDuration = mediaElement.duration;
+            endTimeInput.max = mediaDuration;
+            endTimeInput.value = mediaDuration;
+            durationLabel.textContent = `Duration: ${formatTime(mediaDuration)}`;
+        });
+        
         editorContainer.appendChild(mediaElement);
         
         const controlsContainer = document.createElement('div');
@@ -140,14 +150,16 @@ document.addEventListener('DOMContentLoaded', function() {
         trimControls.style.display = 'flex';
         trimControls.style.gap = '1rem';
         trimControls.style.flexWrap = 'wrap';
+        trimControls.style.alignItems = 'center';
         
         const startTimeInput = document.createElement('input');
         startTimeInput.type = 'number';
         startTimeInput.placeholder = 'Start (seconds)';
         startTimeInput.min = '0';
         startTimeInput.step = '0.1';
+        startTimeInput.value = '0';
         startTimeInput.style.flex = '1';
-        startTimeInput.style.minWidth = '150px';
+        startTimeInput.style.minWidth = '120px';
         startTimeInput.style.padding = '0.6rem';
         startTimeInput.style.background = 'var(--bg)';
         startTimeInput.style.border = '1px solid var(--border)';
@@ -159,13 +171,19 @@ document.addEventListener('DOMContentLoaded', function() {
         endTimeInput.placeholder = 'End (seconds)';
         endTimeInput.min = '0';
         endTimeInput.step = '0.1';
+        endTimeInput.value = '0';
         endTimeInput.style.flex = '1';
-        endTimeInput.style.minWidth = '150px';
+        endTimeInput.style.minWidth = '120px';
         endTimeInput.style.padding = '0.6rem';
         endTimeInput.style.background = 'var(--bg)';
         endTimeInput.style.border = '1px solid var(--border)';
         endTimeInput.style.borderRadius = '4px';
         endTimeInput.style.color = 'var(--text)';
+        
+        const durationLabel = document.createElement('span');
+        durationLabel.textContent = 'Duration: 0:00';
+        durationLabel.style.fontSize = '0.85rem';
+        durationLabel.style.opacity = '0.8';
         
         const trimBtn = document.createElement('button');
         trimBtn.textContent = 'Trim';
@@ -189,42 +207,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            if (mediaDuration > 0 && endTime > mediaDuration) {
+                showError(endTimeInput, `End time cannot exceed ${formatTime(mediaDuration)}`);
+                return;
+            }
+            
             const duration = endTime - startTime;
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'success-message';
+            statusDiv.textContent = 'Trimming... Please wait...';
+            trimSection.appendChild(statusDiv);
             
             const ffmpeg = await initFFmpeg();
             if (!ffmpeg) {
+                statusDiv.textContent = 'FFmpeg not loaded. Preview only.';
                 mediaElement.currentTime = startTime;
                 mediaElement.play();
                 setTimeout(() => mediaElement.pause(), duration * 1000);
                 return;
             }
             
-            const { fetchFile } = FFmpeg;
-            const inputName = 'input' + getExtension(file.name);
-            const outputName = 'output' + getExtension(file.name);
-            
-            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
-            
-            await ffmpeg.run(
-                '-i', inputName,
-                '-ss', startTime.toString(),
-                '-t', duration.toString(),
-                '-c', 'copy',
-                outputName
-            );
-            
-            const data = ffmpeg.FS('readFile', outputName);
-            const blob = new Blob([data.buffer], { type: file.type });
-            downloadFile(blob, 'trimmed_' + file.name);
-            
-            ffmpeg.FS('unlink', inputName);
-            ffmpeg.FS('unlink', outputName);
+            try {
+                const { fetchFile } = FFmpeg;
+                const inputName = 'input' + getExtension(file.name);
+                const outputName = 'output' + getExtension(file.name);
+                
+                ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+                
+                await ffmpeg.run(
+                    '-i', inputName,
+                    '-ss', startTime.toString(),
+                    '-t', duration.toString(),
+                    '-c', 'copy',
+                    outputName
+                );
+                
+                const data = ffmpeg.FS('readFile', outputName);
+                const blob = new Blob([data.buffer], { type: file.type });
+                downloadFile(blob, 'trimmed_' + file.name);
+                
+                ffmpeg.FS('unlink', inputName);
+                ffmpeg.FS('unlink', outputName);
+                
+                statusDiv.textContent = 'Trim complete! Downloaded.';
+                setTimeout(() => statusDiv.remove(), 3000);
+            } catch (e) {
+                statusDiv.remove();
+                showError(trimBtn, 'Trim failed. Try different format or shorter duration.');
+            }
         });
         
         trimControls.appendChild(startTimeInput);
         trimControls.appendChild(endTimeInput);
         trimControls.appendChild(trimBtn);
         trimSection.appendChild(trimControls);
+        trimSection.appendChild(durationLabel);
         controlsContainer.appendChild(trimSection);
         
         const convertSection = document.createElement('div');
@@ -242,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
         convertControls.style.flexWrap = 'wrap';
         
         const formats = isVideo ? 
-            ['MP4', 'WebM', 'AVI', 'MOV', 'GIF', 'MP3', 'WAV', 'JPG', 'PNG'] : 
+            ['MP4', 'WebM', 'AVI', 'MOV', 'GIF', 'MP3', 'WAV', 'OGG', 'JPG', 'PNG'] : 
             ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
         
         formats.forEach(format => {
@@ -256,7 +294,14 @@ document.addEventListener('DOMContentLoaded', function() {
             convertBtn.style.cursor = 'pointer';
             convertBtn.style.fontSize = '0.85rem';
             convertBtn.addEventListener('click', async function() {
-                await convertWithFFmpeg(file, format.toLowerCase());
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'success-message';
+                statusDiv.textContent = `Converting to ${format}...`;
+                convertSection.appendChild(statusDiv);
+                
+                await convertWithFFmpeg(file, format.toLowerCase(), statusDiv);
+                
+                setTimeout(() => statusDiv.remove(), 3000);
             });
             convertControls.appendChild(convertBtn);
         });
@@ -326,45 +371,52 @@ document.addEventListener('DOMContentLoaded', function() {
         editorContainer.appendChild(controlsContainer);
     }
     
-    async function convertWithFFmpeg(file, format) {
+    async function convertWithFFmpeg(file, format, statusDiv) {
         const ffmpeg = await initFFmpeg();
         
         if (!ffmpeg) {
+            statusDiv.textContent = 'FFmpeg not loaded. Basic conversion only.';
             basicConvert(file, format);
             return;
         }
         
-        const { fetchFile } = FFmpeg;
-        const inputName = 'input' + getExtension(file.name);
-        const outputName = 'output.' + format;
-        
-        ffmpeg.FS('writeFile', inputName, await fetchFile(file));
-        
-        const args = ['-i', inputName];
-        
-        if (['jpg', 'png'].includes(format)) {
-            args.push('-vframes', '1');
+        try {
+            const { fetchFile } = FFmpeg;
+            const inputName = 'input' + getExtension(file.name);
+            const outputName = 'output.' + format;
+            
+            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+            
+            const args = ['-i', inputName];
+            
+            if (['jpg', 'png'].includes(format)) {
+                args.push('-vframes', '1');
+            }
+            
+            if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) {
+                args.push('-vn');
+            }
+            
+            if (['mp4', 'webm', 'avi', 'mov'].includes(format)) {
+                args.push('-c:v', 'libx264', '-c:a', 'aac');
+            }
+            
+            args.push(outputName);
+            
+            await ffmpeg.run(...args);
+            
+            const data = ffmpeg.FS('readFile', outputName);
+            const mimeType = getMimeType(format);
+            const blob = new Blob([data.buffer], { type: mimeType });
+            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
+            
+            ffmpeg.FS('unlink', inputName);
+            ffmpeg.FS('unlink', outputName);
+            
+            statusDiv.textContent = `Converted to ${format.toUpperCase()}! Downloaded.`;
+        } catch (e) {
+            statusDiv.textContent = 'Conversion failed. Try different format.';
         }
-        
-        if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) {
-            args.push('-vn');
-        }
-        
-        if (['mp4', 'webm', 'avi', 'mov'].includes(format)) {
-            args.push('-c:v', 'libx264', '-c:a', 'aac');
-        }
-        
-        args.push(outputName);
-        
-        await ffmpeg.run(...args);
-        
-        const data = ffmpeg.FS('readFile', outputName);
-        const mimeType = getMimeType(format);
-        const blob = new Blob([data.buffer], { type: mimeType });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
-        
-        ffmpeg.FS('unlink', inputName);
-        ffmpeg.FS('unlink', outputName);
     }
     
     function basicConvert(file, format) {
@@ -422,6 +474,12 @@ document.addEventListener('DOMContentLoaded', function() {
             'png': 'image/png'
         };
         return types[format] || 'application/octet-stream';
+    }
+    
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
     
     function downloadFile(blob, filename) {

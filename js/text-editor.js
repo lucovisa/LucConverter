@@ -12,6 +12,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     textSection.appendChild(backBtn);
     
+    const mainContainer = document.createElement('div');
+    mainContainer.style.display = 'flex';
+    mainContainer.style.gap = '1rem';
+    mainContainer.style.flexWrap = 'wrap';
+    
+    const editorContainer = document.createElement('div');
+    editorContainer.style.flex = '2';
+    editorContainer.style.minWidth = '300px';
+    
+    const consoleContainer = document.createElement('div');
+    consoleContainer.style.flex = '1';
+    consoleContainer.style.minWidth = '250px';
+    consoleContainer.style.background = 'var(--panel-bg)';
+    consoleContainer.style.border = '1px solid var(--border)';
+    consoleContainer.style.borderRadius = '4px';
+    consoleContainer.style.padding = '1rem';
+    consoleContainer.style.display = 'none';
+    
     const toolbar = document.createElement('div');
     toolbar.style.display = 'flex';
     toolbar.style.flexWrap = 'wrap';
@@ -49,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
     newBtn.addEventListener('click', function() {
         textarea.value = '';
         textarea.focus();
+        clearConsole();
     });
     toolbar.appendChild(newBtn);
     
@@ -107,6 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
     clearBtn.style.fontSize = '1rem';
     clearBtn.addEventListener('click', function() {
         textarea.value = '';
+        clearConsole();
     });
     toolbar.appendChild(clearBtn);
     
@@ -188,19 +208,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const languages = [
         { value: 'none', label: 'None' },
-        { value: 'python', label: 'Python' },
         { value: 'javascript', label: 'JavaScript' },
+        { value: 'python', label: 'Python' },
         { value: 'html', label: 'HTML' },
         { value: 'css', label: 'CSS' },
-        { value: 'json', label: 'JSON' },
-        { value: 'xml', label: 'XML' },
-        { value: 'cpp', label: 'C++' },
-        { value: 'java', label: 'Java' },
-        { value: 'csharp', label: 'C#' },
-        { value: 'php', label: 'PHP' },
-        { value: 'ruby', label: 'Ruby' },
-        { value: 'go', label: 'Go' },
-        { value: 'rust', label: 'Rust' }
+        { value: 'json', label: 'JSON' }
     ];
     
     languages.forEach(lang => {
@@ -209,39 +221,22 @@ document.addEventListener('DOMContentLoaded', function() {
         option.textContent = lang.label;
         languageSelect.appendChild(option);
     });
-    
-    languageSelect.addEventListener('change', function() {
-        highlightSyntax(this.value);
-    });
     toolbar.appendChild(languageSelect);
     
-    function highlightSyntax(language) {
-        let content = textarea.value;
-        
-        if (language === 'none') {
-            textarea.style.color = 'var(--text)';
-            return;
-        }
-        
-        if (language === 'python') {
-            content = content.replace(/(#.*)/g, '<span style="color: #6a9955;">$1</span>');
-            content = content.replace(/\b(def|class|import|from|return|if|else|elif|for|while|print|True|False|None)\b/g, '<span style="color: #569cd6;">$1</span>');
-            content = content.replace(/(".*?"|'.*?')/g, '<span style="color: #ce9178;">$1</span>');
-        } else if (language === 'javascript') {
-            content = content.replace(/(\/\/.*)/g, '<span style="color: #6a9955;">$1</span>');
-            content = content.replace(/\b(const|let|var|function|return|if|else|for|while|console|log|true|false|null|undefined)\b/g, '<span style="color: #569cd6;">$1</span>');
-            content = content.replace(/(".*?"|'.*?'|`.*?`)/g, '<span style="color: #ce9178;">$1</span>');
-        } else if (language === 'html') {
-            content = content.replace(/(&lt;.*?&gt;)/g, '<span style="color: #569cd6;">$1</span>');
-        } else if (language === 'json') {
-            content = content.replace(/(".*?")/g, '<span style="color: #ce9178;">$1</span>');
-            content = content.replace(/\b(true|false|null)\b/g, '<span style="color: #569cd6;">$1</span>');
-        }
-        
-        const preview = document.createElement('div');
-        preview.innerHTML = content;
-        textarea.value = preview.textContent;
-    }
+    const runBtn = document.createElement('button');
+    runBtn.textContent = '▶️ Run';
+    runBtn.title = 'Compile and Run';
+    runBtn.style.padding = '0.5rem 0.8rem';
+    runBtn.style.background = '#2e7d32';
+    runBtn.style.color = 'white';
+    runBtn.style.border = 'none';
+    runBtn.style.borderRadius = '4px';
+    runBtn.style.cursor = 'pointer';
+    runBtn.style.fontSize = '0.9rem';
+    runBtn.addEventListener('click', function() {
+        runCode();
+    });
+    toolbar.appendChild(runBtn);
     
     const separator3 = document.createElement('span');
     separator3.style.width = '1px';
@@ -369,6 +364,87 @@ document.addEventListener('DOMContentLoaded', function() {
         showFindReplaceDialog(textarea);
     });
     toolbar.appendChild(findReplaceBtn);
+    
+    function runCode() {
+        const language = languageSelect.value;
+        const code = textarea.value;
+        
+        if (!code.trim()) {
+            showError(textarea, 'Please enter code to run');
+            return;
+        }
+        
+        consoleContainer.style.display = 'block';
+        consoleContainer.innerHTML = '';
+        
+        const consoleTitle = document.createElement('h4');
+        consoleTitle.textContent = 'Console';
+        consoleTitle.style.color = 'var(--accent)';
+        consoleTitle.style.marginBottom = '0.5rem';
+        consoleContainer.appendChild(consoleTitle);
+        
+        const outputDiv = document.createElement('div');
+        outputDiv.style.background = 'var(--bg)';
+        outputDiv.style.border = '1px solid var(--border)';
+        outputDiv.style.borderRadius = '4px';
+        outputDiv.style.padding = '0.8rem';
+        outputDiv.style.minHeight = '200px';
+        outputDiv.style.maxHeight = '400px';
+        outputDiv.style.overflowY = 'auto';
+        outputDiv.style.fontFamily = 'monospace';
+        outputDiv.style.fontSize = '0.9rem';
+        outputDiv.style.whiteSpace = 'pre-wrap';
+        outputDiv.style.wordBreak = 'break-all';
+        consoleContainer.appendChild(outputDiv);
+        
+        if (language === 'javascript' || language === 'none') {
+            try {
+                const originalLog = console.log;
+                let output = '';
+                
+                console.log = function(...args) {
+                    output += args.join(' ') + '\n';
+                };
+                
+                const result = eval(code);
+                
+                console.log = originalLog;
+                
+                if (output) {
+                    outputDiv.textContent = output;
+                } else if (result !== undefined) {
+                    outputDiv.textContent = String(result);
+                } else {
+                    outputDiv.textContent = 'Code executed successfully.';
+                }
+            } catch (e) {
+                outputDiv.style.color = '#ff6b6b';
+                outputDiv.textContent = `Error: ${e.message}`;
+            }
+        } else if (language === 'python') {
+            outputDiv.textContent = 'Python requires Pyodide library (20MB). Not loaded. Use JavaScript for now.';
+        } else if (language === 'html') {
+            const previewWindow = window.open('', '_blank');
+            previewWindow.document.write(code);
+            previewWindow.document.close();
+            outputDiv.textContent = 'HTML opened in new tab.';
+        } else if (language === 'json') {
+            try {
+                const parsed = JSON.parse(code);
+                outputDiv.textContent = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                outputDiv.style.color = '#ff6b6b';
+                outputDiv.textContent = `Invalid JSON: ${e.message}`;
+            }
+        } else if (language === 'css') {
+            outputDiv.textContent = 'CSS cannot be executed. Use with HTML.';
+        }
+    }
+    
+    function clearConsole() {
+        consoleContainer.style.display = 'none';
+        consoleContainer.innerHTML = '';
+    }
     
     function showSaveDialog(textarea) {
         const container = document.createElement('div');
@@ -541,6 +617,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(container);
     }
     
-    textSection.appendChild(toolbar);
-    textSection.appendChild(textarea);
+    editorContainer.appendChild(toolbar);
+    editorContainer.appendChild(textarea);
+    
+    mainContainer.appendChild(editorContainer);
+    mainContainer.appendChild(consoleContainer);
+    
+    textSection.appendChild(mainContainer);
 });

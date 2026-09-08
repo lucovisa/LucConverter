@@ -7,6 +7,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultDiv = document.querySelector('.currency-result');
     const rateInfo = document.querySelector('.exchange-rate-info');
     
+    fromSelect.style.width = '100%';
+    toSelect.style.width = '100%';
+    
+    fromSelect.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+            e.preventDefault();
+            const searchChar = e.key.toUpperCase();
+            const options = Array.from(fromSelect.options);
+            const match = options.find(opt => opt.value.startsWith(searchChar));
+            if (match) {
+                fromSelect.value = match.value;
+            }
+        }
+    });
+    
+    toSelect.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+            e.preventDefault();
+            const searchChar = e.key.toUpperCase();
+            const options = Array.from(toSelect.options);
+            const match = options.find(opt => opt.value.startsWith(searchChar));
+            if (match) {
+                toSelect.value = match.value;
+            }
+        }
+    });
+    
+    const searchHint = document.createElement('p');
+    searchHint.textContent = '💡 Type a letter to search currencies';
+    searchHint.style.fontSize = '0.8rem';
+    searchHint.style.opacity = '0.7';
+    searchHint.style.marginBottom = '1rem';
+    
+    const currencyBox = document.querySelector('.currency-converter-box');
+    currencyBox.insertBefore(searchHint, currencyBox.querySelector('.currency-input-group'));
+    
     const currencies = {
         USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen',
         CNY: 'Chinese Yuan', RUB: 'Russian Ruble', INR: 'Indian Rupee',
@@ -45,13 +81,13 @@ document.addEventListener('DOMContentLoaded', function() {
         KMF: 'Comorian Franc', KPW: 'North Korean Won', KYD: 'Cayman Islands Dollar',
         LRD: 'Liberian Dollar', LSL: 'Lesotho Loti', LYD: 'Libyan Dinar',
         MDL: 'Moldovan Leu', MGA: 'Malagasy Ariary', MKD: 'Macedonian Denar',
-        MRO: 'Mauritanian Ouguiya', MUR: 'Mauritian Rupee', MVR: 'Maldivian Rufiyaa',
+        MUR: 'Mauritian Rupee', MVR: 'Maldivian Rufiyaa',
         MWK: 'Malawian Kwacha', MZN: 'Mozambican Metical', NAD: 'Namibian Dollar',
         NIO: 'Nicaraguan Cordoba', PAB: 'Panamanian Balboa', PEN: 'Peruvian Sol',
         PYG: 'Paraguayan Guarani', RSD: 'Serbian Dinar', RWF: 'Rwandan Franc',
         SCR: 'Seychellois Rupee', SDG: 'Sudanese Pound', SLL: 'Sierra Leonean Leone',
         SOS: 'Somali Shilling', SRD: 'Surinamese Dollar', SSP: 'South Sudanese Pound',
-        STD: 'Sao Tomean Dobra', SVC: 'Salvadoran Colon', SYP: 'Syrian Pound',
+        SVC: 'Salvadoran Colon', SYP: 'Syrian Pound',
         SZL: 'Swazi Lilangeni', TJS: 'Tajikistani Somoni', TMT: 'Turkmenistani Manat',
         TTD: 'Trinidad and Tobago Dollar', UYU: 'Uruguayan Peso',
         UZS: 'Uzbekistani Som', VEF: 'Venezuelan Bolivar', XAF: 'Central African CFA Franc',
@@ -125,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 resultDiv.style.display = 'block';
                 resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
-                rateInfo.textContent = `1 ${from} = ${rate.toFixed(4)} ${to} | Updated: ${new Date(data.time_last_updated * 1000).toLocaleString()}`;
+                rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${new Date(data.time_last_updated * 1000).toLocaleString()}`;
             })
             .catch(() => {
                 fetchBackupRate(from, to, amount);
@@ -141,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 resultDiv.style.display = 'block';
                 resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
-                rateInfo.textContent = `1 ${from} = ${rate.toFixed(4)} ${to} | Updated: ${data.time_last_update_utc}`;
+                rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${data.time_last_update_utc}`;
             })
             .catch(() => {
                 rateInfo.textContent = '';

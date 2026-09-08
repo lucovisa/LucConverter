@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastY = 0;
     let brushSize = 5;
     let brushColor = '#000000';
+    let brushOpacity = 100;
     let zoomLevel = 1;
     let panX = 0;
     let panY = 0;
@@ -59,6 +60,16 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentTool = 'brush';
     let touchStartDistance = 0;
     let touchStartZoom = 1;
+    let imageWidth = 800;
+    let imageHeight = 600;
+    let history = [];
+    
+    function saveState() {
+        history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if (history.length > 20) {
+            history.shift();
+        }
+    }
     
     const uploadBtn = document.createElement('button');
     uploadBtn.textContent = '📁 Upload';
@@ -166,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const colorLabel = document.createElement('span');
     colorLabel.textContent = '🎨';
-    colorLabel.style.fontSize = '1rem';
     toolbar.appendChild(colorLabel);
     
     const colorPicker = document.createElement('input');
@@ -182,15 +192,36 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     toolbar.appendChild(colorPicker);
     
+    const opacityLabel = document.createElement('span');
+    opacityLabel.textContent = '💧';
+    toolbar.appendChild(opacityLabel);
+    
+    const opacityInput = document.createElement('input');
+    opacityInput.type = 'range';
+    opacityInput.min = '1';
+    opacityInput.max = '100';
+    opacityInput.value = '100';
+    opacityInput.style.width = '80px';
+    opacityInput.addEventListener('input', function() {
+        brushOpacity = parseInt(this.value);
+        opacityValue.textContent = this.value + '%';
+    });
+    toolbar.appendChild(opacityInput);
+    
+    const opacityValue = document.createElement('span');
+    opacityValue.textContent = '100%';
+    opacityValue.style.fontSize = '0.8rem';
+    opacityValue.style.minWidth = '40px';
+    toolbar.appendChild(opacityValue);
+    
     const sizeLabel = document.createElement('span');
     sizeLabel.textContent = '📏';
-    sizeLabel.style.fontSize = '1rem';
     toolbar.appendChild(sizeLabel);
     
     const brushSizeInput = document.createElement('input');
     brushSizeInput.type = 'range';
     brushSizeInput.min = '1';
-    brushSizeInput.max = '50';
+    brushSizeInput.max = '512';
     brushSizeInput.value = '5';
     brushSizeInput.style.width = '80px';
     brushSizeInput.addEventListener('input', function() {
@@ -202,9 +233,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const brushSizeValue = document.createElement('input');
     brushSizeValue.type = 'number';
     brushSizeValue.min = '1';
-    brushSizeValue.max = '50';
+    brushSizeValue.max = '512';
     brushSizeValue.value = '5';
-    brushSizeValue.style.width = '50px';
+    brushSizeValue.style.width = '60px';
     brushSizeValue.style.padding = '0.3rem';
     brushSizeValue.style.background = 'var(--bg)';
     brushSizeValue.style.border = '1px solid var(--border)';
@@ -216,6 +247,69 @@ document.addEventListener('DOMContentLoaded', function() {
         brushSizeInput.value = this.value;
     });
     toolbar.appendChild(brushSizeValue);
+    
+    const resolutionLabel = document.createElement('span');
+    resolutionLabel.textContent = '📐';
+    toolbar.appendChild(resolutionLabel);
+    
+    const resolutionInput = document.createElement('input');
+    resolutionInput.type = 'number';
+    resolutionInput.placeholder = 'Width';
+    resolutionInput.value = '800';
+    resolutionInput.style.width = '70px';
+    resolutionInput.style.padding = '0.3rem';
+    resolutionInput.style.background = 'var(--bg)';
+    resolutionInput.style.border = '1px solid var(--border)';
+    resolutionInput.style.borderRadius = '4px';
+    resolutionInput.style.color = 'var(--text)';
+    resolutionInput.style.fontSize = '0.85rem';
+    toolbar.appendChild(resolutionInput);
+    
+    const resolutionBtn = document.createElement('button');
+    resolutionBtn.textContent = 'Resize';
+    resolutionBtn.style.padding = '0.4rem 0.8rem';
+    resolutionBtn.style.fontSize = '0.85rem';
+    resolutionBtn.style.background = 'var(--button-bg)';
+    resolutionBtn.style.color = 'white';
+    resolutionBtn.style.border = 'none';
+    resolutionBtn.style.borderRadius = '4px';
+    resolutionBtn.style.cursor = 'pointer';
+    resolutionBtn.addEventListener('click', function() {
+        const newWidth = parseInt(resolutionInput.value);
+        
+        if (!newWidth || newWidth < 1 || newWidth > 4096) {
+            showError(resolutionInput, 'Width must be between 1 and 4096');
+            return;
+        }
+        
+        if (!originalImage) {
+            showError(resolutionInput, 'Upload an image first');
+            return;
+        }
+        
+        const ratio = newWidth / canvas.width;
+        const newHeight = Math.floor(canvas.height * ratio);
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = newWidth;
+        tempCanvas.height = newHeight;
+        
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
+        
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        ctx.drawImage(tempCanvas, 0, 0);
+        
+        originalImage = new Image();
+        originalImage.src = canvas.toDataURL();
+        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        brushSizeInput.max = Math.max(newWidth, newHeight);
+        brushSizeValue.max = Math.max(newWidth, newHeight);
+    });
+    toolbar.appendChild(resolutionBtn);
     
     const filterContainer = document.createElement('div');
     filterContainer.style.display = 'flex';
@@ -318,6 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(canvas, 'Please upload an image first');
             return;
         }
+        saveState();
         applyFilters();
     });
     actionContainer.appendChild(applyBtn);
@@ -334,11 +429,12 @@ document.addEventListener('DOMContentLoaded', function() {
     resetBtn.addEventListener('click', function() {
         if (originalImage) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(originalImage, 0, 0);
             currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
             zoomLevel = 1;
             panX = 0;
             panY = 0;
+            history = [];
             
             filters.forEach(filter => {
                 sliders[filter.name.toLowerCase()] = filter.value;
@@ -357,9 +453,9 @@ document.addEventListener('DOMContentLoaded', function() {
     undoBtn.style.borderRadius = '4px';
     undoBtn.style.cursor = 'pointer';
     undoBtn.addEventListener('click', function() {
-        if (originalImage) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+        if (history.length > 0) {
+            const prevState = history.pop();
+            ctx.putImageData(prevState, 0, 0);
             currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
         }
     });
@@ -379,6 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         originalImage = null;
         currentImage = null;
+        history = [];
     });
     actionContainer.appendChild(clearBtn);
     
@@ -392,10 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
     downloadBtn.style.borderRadius = '4px';
     downloadBtn.style.cursor = 'pointer';
     downloadBtn.addEventListener('click', function() {
-        const link = document.createElement('a');
-        link.download = 'edited-image.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        showDownloadDialog(canvas);
     });
     actionContainer.appendChild(downloadBtn);
     
@@ -432,6 +526,11 @@ document.addEventListener('DOMContentLoaded', function() {
             zoomLevel = 1;
             panX = 0;
             panY = 0;
+            history = [];
+            
+            brushSizeInput.max = Math.max(width, height);
+            brushSizeValue.max = Math.max(width, height);
+            resolutionInput.value = width;
         };
         img.src = URL.createObjectURL(file);
     });
@@ -448,8 +547,11 @@ document.addEventListener('DOMContentLoaded', function() {
             clientY = e.clientY;
         }
         
-        const x = (clientX - rect.left) / zoomLevel - panX;
-        const y = (clientY - rect.top) / zoomLevel - panY;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
         
         return { x, y, clientX, clientY };
     }
@@ -461,13 +563,15 @@ document.addEventListener('DOMContentLoaded', function() {
             isDrawing = true;
             lastX = coords.x;
             lastY = coords.y;
+            saveState();
         } else if (currentTool === 'pan') {
             isPanning = true;
             lastX = coords.clientX;
             lastY = coords.clientY;
             canvas.style.cursor = 'grabbing';
         } else if (currentTool === 'fill') {
-            floodFill(Math.floor(coords.x), Math.floor(coords.y), brushColor);
+            saveState();
+            floodFill(Math.floor(coords.x), Math.floor(coords.y), brushColor, brushOpacity);
         }
     });
     
@@ -475,6 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const coords = getCanvasCoordinates(e);
         
         if (isDrawing) {
+            ctx.globalAlpha = brushOpacity / 100;
             ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : brushColor;
             ctx.lineWidth = brushSize;
             ctx.lineCap = 'round';
@@ -485,16 +590,17 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.lineTo(coords.x, coords.y);
             ctx.stroke();
             
+            ctx.globalAlpha = 1;
+            
             lastX = coords.x;
             lastY = coords.y;
         } else if (isPanning) {
             const dx = coords.clientX - lastX;
             const dy = coords.clientY - lastY;
-            panX += dx / zoomLevel;
-            panY += dy / zoomLevel;
+            panX += dx;
+            panY += dy;
             lastX = coords.clientX;
             lastY = coords.clientY;
-            redrawCanvas();
         }
     });
     
@@ -502,6 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isDrawing = false;
         isPanning = false;
         canvas.style.cursor = currentTool === 'pan' ? 'grab' : 'crosshair';
+        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     });
     
     canvas.addEventListener('mouseleave', function() {
@@ -532,7 +639,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.touches.length === 2) {
             const currentDistance = getDistance(e.touches[0], e.touches[1]);
             zoomLevel = Math.max(0.1, Math.min(5, touchStartZoom * (currentDistance / touchStartDistance)));
-            redrawCanvas();
             return;
         }
         
@@ -560,45 +666,31 @@ document.addEventListener('DOMContentLoaded', function() {
     canvas.addEventListener('wheel', function(e) {
         e.preventDefault();
         
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        const oldZoom = zoomLevel;
-        
         if (e.deltaY < 0) {
             zoomLevel = Math.min(zoomLevel * 1.1, 5);
         } else {
             zoomLevel = Math.max(zoomLevel / 1.1, 0.1);
         }
-        
-        const zoomRatio = zoomLevel / oldZoom;
-        panX = mouseX / zoomLevel - (mouseX / oldZoom - panX);
-        panY = mouseY / zoomLevel - (mouseY / oldZoom - panY);
-        
-        redrawCanvas();
     });
     
     function redrawCanvas() {
         if (!originalImage) return;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.scale(zoomLevel, zoomLevel);
-        ctx.translate(panX, panY);
         ctx.drawImage(originalImage, 0, 0);
-        ctx.restore();
         
         if (currentImage) {
             ctx.putImageData(currentImage, 0, 0);
         }
     }
     
-    function floodFill(startX, startY, fillColor) {
+    function floodFill(startX, startY, fillColor, opacity) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         const width = canvas.width;
         const height = canvas.height;
+        
+        if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
         
         const startIdx = (startY * width + startX) * 4;
         const targetR = data[startIdx];
@@ -608,6 +700,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const fillR = parseInt(fillColor.slice(1, 3), 16);
         const fillG = parseInt(fillColor.slice(3, 5), 16);
         const fillB = parseInt(fillColor.slice(5, 7), 16);
+        
+        const alpha = opacity / 100;
         
         const queue = [[startX, startY]];
         const visited = new Set();
@@ -626,9 +720,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             visited.add(key);
             
-            data[idx] = fillR;
-            data[idx + 1] = fillG;
-            data[idx + 2] = fillB;
+            data[idx] = fillR * alpha + data[idx] * (1 - alpha);
+            data[idx + 1] = fillG * alpha + data[idx + 1] * (1 - alpha);
+            data[idx + 2] = fillB * alpha + data[idx + 2] * (1 - alpha);
             data[idx + 3] = 255;
             
             queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
@@ -642,7 +736,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!originalImage) return;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(originalImage, 0, 0);
         
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
@@ -764,5 +858,154 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         ctx.putImageData(imageData, 0, 0);
+    }
+    
+    function showDownloadDialog(canvas) {
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.background = 'var(--panel-bg)';
+        container.style.border = '1px solid var(--border)';
+        container.style.borderRadius = '4px';
+        container.style.padding = '1.5rem';
+        container.style.zIndex = '2000';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '0.8rem';
+        container.style.minWidth = '250px';
+        
+        const title = document.createElement('h3');
+        title.textContent = 'Save As';
+        title.style.color = 'var(--accent)';
+        container.appendChild(title);
+        
+        const formatSelect = document.createElement('select');
+        formatSelect.style.padding = '0.6rem';
+        formatSelect.style.background = 'var(--bg)';
+        formatSelect.style.border = '1px solid var(--border)';
+        formatSelect.style.borderRadius = '4px';
+        formatSelect.style.color = 'var(--text)';
+        
+        const formats = ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO'];
+        formats.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format.toLowerCase();
+            option.textContent = format;
+            formatSelect.appendChild(option);
+        });
+        container.appendChild(formatSelect);
+        
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'Download';
+        downloadBtn.style.padding = '0.6rem';
+        downloadBtn.style.background = 'var(--button-bg)';
+        downloadBtn.style.color = 'white';
+        downloadBtn.style.border = 'none';
+        downloadBtn.style.borderRadius = '4px';
+        downloadBtn.style.cursor = 'pointer';
+        downloadBtn.addEventListener('click', function() {
+            const format = formatSelect.value;
+            
+            if (format === 'svg') {
+                const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}"><image href="${canvas.toDataURL('image/png')}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+                const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                downloadBlob(blob, 'edited-image.svg');
+            } else if (format === 'bmp') {
+                const bmpData = canvasToBMP(canvas);
+                const blob = new Blob([bmpData], { type: 'image/bmp' });
+                downloadBlob(blob, 'edited-image.bmp');
+            } else if (format === 'ico') {
+                canvas.toBlob(function(blob) {
+                    downloadBlob(blob, 'edited-image.ico');
+                }, 'image/x-icon');
+            } else {
+                const mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
+                canvas.toBlob(function(blob) {
+                    downloadBlob(blob, `edited-image.${format}`);
+                }, mimeType);
+            }
+            
+            container.remove();
+        });
+        container.appendChild(downloadBtn);
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.padding = '0.6rem';
+        cancelBtn.style.background = 'var(--border)';
+        cancelBtn.style.color = 'var(--text)';
+        cancelBtn.style.border = 'none';
+        cancelBtn.style.borderRadius = '4px';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.addEventListener('click', function() {
+            container.remove();
+        });
+        container.appendChild(cancelBtn);
+        
+        document.body.appendChild(container);
+    }
+    
+    function canvasToBMP(canvas) {
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        const width = canvas.width;
+        const height = canvas.height;
+        const rowSize = Math.floor((24 * width + 31) / 32) * 4;
+        const pixelArraySize = rowSize * height;
+        const fileSize = 54 + pixelArraySize;
+        
+        const buffer = new ArrayBuffer(fileSize);
+        const view = new DataView(buffer);
+        
+        view.setUint8(0, 66);
+        view.setUint8(1, 77);
+        view.setUint32(2, fileSize, true);
+        view.setUint32(10, 54, true);
+        view.setUint32(14, 40, true);
+        view.setInt32(18, width, true);
+        view.setInt32(22, height, true);
+        view.setUint16(26, 1, true);
+        view.setUint16(28, 24, true);
+        view.setUint32(34, pixelArraySize, true);
+        
+        let offset = 54;
+        
+        for (let y = height - 1; y >= 0; y--) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                
+                const b = data[idx + 2];
+                const g = data[idx + 1];
+                const r = data[idx];
+                
+                view.setUint8(offset, b);
+                view.setUint8(offset + 1, g);
+                view.setUint8(offset + 2, r);
+                offset += 3;
+            }
+            
+            const padding = rowSize - width * 3;
+            for (let p = 0; p < padding; p++) {
+                view.setUint8(offset, 0);
+                offset++;
+            }
+        }
+        
+        return buffer;
+    }
+    
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 });

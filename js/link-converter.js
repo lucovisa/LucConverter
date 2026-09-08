@@ -13,6 +13,67 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        if (text.length > 100) {
+            showError(qrInput, 'Too many characters. Download as .txt or .zip instead.');
+            
+            const downloadContainer = document.createElement('div');
+            downloadContainer.style.marginTop = '0.5rem';
+            
+            const txtBtn = document.createElement('button');
+            txtBtn.textContent = 'Download .txt';
+            txtBtn.style.marginRight = '0.5rem';
+            txtBtn.style.padding = '0.5rem 1rem';
+            txtBtn.style.background = 'var(--button-bg)';
+            txtBtn.style.color = 'white';
+            txtBtn.style.border = 'none';
+            txtBtn.style.borderRadius = '4px';
+            txtBtn.style.cursor = 'pointer';
+            txtBtn.addEventListener('click', function() {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'text.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            const zipBtn = document.createElement('button');
+            zipBtn.textContent = 'Download .zip';
+            zipBtn.style.padding = '0.5rem 1rem';
+            zipBtn.style.background = 'var(--button-bg)';
+            zipBtn.style.color = 'white';
+            zipBtn.style.border = 'none';
+            zipBtn.style.borderRadius = '4px';
+            zipBtn.style.cursor = 'pointer';
+            zipBtn.addEventListener('click', async function() {
+                const zip = new JSZip();
+                zip.file('text.txt', text);
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'text.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            downloadContainer.appendChild(txtBtn);
+            downloadContainer.appendChild(zipBtn);
+            
+            qrInput.parentElement.appendChild(downloadContainer);
+            
+            setTimeout(() => {
+                downloadContainer.remove();
+            }, 5000);
+            
+            return;
+        }
+        
         qrCode.innerHTML = '';
         
         const canvas = document.createElement('canvas');
