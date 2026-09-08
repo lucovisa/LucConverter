@@ -57,6 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (filesWithFormats.length > 0) {
+            const actionContainer = document.createElement('div');
+            actionContainer.style.display = 'flex';
+            actionContainer.style.gap = '0.5rem';
+            actionContainer.style.marginTop = '1rem';
+            actionContainer.style.flexWrap = 'wrap';
+
             const convertAllBtn = document.createElement('button');
             convertAllBtn.textContent = 'Convert All and Download ZIP';
             convertAllBtn.style.padding = '0.7rem 1.5rem';
@@ -65,9 +71,24 @@ document.addEventListener('DOMContentLoaded', function() {
             convertAllBtn.style.border = 'none';
             convertAllBtn.style.borderRadius = '4px';
             convertAllBtn.style.cursor = 'pointer';
-            convertAllBtn.style.marginTop = '1rem';
             convertAllBtn.addEventListener('click', () => convertAllAndZip());
-            fileList.appendChild(convertAllBtn);
+            actionContainer.appendChild(convertAllBtn);
+
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Clear All';
+            clearBtn.style.padding = '0.7rem 1.5rem';
+            clearBtn.style.background = '#8B0000';
+            clearBtn.style.color = 'white';
+            clearBtn.style.border = 'none';
+            clearBtn.style.borderRadius = '4px';
+            clearBtn.style.cursor = 'pointer';
+            clearBtn.addEventListener('click', () => {
+                fileList.innerHTML = '';
+                filesWithFormats = [];
+            });
+            actionContainer.appendChild(clearBtn);
+
+            fileList.appendChild(actionContainer);
         }
     }
 

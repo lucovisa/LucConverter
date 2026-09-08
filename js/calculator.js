@@ -72,6 +72,7 @@ function initCalculator() {
     let operator = null;
     let shouldResetDisplay = false;
     let errorState = false;
+    let percentBase = null;
 
     buttons.forEach(btn => {
         const button = document.createElement('button');
@@ -197,6 +198,7 @@ function initCalculator() {
         }
         previousInput = currentInput;
         operator = op;
+        percentBase = parseFloat(currentInput);
         shouldResetDisplay = true;
     }
 
@@ -211,20 +213,46 @@ function initCalculator() {
 
     function calculate() {
         if (operator === null || shouldResetDisplay || errorState) return;
-        let expression = previousInput + operator + currentInput;
-        try {
-            expression = expression.replace(/×/g, '*').replace(/÷/g, '/');
-            const result = eval(expression);
-            currentInput = String(result);
-            operator = null;
-            shouldResetDisplay = true;
-        } catch (e) {
-            display.textContent = 'Error';
-            errorState = true;
-            operator = null;
-            shouldResetDisplay = false;
-            return;
+        let prev = parseFloat(previousInput);
+        let current = parseFloat(currentInput);
+        let result;
+        switch(operator) {
+            case '+':
+                result = prev + current;
+                break;
+            case '-':
+                result = prev - current;
+                break;
+            case '×':
+                result = prev * current;
+                break;
+            case '÷':
+                if (current === 0) {
+                    display.textContent = 'Error';
+                    errorState = true;
+                    operator = null;
+                    shouldResetDisplay = false;
+                    return;
+                }
+                result = prev / current;
+                break;
         }
+        currentInput = String(result);
+        operator = null;
+        shouldResetDisplay = true;
+        percentBase = null;
+    }
+
+    function percent() {
+        if (errorState) return;
+        if (operator && percentBase) {
+            const base = percentBase;
+            const percentValue = parseFloat(currentInput);
+            currentInput = String(base * percentValue / 100);
+        } else {
+            currentInput = String(parseFloat(currentInput) / 100);
+        }
+        shouldResetDisplay = true;
     }
 
     function clearAll() {
@@ -233,6 +261,7 @@ function initCalculator() {
         operator = null;
         shouldResetDisplay = false;
         errorState = false;
+        percentBase = null;
     }
 
     function backspace() {
@@ -250,11 +279,6 @@ function initCalculator() {
     function negate() {
         if (errorState) return;
         currentInput = String(parseFloat(currentInput) * -1);
-    }
-
-    function percent() {
-        if (errorState) return;
-        currentInput = String(parseFloat(currentInput) / 100);
     }
 
     function sqrt() {

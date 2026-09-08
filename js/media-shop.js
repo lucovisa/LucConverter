@@ -59,18 +59,36 @@ function initMediaShop() {
         title.style.marginBottom = '1rem';
         editorContainer.appendChild(title);
 
-        const fileListContainer = document.createElement('div');
-        fileListContainer.style.marginBottom = '1rem';
-        files.forEach((file, index) => {
-            const fileItem = document.createElement('div');
-            fileItem.style.padding = '0.5rem';
-            fileItem.style.border = '1px solid var(--border)';
-            fileItem.style.borderRadius = '4px';
-            fileItem.style.marginBottom = '0.3rem';
-            fileItem.textContent = `${index + 1}. ${file.name}`;
-            fileListContainer.appendChild(fileItem);
-        });
-        editorContainer.appendChild(fileListContainer);
+const fileListContainer = document.createElement('div');
+fileListContainer.style.marginBottom = '1rem';
+files.forEach((file, index) => {
+    const fileItem = document.createElement('div');
+    fileItem.style.padding = '0.5rem';
+    fileItem.style.border = '1px solid var(--border)';
+    fileItem.style.borderRadius = '4px';
+    fileItem.style.marginBottom = '0.3rem';
+    fileItem.textContent = `${index + 1}. ${file.name}`;
+    fileListContainer.appendChild(fileItem);
+});
+
+const clearBtn = document.createElement('button');
+clearBtn.textContent = 'Clear All Files';
+clearBtn.style.padding = '0.5rem 1rem';
+clearBtn.style.background = '#8B0000';
+clearBtn.style.color = 'white';
+clearBtn.style.border = 'none';
+clearBtn.style.borderRadius = '4px';
+clearBtn.style.cursor = 'pointer';
+clearBtn.style.marginTop = '0.5rem';
+clearBtn.addEventListener('click', () => {
+    editorContainer.style.display = 'none';
+    editorContainer.innerHTML = '';
+    mediaFiles = [];
+    processedBlobs = [];
+});
+fileListContainer.appendChild(clearBtn);
+
+editorContainer.appendChild(fileListContainer);
 
         const controlsContainer = document.createElement('div');
         controlsContainer.style.padding = '1rem';
