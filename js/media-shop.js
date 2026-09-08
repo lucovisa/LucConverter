@@ -1,61 +1,41 @@
 document.addEventListener('DOMContentLoaded', function() {
+    initMediaShop();
+});
+
+function initMediaShop() {
     const mediaSection = document.getElementById('mediaShop');
-    
+    if (!mediaSection) return;
     mediaSection.innerHTML = '';
     
     const backBtn = document.createElement('button');
     backBtn.className = 'back-btn';
     backBtn.textContent = '← Back';
-    backBtn.style.marginBottom = '1rem';
-    backBtn.addEventListener('click', function() {
-        showMainMenu();
-    });
+    backBtn.addEventListener('click', () => showMainMenu());
     mediaSection.appendChild(backBtn);
     
     const dropZone = document.createElement('div');
     dropZone.className = 'drop-zone';
     dropZone.innerHTML = '<p>Drag and drop audio or video files here or click to select</p>';
-    
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'audio/*,video/*,.mp3,.wav,.ogg,.aac,.flac,.m4a,.mp4,.webm,.avi,.mov,.mkv,.gif';
+    fileInput.accept = 'audio/*,video/*';
     fileInput.style.display = 'none';
-    
     dropZone.appendChild(fileInput);
-    
-    dropZone.addEventListener('click', function() {
-        fileInput.click();
-    });
-    
-    dropZone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
-    });
-    
-    dropZone.addEventListener('dragleave', function() {
-        dropZone.classList.remove('drag-over');
-    });
-    
-    dropZone.addEventListener('drop', function(e) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) {
-            processFile(files[0]);
-        }
+        if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
     });
-    
     fileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            processFile(this.files[0]);
-        }
+        if (this.files.length > 0) processFile(this.files[0]);
     });
     
     const editorContainer = document.createElement('div');
     editorContainer.id = 'mediaEditor';
     editorContainer.style.display = 'none';
-    editorContainer.style.marginTop = '2rem';
-    
     mediaSection.appendChild(dropZone);
     mediaSection.appendChild(editorContainer);
     
@@ -66,101 +46,57 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function initFFmpeg() {
         if (ffmpegInstance) return ffmpegInstance;
-        
         try {
             const { createFFmpeg, fetchFile } = FFmpeg;
-            ffmpegInstance = createFFmpeg({ 
-                log: false,
-                corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js'
-            });
-            
+            ffmpegInstance = createFFmpeg({ log: false, corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js' });
             await ffmpegInstance.load();
             return ffmpegInstance;
-        } catch (e) {
-            console.error('FFmpeg load error:', e);
-            return null;
-        }
-    }
-    
-    function showError(element, message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = message;
-        element.parentElement.insertBefore(errorDiv, element.nextSibling);
-        
-        setTimeout(() => {
-            errorDiv.remove();
-        }, 3000);
+        } catch(e) { return null; }
     }
     
     function processFile(file) {
-        const extension = file.name.split('.').pop().toLowerCase();
-        const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma', 'opus'];
-        const videoExtensions = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'gif', 'flv', 'wmv', 'm4v'];
-        
-        const isAudio = file.type.startsWith('audio/') || audioExtensions.includes(extension);
-        const isVideo = file.type.startsWith('video/') || videoExtensions.includes(extension);
-        
-        if (!isAudio && !isVideo) {
-            showError(dropZone, 'Unsupported file type. Please select audio or video.');
-            return;
-        }
-        
         originalFile = file;
         processedBlob = null;
-        
         editorContainer.style.display = 'block';
         editorContainer.innerHTML = '';
+        const title = document.createElement('h3');
+        title.textContent = `Editing: ${file.name}`;
+        title.style.color = 'var(--accent)';
+        editorContainer.appendChild(title);
         
-        const mediaTitle = document.createElement('h3');
-        mediaTitle.textContent = `Editing: ${file.name}`;
-        mediaTitle.style.marginBottom = '1rem';
-        mediaTitle.style.color = 'var(--accent)';
-        editorContainer.appendChild(mediaTitle);
+        const previewContainer = document.createElement('div');
+        previewContainer.style.display = 'flex';
+        previewContainer.style.gap = '1rem';
+        previewContainer.style.flexWrap = 'wrap';
+        previewContainer.style.marginBottom = '1rem';
         
-        const splitContainer = document.createElement('div');
-        splitContainer.style.display = 'flex';
-        splitContainer.style.gap = '1rem';
-        splitContainer.style.flexWrap = 'wrap';
-        splitContainer.style.marginBottom = '1rem';
-        
-        const originalContainer = document.createElement('div');
-        originalContainer.style.flex = '1';
-        originalContainer.style.minWidth = '300px';
-        
+        const originalPreview = document.createElement('div');
+        originalPreview.style.flex = '1';
+        originalPreview.style.minWidth = '300px';
         const originalLabel = document.createElement('h4');
         originalLabel.textContent = 'Original';
         originalLabel.style.color = 'var(--accent)';
-        originalLabel.style.marginBottom = '0.5rem';
-        originalContainer.appendChild(originalLabel);
-        
-        const mediaElement = document.createElement(isVideo ? 'video' : 'audio');
+        originalPreview.appendChild(originalLabel);
+        const mediaElement = document.createElement(file.type.startsWith('video') ? 'video' : 'audio');
         mediaElement.controls = true;
         mediaElement.style.width = '100%';
-        mediaElement.style.display = 'block';
         mediaElement.src = URL.createObjectURL(file);
-        
-        mediaElement.addEventListener('loadedmetadata', function() {
+        mediaElement.addEventListener('loadedmetadata', () => {
             mediaDuration = mediaElement.duration;
-            endTimeInput.value = mediaDuration;
             endTimeInput.max = mediaDuration;
-            startTimeInput.max = mediaDuration;
+            endTimeInput.value = mediaDuration;
             durationLabel.textContent = `Duration: ${formatTime(mediaDuration)}`;
         });
+        originalPreview.appendChild(mediaElement);
+        previewContainer.appendChild(originalPreview);
         
-        originalContainer.appendChild(mediaElement);
-        splitContainer.appendChild(originalContainer);
-        
-        const resultContainer = document.createElement('div');
-        resultContainer.style.flex = '1';
-        resultContainer.style.minWidth = '300px';
-        
+        const resultPreview = document.createElement('div');
+        resultPreview.style.flex = '1';
+        resultPreview.style.minWidth = '300px';
         const resultLabel = document.createElement('h4');
         resultLabel.textContent = 'Result';
         resultLabel.style.color = 'var(--accent)';
-        resultLabel.style.marginBottom = '0.5rem';
-        resultContainer.appendChild(resultLabel);
-        
+        resultPreview.appendChild(resultLabel);
         const resultPlaceholder = document.createElement('div');
         resultPlaceholder.style.width = '100%';
         resultPlaceholder.style.minHeight = '200px';
@@ -173,10 +109,9 @@ document.addEventListener('DOMContentLoaded', function() {
         resultPlaceholder.style.color = 'var(--text)';
         resultPlaceholder.style.opacity = '0.5';
         resultPlaceholder.textContent = 'Result will appear here';
-        resultContainer.appendChild(resultPlaceholder);
-        splitContainer.appendChild(resultContainer);
-        
-        editorContainer.appendChild(splitContainer);
+        resultPreview.appendChild(resultPlaceholder);
+        previewContainer.appendChild(resultPreview);
+        editorContainer.appendChild(previewContainer);
         
         const controlsContainer = document.createElement('div');
         controlsContainer.style.padding = '1rem';
@@ -186,19 +121,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const trimSection = document.createElement('div');
         trimSection.style.marginBottom = '1rem';
-        
-        const trimTitle = document.createElement('h4');
-        trimTitle.textContent = 'Select Start and End';
-        trimTitle.style.marginBottom = '0.5rem';
-        trimTitle.style.color = 'var(--accent)';
-        trimSection.appendChild(trimTitle);
-        
+        trimSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Select Start and End</h4>';
         const trimControls = document.createElement('div');
         trimControls.style.display = 'flex';
         trimControls.style.gap = '1rem';
         trimControls.style.flexWrap = 'wrap';
-        trimControls.style.alignItems = 'center';
-        
         const startTimeInput = document.createElement('input');
         startTimeInput.type = 'number';
         startTimeInput.placeholder = 'Start (seconds)';
@@ -207,12 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
         startTimeInput.value = '0';
         startTimeInput.style.flex = '1';
         startTimeInput.style.minWidth = '120px';
-        startTimeInput.style.padding = '0.6rem';
-        startTimeInput.style.background = 'var(--bg)';
-        startTimeInput.style.border = '1px solid var(--border)';
-        startTimeInput.style.borderRadius = '4px';
-        startTimeInput.style.color = 'var(--text)';
-        
         const endTimeInput = document.createElement('input');
         endTimeInput.type = 'number';
         endTimeInput.placeholder = 'End (seconds)';
@@ -221,51 +142,46 @@ document.addEventListener('DOMContentLoaded', function() {
         endTimeInput.value = '0';
         endTimeInput.style.flex = '1';
         endTimeInput.style.minWidth = '120px';
-        endTimeInput.style.padding = '0.6rem';
-        endTimeInput.style.background = 'var(--bg)';
-        endTimeInput.style.border = '1px solid var(--border)';
-        endTimeInput.style.borderRadius = '4px';
-        endTimeInput.style.color = 'var(--text)';
-        
         const durationLabel = document.createElement('span');
         durationLabel.textContent = 'Duration: 0:00';
         durationLabel.style.fontSize = '0.85rem';
-        durationLabel.style.opacity = '0.8';
-        
         trimControls.appendChild(startTimeInput);
         trimControls.appendChild(endTimeInput);
+        trimControls.appendChild(durationLabel);
         trimSection.appendChild(trimControls);
-        trimSection.appendChild(durationLabel);
         controlsContainer.appendChild(trimSection);
+        
+        const volumeSection = document.createElement('div');
+        volumeSection.style.marginBottom = '1rem';
+        volumeSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Volume</h4>';
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.min = '0';
+        volumeSlider.max = '1000';
+        volumeSlider.value = '100';
+        volumeSlider.style.width = '100%';
+        const volumeLabel = document.createElement('span');
+        volumeLabel.textContent = '100%';
+        volumeSlider.addEventListener('input', function() {
+            volumeLabel.textContent = this.value + '%';
+            mediaElement.volume = this.value / 100;
+        });
+        volumeSection.appendChild(volumeSlider);
+        volumeSection.appendChild(volumeLabel);
+        controlsContainer.appendChild(volumeSection);
         
         const formatSection = document.createElement('div');
         formatSection.style.marginBottom = '1rem';
-        
-        const formatTitle = document.createElement('h4');
-        formatTitle.textContent = 'Output Format';
-        formatTitle.style.marginBottom = '0.5rem';
-        formatTitle.style.color = 'var(--accent)';
-        formatSection.appendChild(formatTitle);
-        
+        formatSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Output Format</h4>';
         const formatSelect = document.createElement('select');
         formatSelect.style.width = '100%';
-        formatSelect.style.padding = '0.6rem';
-        formatSelect.style.background = 'var(--bg)';
-        formatSelect.style.border = '1px solid var(--border)';
-        formatSelect.style.borderRadius = '4px';
-        formatSelect.style.color = 'var(--text)';
-        
-        const formats = isVideo ? 
-            ['MP4', 'WebM', 'AVI', 'MOV', 'GIF', 'MP3', 'WAV', 'OGG', 'JPG', 'PNG'] : 
-            ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
-        
-        formats.forEach(format => {
-            const option = document.createElement('option');
-            option.value = format.toLowerCase();
-            option.textContent = format;
-            formatSelect.appendChild(option);
+        const formats = file.type.startsWith('video') ? ['mp4','webm','avi','mov','gif','mp3','wav','ogg','jpg','png'] : ['mp3','wav','ogg','aac','flac','m4a','mp4','webm'];
+        formats.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = f.toUpperCase();
+            formatSelect.appendChild(opt);
         });
-        
         formatSection.appendChild(formatSelect);
         controlsContainer.appendChild(formatSection);
         
@@ -282,54 +198,32 @@ document.addEventListener('DOMContentLoaded', function() {
         processBtn.style.border = 'none';
         processBtn.style.borderRadius = '4px';
         processBtn.style.cursor = 'pointer';
-        processBtn.style.fontSize = '1rem';
-        processBtn.addEventListener('click', async function() {
-            const startTime = parseFloat(startTimeInput.value);
-            const endTime = parseFloat(endTimeInput.value);
+        processBtn.addEventListener('click', async () => {
+            const start = parseFloat(startTimeInput.value);
+            const end = parseFloat(endTimeInput.value);
             const format = formatSelect.value;
-            
-            if (isNaN(startTime) || startTime < 0) {
-                showError(startTimeInput, 'Please enter a valid start time');
-                return;
-            }
-            
-            if (isNaN(endTime) || endTime <= startTime) {
-                showError(endTimeInput, 'End time must be greater than start time');
-                return;
-            }
-            
-            if (mediaDuration > 0 && endTime > mediaDuration) {
-                showError(endTimeInput, `End time cannot exceed ${formatTime(mediaDuration)}`);
-                return;
-            }
-            
-            const statusDiv = document.createElement('div');
-            statusDiv.className = 'success-message';
-            statusDiv.textContent = 'Processing... Please wait...';
-            controlsContainer.appendChild(statusDiv);
-            
-            const resultBlob = await processMedia(file, startTime, endTime, format);
-            
-            statusDiv.remove();
-            
-            if (resultBlob) {
-                processedBlob = resultBlob;
-                
-                const url = URL.createObjectURL(resultBlob);
-                
-                const resultElement = document.createElement(isVideo && ['mp4', 'webm', 'avi', 'mov'].includes(format) ? 'video' : 
-                    ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format) ? 'audio' : 'img');
-                
-                resultElement.controls = resultElement.tagName !== 'IMG';
-                resultElement.style.width = '100%';
-                resultElement.style.display = 'block';
-                resultElement.src = url;
-                
+            const volume = parseInt(volumeSlider.value);
+            if (isNaN(start) || start < 0) { showError(startTimeInput, 'Invalid start time'); return; }
+            if (isNaN(end) || end <= start) { showError(endTimeInput, 'End must be greater than start'); return; }
+            if (mediaDuration > 0 && end > mediaDuration) { showError(endTimeInput, 'End exceeds duration'); return; }
+            const status = document.createElement('div');
+            status.className = 'success-message';
+            status.textContent = 'Processing...';
+            controlsContainer.appendChild(status);
+            processedBlob = await processMedia(file, start, end, format, volume);
+            status.remove();
+            if (processedBlob) {
+                const url = URL.createObjectURL(processedBlob);
+                const resultEl = document.createElement(['mp4','webm','avi','mov'].includes(format) ? 'video' : ['mp3','wav','ogg','aac','flac','m4a'].includes(format) ? 'audio' : 'img');
+                resultEl.controls = resultEl.tagName !== 'IMG';
+                resultEl.src = url;
+                resultEl.style.width = '100%';
                 resultPlaceholder.innerHTML = '';
                 resultPlaceholder.style.opacity = '1';
-                resultPlaceholder.appendChild(resultElement);
+                resultPlaceholder.appendChild(resultEl);
             }
         });
+        actionContainer.appendChild(processBtn);
         
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = 'Download Result';
@@ -339,112 +233,83 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadBtn.style.border = 'none';
         downloadBtn.style.borderRadius = '4px';
         downloadBtn.style.cursor = 'pointer';
-        downloadBtn.style.fontSize = '1rem';
-        downloadBtn.addEventListener('click', function() {
+        downloadBtn.addEventListener('click', () => {
             if (processedBlob) {
-                const format = formatSelect.value;
-                const url = URL.createObjectURL(processedBlob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format);
-                document.body.appendChild(a);
+                a.href = URL.createObjectURL(processedBlob);
+                a.download = 'processed_' + originalFile.name.replace(/\.[^.]+$/, '.' + formatSelect.value);
                 a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
             } else {
-                showError(downloadBtn, 'No processed file. Click Process first.');
+                showError(downloadBtn, 'No processed file');
             }
         });
-        
-        actionContainer.appendChild(processBtn);
         actionContainer.appendChild(downloadBtn);
-        controlsContainer.appendChild(actionContainer);
         
+        const downloadOriginalBtn = document.createElement('button');
+        downloadOriginalBtn.textContent = 'Download Original';
+        downloadOriginalBtn.style.padding = '0.7rem 1.5rem';
+        downloadOriginalBtn.style.background = 'var(--border)';
+        downloadOriginalBtn.style.color = 'var(--text)';
+        downloadOriginalBtn.style.border = 'none';
+        downloadOriginalBtn.style.borderRadius = '4px';
+        downloadOriginalBtn.style.cursor = 'pointer';
+        downloadOriginalBtn.addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(originalFile);
+            a.download = originalFile.name;
+            a.click();
+        });
+        actionContainer.appendChild(downloadOriginalBtn);
+        
+        controlsContainer.appendChild(actionContainer);
         editorContainer.appendChild(controlsContainer);
     }
     
-    async function processMedia(file, startTime, endTime, format) {
-        const duration = endTime - startTime;
-        
+    async function processMedia(file, start, end, format, volumePercent) {
+        const duration = end - start;
         const ffmpeg = await initFFmpeg();
-        
-        if (!ffmpeg) {
-            return basicProcess(file, format);
-        }
-        
+        if (!ffmpeg) return basicProcess(file, format, start, end);
         try {
             const { fetchFile } = FFmpeg;
             const inputName = 'input' + getExtension(file.name);
             const outputName = 'output.' + format;
-            
             ffmpeg.FS('writeFile', inputName, await fetchFile(file));
-            
-            const args = ['-i', inputName, '-ss', startTime.toString(), '-t', duration.toString()];
-            
-            if (['jpg', 'png'].includes(format)) {
-                args.push('-vframes', '1');
+            const args = ['-i', inputName, '-ss', start.toString(), '-t', duration.toString()];
+            if (['mp3','wav','ogg','aac','flac','m4a'].includes(format)) args.push('-vn');
+            if (['jpg','png'].includes(format)) args.push('-vframes', '1');
+            if (['mp4','webm','avi','mov'].includes(format)) args.push('-c:v', 'libx264', '-c:a', 'aac');
+            if (volumePercent !== 100) {
+                const volumeDb = 20 * Math.log10(volumePercent / 100);
+                args.push('-af', `volume=${volumeDb.toFixed(2)}dB`);
             }
-            
-            if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) {
-                args.push('-vn');
-            }
-            
-            if (['mp4', 'webm', 'avi', 'mov'].includes(format)) {
-                args.push('-c:v', 'libx264', '-c:a', 'aac');
-            }
-            
             args.push(outputName);
-            
             await ffmpeg.run(...args);
-            
             const data = ffmpeg.FS('readFile', outputName);
-            const mimeType = getMimeType(format);
-            const blob = new Blob([data.buffer], { type: mimeType });
-            
+            const blob = new Blob([data.buffer], { type: getMimeType(format) });
             ffmpeg.FS('unlink', inputName);
             ffmpeg.FS('unlink', outputName);
-            
             return blob;
-        } catch (e) {
-            console.error('FFmpeg error:', e);
-            return basicProcess(file, format);
+        } catch(e) {
+            return basicProcess(file, format, start, end);
         }
     }
     
-    function basicProcess(file, format) {
-        if (format === 'jpg' || format === 'png') {
-            return null;
-        }
-        
+    function basicProcess(file, format, start, end) {
         return new Blob([file], { type: getMimeType(format) });
     }
     
-    function getExtension(filename) {
-        return filename.substring(filename.lastIndexOf('.'));
-    }
-    
+    function getExtension(filename) { return filename.substring(filename.lastIndexOf('.')); }
     function getMimeType(format) {
         const types = {
-            'mp4': 'video/mp4',
-            'webm': 'video/webm',
-            'avi': 'video/x-msvideo',
-            'mov': 'video/quicktime',
-            'gif': 'image/gif',
-            'mp3': 'audio/mpeg',
-            'wav': 'audio/wav',
-            'ogg': 'audio/ogg',
-            'aac': 'audio/aac',
-            'flac': 'audio/flac',
-            'm4a': 'audio/mp4',
-            'jpg': 'image/jpeg',
-            'png': 'image/png'
+            'mp4':'video/mp4','webm':'video/webm','avi':'video/x-msvideo','mov':'video/quicktime','gif':'image/gif',
+            'mp3':'audio/mpeg','wav':'audio/wav','ogg':'audio/ogg','aac':'audio/aac','flac':'audio/flac','m4a':'audio/mp4',
+            'jpg':'image/jpeg','png':'image/png'
         };
         return types[format] || 'application/octet-stream';
     }
-    
     function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        const mins = Math.floor(seconds/60);
+        const secs = Math.floor(seconds%60);
+        return `${mins}:${secs.toString().padStart(2,'0')}`;
     }
-});
+}
