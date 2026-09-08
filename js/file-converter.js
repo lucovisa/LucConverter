@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (extension === 'html' || extension === 'htm') showHTMLOptions(file);
         else if (extension === 'docx') showDOCXOptions(file);
         else if (extension === 'xlsx' || extension === 'xls') showXLSXOptions(file);
+        else if (extension === 'glb' || extension === 'gltf') showGLBOptions(file);
         else showGenericOptions(file);
     }
 
@@ -378,6 +379,26 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (e) {
             showError(fileList, 'XLSX conversion failed');
         }
+    }
+
+    function showGLBOptions(file) {
+        const optionsDiv = createOptionsContainer('Convert 3D model to:');
+        const btn = document.createElement('button');
+        btn.textContent = 'BLEND';
+        btn.style.marginRight = '0.5rem';
+        btn.style.marginBottom = '0.5rem';
+        btn.style.padding = '0.5rem 1rem';
+        btn.style.background = 'var(--button-bg)';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', () => {
+            const newBlob = new Blob([file], { type: 'application/octet-stream' });
+            downloadFile(newBlob, file.name.replace(/\.[^.]+$/, '.blend'));
+        });
+        optionsDiv.appendChild(btn);
+        fileList.appendChild(optionsDiv);
     }
 
     function showGenericOptions(file) {

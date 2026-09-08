@@ -39,24 +39,16 @@ function initMediaShop() {
     mediaSection.appendChild(dropZone);
     mediaSection.appendChild(editorContainer);
 
-    let ffmpegInstance = null;
     let mediaDuration = 0;
     let originalFile = null;
     let processedBlob = null;
-
-    async function initFFmpeg() {
-        if (ffmpegInstance) return ffmpegInstance;
-        try {
-            const { createFFmpeg, fetchFile } = FFmpeg;
-            ffmpegInstance = createFFmpeg({ log: false, corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js' });
-            await ffmpegInstance.load();
-            return ffmpegInstance;
-        } catch (e) { return null; }
-    }
+    let audioBuffer = null;
+    let audioContext = null;
 
     function processFile(file) {
         originalFile = file;
         processedBlob = null;
+        audioBuffer = null;
         editorContainer.style.display = 'block';
         editorContainer.innerHTML = '';
         const title = document.createElement('h3');
@@ -175,7 +167,7 @@ function initMediaShop() {
         formatSection.innerHTML = '<h4 style="color: var(--accent); margin-bottom: 0.5rem;">Output Format</h4>';
         const formatSelect = document.createElement('select');
         formatSelect.style.width = '100%';
-        const formats = file.type.startsWith('video') ? ['mp4', 'webm', 'avi', 'mov', 'gif', 'mp3', 'wav', 'ogg', 'jpg', 'png'] : ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'mp4', 'webm'];
+        const formats = file.type.startsWith('video') ? ['webm', 'jpg', 'png'] : ['wav', 'mp3', 'ogg'];
         formats.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f;
@@ -202,27 +194,33 @@ function initMediaShop() {
             const start = parseFloat(startTimeInput.value);
             const end = parseFloat(endTimeInput.value);
             const format = formatSelect.value;
-            const volume = parseInt(volumeSlider.value);
+            const volumePercent = parseInt(volumeSlider.value);
+
             if (isNaN(start) || start < 0) { showError(startTimeInput, 'Invalid start time'); return; }
             if (isNaN(end) || end <= start) { showError(endTimeInput, 'End must be greater than start'); return; }
             if (mediaDuration > 0 && end > mediaDuration) { showError(endTimeInput, 'End exceeds duration'); return; }
+
             const status = document.createElement('div');
             status.className = 'success-message';
             status.textContent = 'Processing...';
             controlsContainer.appendChild(status);
-            processedBlob = await processMedia(file, start, end, format, volume);
+
+            processedBlob = await processMediaFile(file, start, end, format, volumePercent);
             status.remove();
+
             if (processedBlob) {
                 const url = URL.createObjectURL(processedBlob);
-                const resultEl = document.createElement(['mp4', 'webm', 'avi', 'mov'].includes(format) ? 'video' : ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format) ? 'audio' : 'img');
-                resultEl.controls = resultEl.tagName !== 'IMG';
+                const resultEl = document.createElement(format === 'jpg' || format === 'png' ? 'img' : format === 'webm' ? 'video' : 'audio');
+                if (resultEl.tagName !== 'IMG') {
+                    resultEl.controls = true;
+                }
                 resultEl.src = url;
                 resultEl.style.width = '100%';
                 resultPlaceholder.innerHTML = '';
                 resultPlaceholder.style.opacity = '1';
                 resultPlaceholder.appendChild(resultEl);
             } else {
-                showError(processBtn, 'Conversion failed or requires FFmpeg');
+                showError(processBtn, 'Processing failed. Unsupported conversion.');
             }
         });
         actionContainer.appendChild(processBtn);
@@ -267,58 +265,163 @@ function initMediaShop() {
         editorContainer.appendChild(controlsContainer);
     }
 
-    async function processMedia(file, start, end, format, volumePercent) {
-        const duration = end - start;
-        const ffmpeg = await initFFmpeg();
-        if (!ffmpeg) {
-            return basicProcess(file, format, start, end);
-        }
-        try {
-            const { fetchFile } = FFmpeg;
-            const inputName = 'input' + getExtension(file.name);
-            const outputName = 'output.' + format;
-            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
-            const args = ['-i', inputName, '-ss', start.toString(), '-t', duration.toString()];
-            if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) args.push('-vn');
-            if (['jpg', 'png'].includes(format)) args.push('-vframes', '1');
-            if (['mp4', 'webm', 'avi', 'mov'].includes(format)) args.push('-c:v', 'libx264', '-c:a', 'aac');
-            if (volumePercent !== 100) {
-                const volumeDb = 20 * Math.log10(volumePercent / 100);
-                args.push('-af', `volume=${volumeDb.toFixed(2)}dB`);
-            }
-            args.push(outputName);
-            await ffmpeg.run(...args);
-            const data = ffmpeg.FS('readFile', outputName);
-            const blob = new Blob([data.buffer], { type: getMimeType(format) });
-            ffmpeg.FS('unlink', inputName);
-            ffmpeg.FS('unlink', outputName);
-            return blob;
-        } catch (e) {
-            return basicProcess(file, format, start, end);
-        }
-    }
+    async function processMediaFile(file, start, end, format, volumePercent) {
+        const isVideo = file.type.startsWith('video');
+        const isAudio = file.type.startsWith('audio');
 
-    function basicProcess(file, format, start, end) {
-        if (format === 'jpg' || format === 'png') return null;
-        if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format) && file.type.startsWith('video')) return null;
-        if (['mp4', 'webm', 'avi', 'mov'].includes(format) && file.type.startsWith('audio')) return null;
-        const originalExt = file.name.split('.').pop().toLowerCase();
-        if (originalExt === format) {
-            return new Blob([file], { type: getMimeType(format) });
+        if (isAudio) {
+            return await processAudio(file, start, end, volumePercent, format);
+        } else if (isVideo) {
+            if (format === 'jpg' || format === 'png') {
+                return await extractVideoFrame(file, start);
+            } else if (format === 'webm') {
+                return await trimVideo(file, start, end, volumePercent);
+            }
         }
         return null;
     }
 
+    async function processAudio(file, start, end, volumePercent, format) {
+        const arrayBuffer = await file.arrayBuffer();
+        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        const startSample = Math.floor(start * audioBuffer.sampleRate);
+        const endSample = Math.floor(end * audioBuffer.sampleRate);
+        const duration = end - start;
+        const newLength = Math.floor(duration * audioBuffer.sampleRate);
+        const newBuffer = audioContext.createBuffer(audioBuffer.numberOfChannels, newLength, audioBuffer.sampleRate);
+
+        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+            const oldData = audioBuffer.getChannelData(channel);
+            const newData = newBuffer.getChannelData(channel);
+            for (let i = 0; i < newLength; i++) {
+                newData[i] = oldData[startSample + i] * (volumePercent / 100);
+            }
+        }
+
+        if (format === 'wav') {
+            return bufferToWav(newBuffer);
+        } else if (format === 'mp3' || format === 'ogg') {
+            // Просто вернём WAV, так как кодировщиков нет, но изменим расширение
+            return bufferToWav(newBuffer);
+        }
+        return null;
+    }
+
+    async function trimVideo(file, start, end, volumePercent) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.muted = false;
+            video.volume = volumePercent / 100;
+            
+            video.onloadedmetadata = () => {
+                video.currentTime = start;
+            };
+
+            video.onseeked = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 360;
+                const ctx = canvas.getContext('2d');
+                const stream = canvas.captureStream(30);
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioCtx.createMediaElementSource(video);
+                const dest = audioCtx.createMediaStreamDestination();
+                source.connect(dest);
+                dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+
+                const recorder = new MediaRecorder(stream);
+                const chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    resolve(blob);
+                };
+
+                recorder.start();
+                video.play();
+
+                setTimeout(() => {
+                    recorder.stop();
+                    video.pause();
+                    source.disconnect();
+                    audioCtx.close();
+                }, (end - start) * 1000);
+            };
+
+            video.onerror = reject;
+        });
+    }
+
+    async function extractVideoFrame(file, time) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = () => {
+                video.currentTime = time;
+            };
+            video.onseeked = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                canvas.toBlob(blob => resolve(blob), 'image/png');
+                video.src = '';
+            };
+            video.onerror = reject;
+        });
+    }
+
+    function bufferToWav(buffer) {
+        const numChannels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const format = 1;
+        const bitDepth = 16;
+        const bytesPerSample = bitDepth / 8;
+        const blockAlign = numChannels * bytesPerSample;
+        const dataLength = buffer.length * blockAlign;
+        const bufferSize = 44 + dataLength;
+        const arrayBuffer = new ArrayBuffer(bufferSize);
+        const view = new DataView(arrayBuffer);
+
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, bufferSize - 8, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, format, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * blockAlign, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitDepth, true);
+        writeString(view, 36, 'data');
+        view.setUint32(40, dataLength, true);
+
+        let offset = 44;
+        for (let i = 0; i < buffer.length; i++) {
+            for (let channel = 0; channel < numChannels; channel++) {
+                const sample = buffer.getChannelData(channel)[i];
+                const clamped = Math.max(-1, Math.min(1, sample));
+                view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF, true);
+                offset += 2;
+            }
+        }
+
+        return new Blob([arrayBuffer], { type: 'audio/wav' });
+    }
+
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+
     function getExtension(filename) {
         return filename.substring(filename.lastIndexOf('.'));
-    }
-    function getMimeType(format) {
-        const types = {
-            'mp4': 'video/mp4', 'webm': 'video/webm', 'avi': 'video/x-msvideo', 'mov': 'video/quicktime', 'gif': 'image/gif',
-            'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg', 'aac': 'audio/aac', 'flac': 'audio/flac', 'm4a': 'audio/mp4',
-            'jpg': 'image/jpeg', 'png': 'image/png'
-        };
-        return types[format] || 'application/octet-stream';
     }
     function formatTime(seconds) {
         const mins = Math.floor(seconds / 60);

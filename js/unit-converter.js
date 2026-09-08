@@ -1,6 +1,40 @@
 document.addEventListener('DOMContentLoaded', function() {
     initUnitConverter();
+    setupClearButtons();
+    setupLiveClock();
 });
+
+function setupLiveClock() {
+    const clockElement = document.getElementById('liveClock');
+    if (!clockElement) return;
+    function updateClock() {
+        const now = new Date();
+        clockElement.textContent = now.toLocaleTimeString();
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+function setupClearButtons() {
+    document.querySelectorAll('.clear-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const container = document.getElementById(targetId);
+            if (!container) return;
+            container.querySelectorAll('input').forEach(input => {
+                if (input.type === 'color') input.value = '#000000';
+                else if (input.type === 'date') input.value = '';
+                else if (input.type === 'number' || input.type === 'text') input.value = '';
+                else if (input.type === 'range') input.value = input.min;
+            });
+            container.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+            });
+            const result = container.querySelector('.result-display');
+            if (result) result.textContent = '';
+        });
+    });
+}
 
 function initUnitConverter() {
     const timezoneFrom = document.getElementById('timezoneFrom');
@@ -84,17 +118,37 @@ function initUnitConverter() {
         });
     }
 
-    const timeBtn = document.querySelector('#timeConverter button');
+    const timeBtn = document.getElementById('timeConvertBtn');
     const timeResult = document.querySelector('#timeConverter .result-display');
+    const fromCustom = document.getElementById('timezoneFromCustom');
+    const toCustom = document.getElementById('timezoneToCustom');
     if (timeBtn && timeResult) {
         timeBtn.addEventListener('click', function() {
-            const from = timezones[timezoneFrom.value];
-            const to = timezones[timezoneTo.value];
+            let fromOffset = null;
+            let toOffset = null;
+
+            if (fromCustom.value.trim()) {
+                fromOffset = parseUTCOffset(fromCustom.value.trim());
+            } else {
+                fromOffset = timezones[timezoneFrom.value];
+            }
+
+            if (toCustom.value.trim()) {
+                toOffset = parseUTCOffset(toCustom.value.trim());
+            } else {
+                toOffset = timezones[timezoneTo.value];
+            }
+
+            if (fromOffset === null || toOffset === null) {
+                showError(timeBtn, 'Invalid timezone offset. Use e.g. UTC+10 or +10');
+                return;
+            }
+
             const now = new Date();
             const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-            const fromTime = new Date(utcTime + from * 3600000);
-            const toTime = new Date(utcTime + to * 3600000);
-            timeResult.textContent = `${timezoneFrom.value}: ${fromTime.toLocaleTimeString()} | ${timezoneTo.value}: ${toTime.toLocaleTimeString()}`;
+            const fromTime = new Date(utcTime + fromOffset * 3600000);
+            const toTime = new Date(utcTime + toOffset * 3600000);
+            timeResult.textContent = `From: ${fromTime.toLocaleTimeString()} | To: ${toTime.toLocaleTimeString()}`;
         });
     }
 
@@ -176,6 +230,21 @@ function initUnitConverter() {
             uuidResult.textContent = generateUUID();
         });
     }
+}
+
+function parseUTCOffset(str) {
+    str = str.trim().toUpperCase();
+    let sign = 1;
+    if (str.startsWith('UTC+')) sign = 1;
+    else if (str.startsWith('UTC-')) sign = -1;
+    else if (str.startsWith('+')) sign = 1;
+    else if (str.startsWith('-')) sign = -1;
+    else return null;
+
+    const numStr = str.replace(/UTC/g, '').replace(/\+/g, '').replace(/-/g, '');
+    const num = parseFloat(numStr);
+    if (isNaN(num)) return null;
+    return sign * num;
 }
 
 function fillSelect(select, units) {

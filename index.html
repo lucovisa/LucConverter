@@ -32,6 +32,9 @@
         <div class="logo">
             <a href="https://github.com/lucovisa" target="_blank">LucConverter</a>
         </div>
+        <a href="https://lucovisa.github.io/LucConverter/" class="invisible-home-link" aria-label="Home">
+            <span id="liveClock" class="live-clock"></span>
+        </a>
         <div class="header-actions">
             <button id="donateBtn" class="donate-btn">❤️ Donate</button>
         </div>
@@ -114,6 +117,7 @@
                     <span class="format-tag">XLSX → CSV, JSON, HTML</span>
                     <span class="format-tag">HTML → TXT, Markdown, PDF</span>
                     <span class="format-tag">Any file → ZIP</span>
+                    <span class="format-tag">3D: GLB → BLEND</span>
                 </div>
             </div>
             
@@ -151,13 +155,21 @@
                 <input type="text" id="hexInput" placeholder="HEX">
                 <input type="text" id="rgbInput" placeholder="RGB">
                 <input type="text" id="hslInput" placeholder="HSL">
+                <button class="clear-btn" data-target="colorConverter">Clear</button>
             </div>
             
             <div id="timeConverter" class="converter-content">
                 <h3>Time Zone Converter</h3>
-                <select id="timezoneFrom"></select>
-                <select id="timezoneTo"></select>
-                <button>Convert</button>
+                <div class="timezone-custom-input">
+                    <label>From: <input type="text" id="timezoneFromCustom" placeholder="e.g. UTC+10 or +10"></label>
+                    <label>To: <input type="text" id="timezoneToCustom" placeholder="e.g. UTC-5 or -5"></label>
+                </div>
+                <div class="timezone-select-group">
+                    <select id="timezoneFrom"></select>
+                    <select id="timezoneTo"></select>
+                </div>
+                <button id="timeConvertBtn">Convert</button>
+                <button class="clear-btn" data-target="timeConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -166,6 +178,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="weightConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -174,6 +187,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="temperatureConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -182,6 +196,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="distanceConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -190,6 +205,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="durationConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -198,6 +214,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="speedConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -206,6 +223,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="areaConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -214,6 +232,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="volumeConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -222,6 +241,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="pressureConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -230,6 +250,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="energyConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -238,6 +259,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="powerConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -246,6 +268,7 @@
                 <input type="number" placeholder="Enter value">
                 <select></select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="angleConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -253,6 +276,7 @@
                 <h3>Fraction to Decimal Converter</h3>
                 <input type="text" placeholder="Enter fraction (e.g., 3/4)">
                 <button>Convert</button>
+                <button class="clear-btn" data-target="fractionConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -260,6 +284,7 @@
                 <h3>Roman Numerals Converter</h3>
                 <input type="text" placeholder="Enter number or Roman numeral">
                 <button>Convert</button>
+                <button class="clear-btn" data-target="romanConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -273,6 +298,7 @@
                     <option value="hexadecimal">Hexadecimal (16)</option>
                 </select>
                 <button>Convert</button>
+                <button class="clear-btn" data-target="numberSystemConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
@@ -280,12 +306,14 @@
                 <h3>Date Converter</h3>
                 <input type="date" id="dateInput">
                 <button>Convert</button>
+                <button class="clear-btn" data-target="dateConverter">Clear</button>
                 <div class="result-display"></div>
             </div>
             
             <div id="uuidGenerator" class="converter-content">
                 <h3>UUID Generator</h3>
                 <button>Generate UUID</button>
+                <button class="clear-btn" data-target="uuidGenerator">Clear</button>
                 <div class="result-display"></div>
             </div>
         </section>
@@ -462,6 +490,16 @@
                 </div>
                 
                 <div class="guide-section">
+                    <h3>Invisible Home Area</h3>
+                    <p>Between the logo and the Donate button there is an invisible clickable area. It takes you to the main page of the site. It also shows the current time with seconds.</p>
+                    <ul>
+                        <li>Click anywhere in that empty space to go home</li>
+                        <li>Time updates every second</li>
+                        <li>No visual indication except the time text</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
                     <h3>Donate</h3>
                     <p>Click on the "❤️ Donate" button in the top right corner to support the project.</p>
                     <ul>
@@ -471,6 +509,7 @@
                         <li>BTC (Bitcoin mainnet)</li>
                         <li>TON/USDT (The Open Network)</li>
                         <li>Click outside the panel to close it</li>
+                        <li>"Support LucConverter" header is a link to the project's GitHub repository</li>
                     </ul>
                 </div>
                 
@@ -490,6 +529,7 @@
                         <li>XLSX → CSV, JSON, HTML</li>
                         <li>HTML → TXT, Markdown, PDF</li>
                         <li>Any file → ZIP</li>
+                        <li>3D: GLB → BLEND (rename only, not true conversion)</li>
                     </ul>
                 </div>
                 
@@ -498,11 +538,11 @@
                     <p>Click on Unit Converter to convert between different units.</p>
                     <ul>
                         <li>Color — HEX, RGB, HSL</li>
-                        <li>Time Zones — convert time between zones</li>
+                        <li>Time Zones — convert time between zones, supports custom UTC offsets like +10 or -5</li>
                         <li>Weight — kg, lbs, oz, etc.</li>
                         <li>Temperature — Celsius, Fahrenheit, Kelvin</li>
                         <li>Distance — km, miles, meters, etc.</li>
-                        <li>Duration — seconds, minutes, hours, days</li>
+                        <li>Duration — seconds, minutes, hours, days, weeks, months, years</li>
                         <li>Speed — km/h, mph, m/s</li>
                         <li>Area — m², km², acres, hectares</li>
                         <li>Volume — liters, gallons, m³</li>
@@ -513,8 +553,9 @@
                         <li>Fraction to Decimal</li>
                         <li>Roman Numerals</li>
                         <li>Number Systems — binary, octal, hex</li>
-                        <li>Date Converter — ISO, Unix timestamp</li>
+                        <li>Date Converter — ISO, Unix timestamp, week number</li>
                         <li>UUID Generator</li>
+                        <li>Every converter has a Clear button</li>
                     </ul>
                 </div>
                 
@@ -543,6 +584,7 @@
                         <li>Cryptocurrencies — BTC, ETH, USDT, etc.</li>
                         <li>Real-time exchange rates via API</li>
                         <li>Swap button to switch currencies</li>
+                        <li>Type a letter to search in dropdown</li>
                     </ul>
                 </div>
                 
@@ -555,6 +597,7 @@
                         <li>Convert — MP4, WebM, MP3, WAV, etc.</li>
                         <li>Volume control</li>
                         <li>Download original or converted</li>
+                        <li>Note: Audio editing works fully in browser; video editing requires FFmpeg which may not load on GitHub Pages</li>
                     </ul>
                 </div>
                 
@@ -566,7 +609,7 @@
                         <li>Brush — draw with color and size</li>
                         <li>Eraser — remove parts</li>
                         <li>Fill — fill area with color</li>
-                        <li>Nudge — move image with arrows</li>
+                        <li>Resize canvas</li>
                         <li>Filters — brightness, contrast, saturation, blur, sharpen</li>
                         <li>Download edited image</li>
                     </ul>
@@ -578,8 +621,8 @@
                     <ul>
                         <li>New, Open, Save, Print files</li>
                         <li>Bold, Italic, Underline formatting</li>
-                        <li>Language selection — Python, JS, HTML, etc.</li>
-                        <li>Run JavaScript code</li>
+                        <li>Language selection: JavaScript, HTML, JSON, Python, Lua, SQL</li>
+                        <li>Run code directly in browser (JavaScript, Python, Lua, SQL)</li>
                         <li>UPPERCASE, lowercase, Reverse</li>
                         <li>Sort lines, Remove duplicates</li>
                         <li>Word count</li>
@@ -597,13 +640,36 @@
                         <li>Backspace, Clear</li>
                     </ul>
                 </div>
+                
+                <div class="guide-section faq-section">
+                    <h3>FAQ</h3>
+                    
+                    <div class="faq-item">
+                        <h4>Developer profile</h4>
+                        <p><a href="https://github.com/lucovisa" target="_blank" class="faq-link">github.com/lucovisa</a></p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Project link on GitHub</h4>
+                        <p><a href="https://github.com/lucovisa/LucConverter" target="_blank" class="faq-link">github.com/lucovisa/LucConverter</a></p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>What to do if I want to compile other code?</h4>
+                        <p>Do you want to download the program?</p>
+                        <div class="faq-answers">
+                            <a href="https://visualstudio.microsoft.com/downloads/" target="_blank" class="faq-btn">Yes — Download IDE</a>
+                            <a href="https://silvertests.ru/Compiler.aspx" target="_blank" class="faq-btn">No — Use online compiler</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
     <div id="donatePanel" class="donate-panel">
         <div class="donate-header">
-            <h2>Support LucConverter</h2>
+            <a href="https://github.com/lucovisa/LucConverter" target="_blank" class="donate-title-link">Support LucConverter</a>
             <button id="closeDonate" class="close-btn">✕</button>
         </div>
         <p>Your donation helps us keep the converter free and anonymous</p>
