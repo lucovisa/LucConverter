@@ -49,10 +49,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 formatSelect.appendChild(opt);
             });
 
+            const convertBtn = document.createElement('button');
+            convertBtn.textContent = 'Convert';
+            convertBtn.style.padding = '0.5rem 1rem';
+            convertBtn.style.background = 'var(--button-bg)';
+            convertBtn.style.color = 'white';
+            convertBtn.style.border = 'none';
+            convertBtn.style.borderRadius = '4px';
+            convertBtn.style.cursor = 'pointer';
+            convertBtn.addEventListener('click', async () => {
+                const blob = await convertFileToBlob(file, formatSelect.value, realType);
+                if (blob) {
+                    downloadBlob(blob, file.name.replace(/\.[^.]+$/, '.' + formatSelect.value));
+                } else {
+                    showError(convertBtn, 'Conversion failed');
+                }
+            });
+
             filesWithFormats.push({ file, formatSelect, realType });
 
             fileItem.appendChild(fileInfo);
             fileItem.appendChild(formatSelect);
+            fileItem.appendChild(convertBtn);
             fileList.appendChild(fileItem);
         }
 
@@ -63,16 +81,18 @@ document.addEventListener('DOMContentLoaded', function() {
             actionContainer.style.marginTop = '1rem';
             actionContainer.style.flexWrap = 'wrap';
 
-            const convertAllBtn = document.createElement('button');
-            convertAllBtn.textContent = 'Convert All and Download ZIP';
-            convertAllBtn.style.padding = '0.7rem 1.5rem';
-            convertAllBtn.style.background = '#2e7d32';
-            convertAllBtn.style.color = 'white';
-            convertAllBtn.style.border = 'none';
-            convertAllBtn.style.borderRadius = '4px';
-            convertAllBtn.style.cursor = 'pointer';
-            convertAllBtn.addEventListener('click', () => convertAllAndZip());
-            actionContainer.appendChild(convertAllBtn);
+            if (filesWithFormats.length > 1) {
+                const convertAllBtn = document.createElement('button');
+                convertAllBtn.textContent = 'Convert All and Download ZIP';
+                convertAllBtn.style.padding = '0.7rem 1.5rem';
+                convertAllBtn.style.background = '#2e7d32';
+                convertAllBtn.style.color = 'white';
+                convertAllBtn.style.border = 'none';
+                convertAllBtn.style.borderRadius = '4px';
+                convertAllBtn.style.cursor = 'pointer';
+                convertAllBtn.addEventListener('click', () => convertAllAndZip());
+                actionContainer.appendChild(convertAllBtn);
+            }
 
             const clearBtn = document.createElement('button');
             clearBtn.textContent = 'Clear All';
@@ -103,10 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(zipBlob);
-        a.download = 'converted_files.zip';
-        a.click();
+        downloadBlob(zipBlob, 'converted_files.zip');
     }
 
     function convertFileToBlob(file, format, realType) {
@@ -672,6 +689,17 @@ document.addEventListener('DOMContentLoaded', function() {
             'woff2': 'font/woff2'
         };
         return types[format] || 'application/octet-stream';
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     function formatFileSize(bytes) {
