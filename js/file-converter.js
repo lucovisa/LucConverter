@@ -67,28 +67,40 @@ document.addEventListener('DOMContentLoaded', function() {
     function getFormats(file) {
         const fileType = file.type.split('/')[0];
         const extension = file.name.split('.').pop().toLowerCase();
-        if (fileType === 'image') return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
-        if (fileType === 'video') return ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
-        if (fileType === 'audio') return ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
+
+        if (fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension)) {
+            return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
+        }
+        if (fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension)) {
+            return ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
+        }
+        if (fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension)) {
+            return ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
+        }
         if (extension === 'pdf') return ['TXT', 'HTML', 'JPG', 'PNG'];
         if (extension === 'html' || extension === 'htm') return ['TXT', 'Markdown', 'PDF'];
         if (extension === 'docx') return ['TXT', 'HTML', 'PDF'];
         if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
         if (extension === 'glb' || extension === 'gltf') return ['BLEND'];
+        // включая RAR и любые другие — generic
         return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
     }
 
     function performConversion(file, format) {
         const fileType = file.type.split('/')[0];
         const extension = file.name.split('.').pop().toLowerCase();
-        if (fileType === 'image') {
+        const isImage = fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension);
+        const isVideo = fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension);
+        const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension);
+
+        if (isImage) {
             if (format === 'txt (ocr)') extractTextFromImage(file);
             else convertImage(file, format);
-        } else if (fileType === 'video') {
+        } else if (isVideo) {
             if (format === 'jpg' || format === 'png') extractFrameFromVideo(file, format);
             else if (format === 'mp3' || format === 'wav') extractAudioFromVideo(file, format);
             else convertVideo(file, format);
-        } else if (fileType === 'audio') {
+        } else if (isAudio) {
             if (format === 'mp4' || format === 'webm') audioToVideo(file, format);
             else convertAudio(file, format);
         } else if (extension === 'pdf') {
@@ -102,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (extension === 'glb' || extension === 'gltf') {
             if (format === 'blend') convertGLB(file);
         } else {
+            // RAR и другие generic
             if (format === 'zip') convertToZip(file);
             else convertGeneric(file, format);
         }

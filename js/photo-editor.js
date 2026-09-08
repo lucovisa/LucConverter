@@ -13,6 +13,15 @@ function initPhotoEditor() {
     backBtn.addEventListener('click', () => showMainMenu());
     photoSection.appendChild(backBtn);
 
+    const mainLayout = document.createElement('div');
+    mainLayout.style.display = 'flex';
+    mainLayout.style.gap = '1rem';
+    mainLayout.style.flexWrap = 'wrap';
+
+    const editorArea = document.createElement('div');
+    editorArea.style.flex = '2';
+    editorArea.style.minWidth = '300px';
+
     const toolbar = document.createElement('div');
     toolbar.style.display = 'flex';
     toolbar.style.flexWrap = 'wrap';
@@ -24,11 +33,6 @@ function initPhotoEditor() {
     toolbar.style.borderRadius = '4px';
     toolbar.style.alignItems = 'center';
 
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.style.display = 'none';
-
     const canvas = document.createElement('canvas');
     canvas.width = 800;
     canvas.height = 600;
@@ -36,6 +40,7 @@ function initPhotoEditor() {
     canvas.style.cursor = 'crosshair';
     canvas.style.touchAction = 'none';
     canvas.style.display = 'block';
+    canvas.style.maxWidth = '100%';
 
     const scrollContainer = document.createElement('div');
     scrollContainer.style.overflow = 'auto';
@@ -44,12 +49,18 @@ function initPhotoEditor() {
     scrollContainer.style.borderRadius = '4px';
     scrollContainer.appendChild(canvas);
 
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const layersPanel = document.createElement('div');
+    layersPanel.style.flex = '1';
+    layersPanel.style.minWidth = '200px';
+    layersPanel.style.background = 'var(--panel-bg)';
+    layersPanel.style.border = '1px solid var(--border)';
+    layersPanel.style.borderRadius = '4px';
+    layersPanel.style.padding = '1rem';
+    layersPanel.style.maxHeight = '500px';
+    layersPanel.style.overflowY = 'auto';
 
-    let originalImage = null;
-    let currentImage = null;
+    let layers = [];
+    let activeLayerIndex = -1;
     let isDrawing = false;
     let lastX = 0, lastY = 0;
     let brushSize = 5;
@@ -58,58 +69,294 @@ function initPhotoEditor() {
     let currentTool = 'brush';
     let history = [];
 
+    function createLayer(name, width, height, imageData = null) {
+        const layerCanvas = document.createElement('canvas');
+        layerCanvas.width = width;
+        layerCanvas.height = height;
+        const ctx = layerCanvas.getContext('2d');
+        if (imageData) {
+            ctx.putImageData(imageData, 0, 0);
+        } else {
+            ctx.clearRect(0, 0, width, height);
+        }
+        return { name, canvas: layerCanvas, ctx, opacity: 1, visible: true };
+    }
+
+    function addLayer(name = 'Layer ' + (layers.length + 1), imageData = null) {
+        const layer = createLayer(name, canvas.width, canvas.height, imageData);
+        layers.push(layer);
+        activeLayerIndex = layers.length - 1;
+        updateLayersPanel();
+        redrawCanvas();
+    }
+
+    function deleteLayer(index) {
+        if (layers.length <= 1) return;
+        layers.splice(index, 1);
+        if (activeLayerIndex >= layers.length) activeLayerIndex = layers.length - 1;
+        updateLayersPanel();
+        redrawCanvas();
+    }
+
+    function moveLayer(from, to) {
+        if (to < 0 || to >= layers.length) return;
+        const [layer] = layers.splice(from, 1);
+        layers.splice(to, 0, layer);
+        activeLayerIndex = to;
+        updateLayersPanel();
+        redrawCanvas();
+    }
+
+    function redrawCanvas() {
+        const mainCtx = canvas.getContext('2d');
+        mainCtx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const layer of layers) {
+            if (!layer.visible) continue;
+            mainCtx.globalAlpha = layer.opacity;
+            mainCtx.drawImage(layer.canvas, 0, 0);
+        }
+        mainCtx.globalAlpha = 1;
+    }
+
+    function updateLayersPanel() {
+        layersPanel.innerHTML = '<h3 style="color:var(--accent);margin-bottom:0.5rem">Layers</h3>';
+        layers.forEach((layer, i) => {
+            const layerDiv = document.createElement('div');
+            layerDiv.style.display = 'flex';
+            layerDiv.style.alignItems = 'center';
+            layerDiv.style.gap = '0.5rem';
+            layerDiv.style.padding = '0.3rem';
+            layerDiv.style.cursor = 'pointer';
+            layerDiv.style.background = i === activeLayerIndex ? 'var(--hover)' : 'transparent';
+            layerDiv.addEventListener('click', () => {
+                activeLayerIndex = i;
+                updateLayersPanel();
+            });
+
+            const visibilityToggle = document.createElement('button');
+            visibilityToggle.textContent = layer.visible ? '👁️' : '🚫';
+            visibilityToggle.style.background = 'none';
+            visibilityToggle.style.border = 'none';
+            visibilityToggle.style.cursor = 'pointer';
+            visibilityToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                layer.visible = !layer.visible;
+                updateLayersPanel();
+                redrawCanvas();
+            });
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = layer.name;
+            nameSpan.style.flex = '1';
+
+            const opacityInput = document.createElement('input');
+            opacityInput.type = 'range';
+            opacityInput.min = '0';
+            opacityInput.max = '100';
+            opacityInput.value = layer.opacity * 100;
+            opacityInput.style.width = '50px';
+            opacityInput.addEventListener('input', (e) => {
+                layer.opacity = parseInt(e.target.value) / 100;
+                redrawCanvas();
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.style.background = 'none';
+            deleteBtn.style.border = 'none';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteLayer(i);
+            });
+
+            layerDiv.appendChild(visibilityToggle);
+            layerDiv.appendChild(nameSpan);
+            layerDiv.appendChild(opacityInput);
+            layerDiv.appendChild(deleteBtn);
+            layersPanel.appendChild(layerDiv);
+        });
+
+        const addLayerBtn = document.createElement('button');
+        addLayerBtn.textContent = '+ Add Layer';
+        addLayerBtn.style.marginTop = '0.5rem';
+        addLayerBtn.style.padding = '0.5rem';
+        addLayerBtn.style.background = 'var(--button-bg)';
+        addLayerBtn.style.color = 'white';
+        addLayerBtn.style.border = 'none';
+        addLayerBtn.style.borderRadius = '4px';
+        addLayerBtn.style.cursor = 'pointer';
+        addLayerBtn.addEventListener('click', () => addLayer());
+        layersPanel.appendChild(addLayerBtn);
+
+        const addImageLayerBtn = document.createElement('button');
+        addImageLayerBtn.textContent = '+ Add Image Layer';
+        addImageLayerBtn.style.marginTop = '0.5rem';
+        addImageLayerBtn.style.marginLeft = '0.5rem';
+        addImageLayerBtn.style.padding = '0.5rem';
+        addImageLayerBtn.style.background = 'var(--button-bg)';
+        addImageLayerBtn.style.color = 'white';
+        addImageLayerBtn.style.border = 'none';
+        addImageLayerBtn.style.borderRadius = '4px';
+        addImageLayerBtn.style.cursor = 'pointer';
+        addImageLayerBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (!file) return;
+                const img = new Image();
+                img.onload = function() {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(img, 0, 0);
+                    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                    addLayer('Image ' + (layers.length + 1), imageData);
+                };
+                img.src = URL.createObjectURL(file);
+            });
+            input.click();
+        });
+
+        const moveUpBtn = document.createElement('button');
+        moveUpBtn.textContent = 'Move Up';
+        moveUpBtn.style.marginTop = '0.5rem';
+        moveUpBtn.style.padding = '0.5rem';
+        moveUpBtn.style.background = 'var(--button-bg)';
+        moveUpBtn.style.color = 'white';
+        moveUpBtn.style.border = 'none';
+        moveUpBtn.style.borderRadius = '4px';
+        moveUpBtn.style.cursor = 'pointer';
+        moveUpBtn.addEventListener('click', () => {
+            if (activeLayerIndex > 0) moveLayer(activeLayerIndex, activeLayerIndex - 1);
+        });
+        layersPanel.appendChild(moveUpBtn);
+
+        const moveDownBtn = document.createElement('button');
+        moveDownBtn.textContent = 'Move Down';
+        moveDownBtn.style.marginTop = '0.5rem';
+        moveDownBtn.style.marginLeft = '0.5rem';
+        moveDownBtn.style.padding = '0.5rem';
+        moveDownBtn.style.background = 'var(--button-bg)';
+        moveDownBtn.style.color = 'white';
+        moveDownBtn.style.border = 'none';
+        moveDownBtn.style.borderRadius = '4px';
+        moveDownBtn.style.cursor = 'pointer';
+        moveDownBtn.addEventListener('click', () => {
+            if (activeLayerIndex >= 0 && activeLayerIndex < layers.length - 1) moveLayer(activeLayerIndex, activeLayerIndex + 1);
+        });
+        layersPanel.appendChild(moveDownBtn);
+    }
+
     function saveState() {
-        history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        const snapshot = canvas.toDataURL();
+        history.push(snapshot);
         if (history.length > 20) history.shift();
     }
 
-    const uploadBtn = document.createElement('button');
-    uploadBtn.textContent = '📁 Upload';
-    uploadBtn.style.padding = '0.5rem 0.8rem';
-    uploadBtn.style.fontSize = '0.85rem';
-    uploadBtn.style.background = 'var(--button-bg)';
-    uploadBtn.style.color = 'white';
-    uploadBtn.style.border = 'none';
-    uploadBtn.style.borderRadius = '4px';
-    uploadBtn.style.cursor = 'pointer';
-    uploadBtn.addEventListener('click', () => fileInput.click());
-    toolbar.appendChild(uploadBtn);
+    function applyFiltersToActiveLayer() {
+        if (activeLayerIndex < 0) return;
+        const layer = layers[activeLayerIndex];
+        const imageData = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+        const data = imageData.data;
+        const brightness = sliders.brightness || 0;
+        const contrast = sliders.contrast || 0;
+        const saturation = sliders.saturation || 0;
+        const blur = sliders.blur || 0;
+        const sharpen = sliders.sharpen || 0;
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i], g = data[i+1], b = data[i+2];
+            if (brightness !== 0) { r += brightness * 2.55; g += brightness * 2.55; b += brightness * 2.55; }
+            if (contrast !== 0) {
+                const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                r = factor * (r - 128) + 128; g = factor * (g - 128) + 128; b = factor * (b - 128) + 128;
+            }
+            if (saturation !== 0) {
+                const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b;
+                const sf = 1 + saturation / 100;
+                r = gray + sf * (r - gray); g = gray + sf * (g - gray); b = gray + sf * (b - gray);
+            }
+            data[i] = Math.max(0, Math.min(255, r));
+            data[i+1] = Math.max(0, Math.min(255, g));
+            data[i+2] = Math.max(0, Math.min(255, b));
+        }
+        layer.ctx.putImageData(imageData, 0, 0);
+        if (blur > 0) applyBlurToLayer(layer, blur);
+        if (sharpen > 0) applySharpenToLayer(layer, sharpen);
+        redrawCanvas();
+    }
 
-    const brushBtn = document.createElement('button');
-    brushBtn.textContent = '✏️ Brush';
-    brushBtn.style.padding = '0.5rem 0.8rem';
-    brushBtn.style.fontSize = '0.85rem';
-    brushBtn.style.background = 'var(--button-bg)';
-    brushBtn.style.color = 'white';
-    brushBtn.style.border = 'none';
-    brushBtn.style.borderRadius = '4px';
-    brushBtn.style.cursor = 'pointer';
-    brushBtn.addEventListener('click', () => { currentTool = 'brush'; canvas.style.cursor = 'crosshair'; });
-    toolbar.appendChild(brushBtn);
+    function applyBlurToLayer(layer, amount) {
+        const imageData = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+        const data = imageData.data;
+        const tempData = new Uint8ClampedArray(data);
+        const w = layer.canvas.width, h = layer.canvas.height;
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                let r=0,g=0,b=0,a=0,count=0;
+                for (let dy=-amount; dy<=amount; dy++) {
+                    for (let dx=-amount; dx<=amount; dx++) {
+                        const nx = x+dx, ny = y+dy;
+                        if (nx>=0 && nx<w && ny>=0 && ny<h) {
+                            const idx = (ny*w+nx)*4;
+                            r += tempData[idx]; g += tempData[idx+1]; b += tempData[idx+2]; a += tempData[idx+3];
+                            count++;
+                        }
+                    }
+                }
+                const idx = (y*w+x)*4;
+                data[idx] = r/count; data[idx+1] = g/count; data[idx+2] = b/count; data[idx+3] = a/count;
+            }
+        }
+        layer.ctx.putImageData(imageData, 0, 0);
+    }
 
-    const eraserBtn = document.createElement('button');
-    eraserBtn.textContent = '🧹 Eraser';
-    eraserBtn.style.padding = '0.5rem 0.8rem';
-    eraserBtn.style.fontSize = '0.85rem';
-    eraserBtn.style.background = 'var(--button-bg)';
-    eraserBtn.style.color = 'white';
-    eraserBtn.style.border = 'none';
-    eraserBtn.style.borderRadius = '4px';
-    eraserBtn.style.cursor = 'pointer';
-    eraserBtn.addEventListener('click', () => { currentTool = 'eraser'; canvas.style.cursor = 'cell'; });
-    toolbar.appendChild(eraserBtn);
+    function applySharpenToLayer(layer, amount) {
+        const imageData = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+        const data = imageData.data;
+        const tempData = new Uint8ClampedArray(data);
+        const w = layer.canvas.width, h = layer.canvas.height;
+        const strength = amount / 5;
+        for (let y=1; y<h-1; y++) {
+            for (let x=1; x<w-1; x++) {
+                const idx = (y*w+x)*4;
+                for (let c=0; c<3; c++) {
+                    const center = tempData[idx+c];
+                    const left = tempData[idx-4+c];
+                    const right = tempData[idx+4+c];
+                    const top = tempData[idx-w*4+c];
+                    const bottom = tempData[idx+w*4+c];
+                    const sharpened = center * (1 + 4*strength) - (left+right+top+bottom)*strength;
+                    data[idx+c] = Math.max(0, Math.min(255, sharpened));
+                }
+            }
+        }
+        layer.ctx.putImageData(imageData, 0, 0);
+    }
 
-    const fillBtn = document.createElement('button');
-    fillBtn.textContent = '🪣 Fill';
-    fillBtn.style.padding = '0.5rem 0.8rem';
-    fillBtn.style.fontSize = '0.85rem';
-    fillBtn.style.background = 'var(--button-bg)';
-    fillBtn.style.color = 'white';
-    fillBtn.style.border = 'none';
-    fillBtn.style.borderRadius = '4px';
-    fillBtn.style.cursor = 'pointer';
-    fillBtn.addEventListener('click', () => { currentTool = 'fill'; canvas.style.cursor = 'pointer'; });
-    toolbar.appendChild(fillBtn);
+    // Toolbar buttons
+    function addButton(text, title, onClick) {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.title = title;
+        btn.style.padding = '0.5rem 0.8rem';
+        btn.style.background = 'var(--button-bg)';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        btn.style.fontSize = '0.85rem';
+        btn.addEventListener('click', onClick);
+        toolbar.appendChild(btn);
+    }
+
+    addButton('📁 Upload', 'Upload', () => fileInput.click());
+    addButton('✏️ Brush', 'Brush', () => { currentTool = 'brush'; canvas.style.cursor = 'crosshair'; });
+    addButton('🧹 Eraser', 'Eraser', () => { currentTool = 'eraser'; canvas.style.cursor = 'cell'; });
+    addButton('🪣 Fill', 'Fill', () => { currentTool = 'fill'; canvas.style.cursor = 'pointer'; });
 
     const colorPicker = document.createElement('input');
     colorPicker.type = 'color';
@@ -119,7 +366,7 @@ function initPhotoEditor() {
     colorPicker.style.border = 'none';
     colorPicker.style.borderRadius = '4px';
     colorPicker.style.cursor = 'pointer';
-    colorPicker.addEventListener('change', function() { brushColor = this.value; });
+    colorPicker.addEventListener('change', () => brushColor = colorPicker.value);
     toolbar.appendChild(colorPicker);
 
     const opacityInput = document.createElement('input');
@@ -131,10 +378,7 @@ function initPhotoEditor() {
     const opacityLabel = document.createElement('span');
     opacityLabel.textContent = '100%';
     opacityLabel.style.fontSize = '0.8rem';
-    opacityInput.addEventListener('input', function() {
-        brushOpacity = parseInt(this.value);
-        opacityLabel.textContent = this.value + '%';
-    });
+    opacityInput.addEventListener('input', () => { brushOpacity = parseInt(opacityInput.value); opacityLabel.textContent = opacityInput.value + '%'; });
     toolbar.appendChild(opacityInput);
     toolbar.appendChild(opacityLabel);
 
@@ -147,10 +391,7 @@ function initPhotoEditor() {
     const sizeLabel = document.createElement('span');
     sizeLabel.textContent = '5px';
     sizeLabel.style.fontSize = '0.8rem';
-    sizeInput.addEventListener('input', function() {
-        brushSize = parseInt(this.value);
-        sizeLabel.textContent = this.value + 'px';
-    });
+    sizeInput.addEventListener('input', () => { brushSize = parseInt(sizeInput.value); sizeLabel.textContent = sizeInput.value + 'px'; });
     toolbar.appendChild(sizeInput);
     toolbar.appendChild(sizeLabel);
 
@@ -167,7 +408,6 @@ function initPhotoEditor() {
     const resizeBtn = document.createElement('button');
     resizeBtn.textContent = 'Resize';
     resizeBtn.style.padding = '0.4rem 0.8rem';
-    resizeBtn.style.fontSize = '0.85rem';
     resizeBtn.style.background = 'var(--button-bg)';
     resizeBtn.style.color = 'white';
     resizeBtn.style.border = 'none';
@@ -176,27 +416,19 @@ function initPhotoEditor() {
     resizeBtn.addEventListener('click', () => {
         const newW = parseInt(widthInput.value);
         const newH = parseInt(heightInput.value);
-        if (!newW || !newH || newW < 1 || newH < 1) {
-            showError(widthInput, 'Invalid size');
-            return;
-        }
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = newW;
-        tempCanvas.height = newH;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.fillStyle = 'white';
-        tempCtx.fillRect(0, 0, newW, newH);
-        tempCtx.drawImage(canvas, 0, 0, newW, newH);
+        if (!newW || !newH || newW < 1 || newH < 1) { showError(widthInput, 'Invalid size'); return; }
         canvas.width = newW;
         canvas.height = newH;
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, newW, newH);
-        ctx.drawImage(tempCanvas, 0, 0);
-        originalImage = new Image();
-        originalImage.src = canvas.toDataURL();
-        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        history = [];
-        sizeInput.max = Math.max(newW, newH);
+        layers.forEach(layer => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = newW;
+            tempCanvas.height = newH;
+            tempCanvas.getContext('2d').drawImage(layer.canvas, 0, 0, newW, newH);
+            layer.canvas.width = newW;
+            layer.canvas.height = newH;
+            layer.ctx.drawImage(tempCanvas, 0, 0);
+        });
+        redrawCanvas();
     });
     toolbar.appendChild(widthInput);
     toolbar.appendChild(heightInput);
@@ -253,7 +485,7 @@ function initPhotoEditor() {
         slider.addEventListener('input', () => {
             valueDisplay.value = slider.value;
             sliders[filter.name.toLowerCase()] = parseInt(slider.value);
-            applyFilters();
+            applyFiltersToActiveLayer();
         });
         valueDisplay.addEventListener('input', () => {
             let val = parseInt(valueDisplay.value) || 0;
@@ -261,7 +493,7 @@ function initPhotoEditor() {
             valueDisplay.value = val;
             slider.value = val;
             sliders[filter.name.toLowerCase()] = val;
-            applyFilters();
+            applyFiltersToActiveLayer();
         });
         cont.appendChild(label);
         cont.appendChild(slider);
@@ -278,83 +510,32 @@ function initPhotoEditor() {
     actionContainer.style.width = '100%';
     actionContainer.style.flexWrap = 'wrap';
 
-    const applyBtn = document.createElement('button');
-    applyBtn.textContent = '✅ Apply';
-    applyBtn.style.padding = '0.5rem 0.8rem';
-    applyBtn.style.fontSize = '0.85rem';
-    applyBtn.style.background = 'var(--button-bg)';
-    applyBtn.style.color = 'white';
-    applyBtn.style.border = 'none';
-    applyBtn.style.borderRadius = '4px';
-    applyBtn.style.cursor = 'pointer';
-    applyBtn.addEventListener('click', () => { saveState(); applyFilters(); });
-    actionContainer.appendChild(applyBtn);
-
-    const resetBtn = document.createElement('button');
-    resetBtn.textContent = '🔄 Reset';
-    resetBtn.style.padding = '0.5rem 0.8rem';
-    resetBtn.style.fontSize = '0.85rem';
-    resetBtn.style.background = 'var(--button-bg)';
-    resetBtn.style.color = 'white';
-    resetBtn.style.border = 'none';
-    resetBtn.style.borderRadius = '4px';
-    resetBtn.style.cursor = 'pointer';
-    resetBtn.addEventListener('click', () => {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        if (originalImage) ctx.drawImage(originalImage, 0, 0);
-        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        history = [];
-        filters.forEach(f => sliders[f.name.toLowerCase()] = f.value);
-    });
-    actionContainer.appendChild(resetBtn);
-
-    const undoBtn = document.createElement('button');
-    undoBtn.textContent = '↩️ Undo';
-    undoBtn.style.padding = '0.5rem 0.8rem';
-    undoBtn.style.fontSize = '0.85rem';
-    undoBtn.style.background = 'var(--button-bg)';
-    undoBtn.style.color = 'white';
-    undoBtn.style.border = 'none';
-    undoBtn.style.borderRadius = '4px';
-    undoBtn.style.cursor = 'pointer';
-    undoBtn.addEventListener('click', () => {
-        if (history.length > 0) {
-            const prev = history.pop();
-            ctx.putImageData(prev, 0, 0);
-            currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    addButton('✅ Apply', 'Apply', () => { saveState(); applyFiltersToActiveLayer(); });
+    addButton('🔄 Reset', 'Reset', () => {
+        if (layers.length > 0) {
+            layers.forEach(layer => {
+                layer.ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+            });
+            redrawCanvas();
         }
     });
-    actionContainer.appendChild(undoBtn);
-
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = '🗑️ Clear';
-    clearBtn.style.padding = '0.5rem 0.8rem';
-    clearBtn.style.fontSize = '0.85rem';
-    clearBtn.style.background = '#8B0000';
-    clearBtn.style.color = 'white';
-    clearBtn.style.border = 'none';
-    clearBtn.style.borderRadius = '4px';
-    clearBtn.style.cursor = 'pointer';
-    clearBtn.addEventListener('click', () => {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        originalImage = null;
-        currentImage = null;
-        history = [];
+    addButton('↩️ Undo', 'Undo', () => {
+        if (history.length > 0) {
+            const snapshot = history.pop();
+            const img = new Image();
+            img.onload = () => {
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                // Восстанавливаем только визуально, слои не трогаем
+            };
+            img.src = snapshot;
+        }
     });
-    actionContainer.appendChild(clearBtn);
-
-    const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = '💾 Download';
-    downloadBtn.style.padding = '0.5rem 0.8rem';
-    downloadBtn.style.fontSize = '0.85rem';
-    downloadBtn.style.background = 'var(--button-bg)';
-    downloadBtn.style.color = 'white';
-    downloadBtn.style.border = 'none';
-    downloadBtn.style.borderRadius = '4px';
-    downloadBtn.style.cursor = 'pointer';
-    downloadBtn.addEventListener('click', () => {
+    addButton('🗑️ Clear', 'Clear', () => {
+        layers = [];
+        addLayer('Layer 1');
+        redrawCanvas();
+    });
+    addButton('💾 Download', 'Download', () => {
         const formatSelect = document.createElement('select');
         ['png', 'jpg', 'webp', 'bmp', 'ico', 'svg'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
         const container = document.createElement('div');
@@ -381,6 +562,7 @@ function initPhotoEditor() {
         dlBtn.style.cursor = 'pointer';
         dlBtn.addEventListener('click', () => {
             const format = formatSelect.value;
+            redrawCanvas();
             if (format === 'svg') {
                 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}"><image href="${canvas.toDataURL('image/png')}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
                 const blob = new Blob([svg], { type: 'image/svg+xml' });
@@ -410,41 +592,47 @@ function initPhotoEditor() {
         container.appendChild(cancelBtn);
         document.body.appendChild(container);
     });
-    actionContainer.appendChild(downloadBtn);
 
-    toolbar.appendChild(actionContainer);
+    actionContainer.querySelectorAll('button').forEach(btn => toolbar.appendChild(btn));
 
-    photoSection.appendChild(toolbar);
-    photoSection.appendChild(scrollContainer);
-    photoSection.appendChild(fileInput);
-
+    // File input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
     fileInput.addEventListener('change', function() {
         const file = this.files[0];
         if (!file) return;
         const img = new Image();
         img.onload = function() {
-            const maxW = 800, maxH = 600;
-            let w = img.width, h = img.height;
-            const ratio = Math.min(maxW / w, maxH / h);
-            w = Math.floor(w * ratio);
-            h = Math.floor(h * ratio);
-            canvas.width = w;
-            canvas.height = h;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0, w, h);
-            originalImage = new Image();
-            originalImage.src = canvas.toDataURL();
-            currentImage = ctx.getImageData(0, 0, w, h);
-            history = [];
-            widthInput.value = w;
-            heightInput.value = h;
-            sizeInput.max = Math.max(w, h);
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            tempCanvas.getContext('2d').drawImage(img, 0, 0);
+            const imageData = tempCanvas.getContext('2d').getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            layers = [];
+            addLayer('Background', imageData);
+            redrawCanvas();
         };
         img.src = URL.createObjectURL(file);
     });
 
+    editorArea.appendChild(toolbar);
+    editorArea.appendChild(scrollContainer);
+
+    mainLayout.appendChild(editorArea);
+    mainLayout.appendChild(layersPanel);
+    photoSection.appendChild(mainLayout);
+    photoSection.appendChild(fileInput);
+
+    // Initialize one layer
+    addLayer('Layer 1');
+
+    // Canvas drawing events
     canvas.addEventListener('mousedown', (e) => {
+        if (activeLayerIndex < 0) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -455,31 +643,30 @@ function initPhotoEditor() {
             saveState();
         } else if (currentTool === 'fill') {
             saveState();
-            floodFill(Math.floor(x), Math.floor(y), brushColor, brushOpacity);
+            floodFill(activeLayerIndex, Math.floor(x), Math.floor(y), brushColor, brushOpacity);
         }
     });
     canvas.addEventListener('mousemove', (e) => {
-        if (!isDrawing) return;
+        if (!isDrawing || activeLayerIndex < 0) return;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        ctx.globalAlpha = brushOpacity / 100;
-        ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : brushColor;
-        ctx.lineWidth = brushSize;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
+        const layer = layers[activeLayerIndex];
+        layer.ctx.globalAlpha = brushOpacity / 100;
+        layer.ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : brushColor;
+        layer.ctx.lineWidth = brushSize;
+        layer.ctx.lineCap = 'round';
+        layer.ctx.lineJoin = 'round';
+        layer.ctx.beginPath();
+        layer.ctx.moveTo(lastX, lastY);
+        layer.ctx.lineTo(x, y);
+        layer.ctx.stroke();
+        layer.ctx.globalAlpha = 1;
         lastX = x;
         lastY = y;
+        redrawCanvas();
     });
-    canvas.addEventListener('mouseup', () => {
-        isDrawing = false;
-        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    });
+    canvas.addEventListener('mouseup', () => { isDrawing = false; });
     canvas.addEventListener('mouseleave', () => { isDrawing = false; });
 
     canvas.addEventListener('touchstart', (e) => {
@@ -499,10 +686,11 @@ function initPhotoEditor() {
         canvas.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    function floodFill(startX, startY, fillColor, opacity) {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    function floodFill(layerIndex, startX, startY, fillColor, opacity) {
+        const layer = layers[layerIndex];
+        const imageData = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
         const data = imageData.data;
-        const w = canvas.width, h = canvas.height;
+        const w = layer.canvas.width, h = layer.canvas.height;
         if (startX < 0 || startX >= w || startY < 0 || startY >= h) return;
         const startIdx = (startY * w + startX) * 4;
         const targetR = data[startIdx], targetG = data[startIdx+1], targetB = data[startIdx+2];
@@ -525,89 +713,8 @@ function initPhotoEditor() {
             data[idx+3] = 255;
             queue.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
         }
-        ctx.putImageData(imageData, 0, 0);
-        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
-
-    function applyFilters() {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        if (originalImage) ctx.drawImage(originalImage, 0, 0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        const brightness = sliders.brightness || 0;
-        const contrast = sliders.contrast || 0;
-        const saturation = sliders.saturation || 0;
-        const blur = sliders.blur || 0;
-        const sharpen = sliders.sharpen || 0;
-        for (let i = 0; i < data.length; i += 4) {
-            let r = data[i], g = data[i+1], b = data[i+2];
-            if (brightness !== 0) { r += brightness * 2.55; g += brightness * 2.55; b += brightness * 2.55; }
-            if (contrast !== 0) {
-                const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                r = factor * (r - 128) + 128; g = factor * (g - 128) + 128; b = factor * (b - 128) + 128;
-            }
-            if (saturation !== 0) {
-                const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b;
-                const sf = 1 + saturation / 100;
-                r = gray + sf * (r - gray); g = gray + sf * (g - gray); b = gray + sf * (b - gray);
-            }
-            data[i] = Math.max(0, Math.min(255, r));
-            data[i+1] = Math.max(0, Math.min(255, g));
-            data[i+2] = Math.max(0, Math.min(255, b));
-        }
-        ctx.putImageData(imageData, 0, 0);
-        if (blur > 0) applyBlur(blur);
-        if (sharpen > 0) applySharpen(sharpen);
-        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
-
-    function applyBlur(amount) {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        const tempData = new Uint8ClampedArray(data);
-        const w = canvas.width, h = canvas.height;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                let r=0,g=0,b=0,a=0,count=0;
-                for (let dy=-amount; dy<=amount; dy++) {
-                    for (let dx=-amount; dx<=amount; dx++) {
-                        const nx = x+dx, ny = y+dy;
-                        if (nx>=0 && nx<w && ny>=0 && ny<h) {
-                            const idx = (ny*w+nx)*4;
-                            r += tempData[idx]; g += tempData[idx+1]; b += tempData[idx+2]; a += tempData[idx+3];
-                            count++;
-                        }
-                    }
-                }
-                const idx = (y*w+x)*4;
-                data[idx] = r/count; data[idx+1] = g/count; data[idx+2] = b/count; data[idx+3] = a/count;
-            }
-        }
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    function applySharpen(amount) {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        const tempData = new Uint8ClampedArray(data);
-        const w = canvas.width, h = canvas.height;
-        const strength = amount / 5;
-        for (let y=1; y<h-1; y++) {
-            for (let x=1; x<w-1; x++) {
-                const idx = (y*w+x)*4;
-                for (let c=0; c<3; c++) {
-                    const center = tempData[idx+c];
-                    const left = tempData[idx-4+c];
-                    const right = tempData[idx+4+c];
-                    const top = tempData[idx-w*4+c];
-                    const bottom = tempData[idx+w*4+c];
-                    const sharpened = center * (1 + 4*strength) - (left+right+top+bottom)*strength;
-                    data[idx+c] = Math.max(0, Math.min(255, sharpened));
-                }
-            }
-        }
-        ctx.putImageData(imageData, 0, 0);
+        layer.ctx.putImageData(imageData, 0, 0);
+        redrawCanvas();
     }
 
     function canvasToBMP(canvas) {
