@@ -16,6 +16,9 @@
     --hover: #2a475e;
     --button-bg: linear-gradient(to right, #47bfff, #1a44c2);
     --button-text: #ffffff;
+    --error-bg: #5c0000;
+    --error-border: #ff4444;
+    --error-text: #ffcccc;
 }
 
 body {
@@ -113,29 +116,291 @@ main {
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
-.file-converter-content {
+.tool-section {
     display: none;
-    margin-top: 0.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    margin-top: 2rem;
 }
 
-.file-converter-content.active {
-    display: block;
+.tool-section h2 {
+    margin-bottom: 1.5rem;
+    color: var(--accent);
+    font-size: 1.8rem;
 }
 
-#fileInput {
-    width: 100%;
-    padding: 0.8rem;
-    border: 2px dashed var(--border);
+.back-btn {
+    background: var(--border);
+    color: var(--text);
+    border: none;
+    padding: 0.6rem 1.2rem;
     border-radius: 4px;
     cursor: pointer;
-    background: var(--bg);
-    color: var(--text);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: var(--hover);
+    transform: translateX(-3px);
+}
+
+.converter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+}
+
+.converter-btn {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    padding: 0.7rem 1.3rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
     font-size: 0.9rem;
 }
 
-#fileList {
+.converter-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+}
+
+.converter-content {
+    display: none;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.converter-content.active {
+    display: block;
+}
+
+.converter-content h3 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.converter-content input,
+.converter-content select,
+.converter-content textarea {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.converter-content button {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.converter-content button:hover {
+    filter: brightness(1.1);
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.result-display {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 1.1rem;
+}
+
+.drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 2rem;
+    background: var(--panel-bg);
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--hover);
+}
+
+.drop-zone p {
+    font-size: 1.1rem;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.supported-formats {
+    margin-top: 1.5rem;
+}
+
+.supported-formats h3 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.format-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.format-tag {
+    padding: 0.4rem 0.8rem;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.file-list {
+    margin-top: 1.5rem;
+}
+
+.file-item {
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.currency-converter-box {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 600px;
+}
+
+.currency-input-group {
+    margin-bottom: 1.5rem;
+}
+
+.currency-input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+}
+
+.currency-input-group input {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 1.1rem;
+}
+
+.currency-select-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.currency-select-group > div {
+    flex: 1;
+}
+
+.currency-select-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+}
+
+.currency-select-group select {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+}
+
+.swap-btn {
+    background: var(--button-bg);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    align-self: flex-end;
+    margin-bottom: 0.8rem;
+}
+
+.swap-btn:hover {
+    filter: brightness(1.1);
+}
+
+.convert-currency-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.currency-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 1.2rem;
+    text-align: center;
+    display: none;
+}
+
+.exchange-rate-info {
     margin-top: 0.5rem;
-    text-align: left;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    text-align: center;
+}
+
+.error-message {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+    padding: 0.8rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
     font-size: 0.9rem;
 }
 
@@ -218,83 +483,4 @@ main {
 
 .copy-btn:hover {
     filter: brightness(1.1);
-}
-
-.tool-section {
-    display: none;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 2rem;
-    margin-top: 2rem;
-}
-
-.tool-section h2 {
-    margin-bottom: 1rem;
-    color: var(--text);
-}
-
-.back-btn {
-    background: var(--border);
-    color: var(--text);
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-bottom: 1rem;
-}
-
-.back-btn:hover {
-    background: var(--hover);
-}
-
-.converter-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.converter-btn {
-    background: var(--button-bg);
-    color: var(--button-text);
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.converter-btn:hover {
-    filter: brightness(1.1);
-}
-
-.converter-content {
-    display: none;
-    margin-top: 1rem;
-}
-
-.converter-content.active {
-    display: block;
-}
-
-.converter-content input,
-.converter-content select,
-.converter-content textarea {
-    width: 100%;
-    padding: 0.8rem;
-    margin-bottom: 1rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-}
-
-.converter-content button {
-    background: var(--button-bg);
-    color: var(--button-text);
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
 }

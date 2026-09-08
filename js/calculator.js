@@ -1,0 +1,260 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const calcSection = document.getElementById('calculator');
+    
+    calcSection.innerHTML = '';
+    
+    const calcContainer = document.createElement('div');
+    calcContainer.style.maxWidth = '400px';
+    calcContainer.style.margin = '0 auto';
+    calcContainer.style.background = 'var(--panel-bg)';
+    calcContainer.style.border = '1px solid var(--border)';
+    calcContainer.style.borderRadius = '8px';
+    calcContainer.style.padding = '1rem';
+    
+    const display = document.createElement('div');
+    display.style.background = 'var(--bg)';
+    display.style.border = '1px solid var(--border)';
+    display.style.borderRadius = '4px';
+    display.style.padding = '1rem';
+    display.style.marginBottom = '1rem';
+    display.style.textAlign = 'right';
+    display.style.fontSize = '2rem';
+    display.style.minHeight = '60px';
+    display.style.wordBreak = 'break-all';
+    display.textContent = '0';
+    calcContainer.appendChild(display);
+    
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.display = 'grid';
+    buttonsContainer.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    buttonsContainer.style.gap = '0.5rem';
+    
+    const buttons = [
+        { text: 'C', type: 'clear', color: '#d32f2f' },
+        { text: '±', type: 'negate', color: 'var(--border)' },
+        { text: '%', type: 'percent', color: 'var(--border)' },
+        { text: '÷', type: 'operator', color: 'var(--accent)' },
+        { text: '7', type: 'number', color: 'var(--bg)' },
+        { text: '8', type: 'number', color: 'var(--bg)' },
+        { text: '9', type: 'number', color: 'var(--bg)' },
+        { text: '×', type: 'operator', color: 'var(--accent)' },
+        { text: '4', type: 'number', color: 'var(--bg)' },
+        { text: '5', type: 'number', color: 'var(--bg)' },
+        { text: '6', type: 'number', color: 'var(--bg)' },
+        { text: '-', type: 'operator', color: 'var(--accent)' },
+        { text: '1', type: 'number', color: 'var(--bg)' },
+        { text: '2', type: 'number', color: 'var(--bg)' },
+        { text: '3', type: 'number', color: 'var(--bg)' },
+        { text: '+', type: 'operator', color: 'var(--accent)' },
+        { text: '0', type: 'number', color: 'var(--bg)' },
+        { text: '.', type: 'decimal', color: 'var(--bg)' },
+        { text: '⌫', type: 'backspace', color: 'var(--border)' },
+        { text: '=', type: 'equals', color: '#4CAF50' }
+    ];
+    
+    let currentInput = '0';
+    let previousInput = '';
+    let operator = null;
+    let shouldResetDisplay = false;
+    
+    buttons.forEach(btn => {
+        const button = document.createElement('button');
+        button.textContent = btn.text;
+        button.style.padding = '1rem';
+        button.style.border = 'none';
+        button.style.borderRadius = '4px';
+        button.style.background = btn.color;
+        button.style.color = 'var(--text)';
+        button.style.fontSize = '1.2rem';
+        button.style.cursor = 'pointer';
+        button.style.transition = 'all 0.2s ease';
+        
+        if (btn.text === '0') {
+            button.style.gridColumn = 'span 2';
+        }
+        
+        button.addEventListener('mouseenter', function() {
+            this.style.filter = 'brightness(1.2)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.filter = 'brightness(1)';
+        });
+        
+        button.addEventListener('click', function() {
+            handleButtonClick(btn.text, btn.type);
+        });
+        
+        buttonsContainer.appendChild(button);
+    });
+    
+    calcContainer.appendChild(buttonsContainer);
+    
+    const keyboardInfo = document.createElement('p');
+    keyboardInfo.style.marginTop = '1rem';
+    keyboardInfo.style.textAlign = 'center';
+    keyboardInfo.style.fontSize = '0.85rem';
+    keyboardInfo.style.opacity = '0.7';
+    keyboardInfo.textContent = 'Keyboard supported: 0-9, +, -, *, /, Enter, Backspace, Escape';
+    calcContainer.appendChild(keyboardInfo);
+    
+    calcSection.appendChild(calcContainer);
+    
+    function handleButtonClick(text, type) {
+        switch(type) {
+            case 'number':
+                inputNumber(text);
+                break;
+            case 'decimal':
+                inputDecimal();
+                break;
+            case 'operator':
+                inputOperator(text);
+                break;
+            case 'equals':
+                calculate();
+                break;
+            case 'clear':
+                clearAll();
+                break;
+            case 'backspace':
+                backspace();
+                break;
+            case 'negate':
+                negate();
+                break;
+            case 'percent':
+                percent();
+                break;
+        }
+        
+        updateDisplay();
+    }
+    
+    function inputNumber(num) {
+        if (shouldResetDisplay) {
+            currentInput = num;
+            shouldResetDisplay = false;
+        } else {
+            currentInput = currentInput === '0' ? num : currentInput + num;
+        }
+    }
+    
+    function inputDecimal() {
+        if (shouldResetDisplay) {
+            currentInput = '0.';
+            shouldResetDisplay = false;
+        } else if (!currentInput.includes('.')) {
+            currentInput += '.';
+        }
+    }
+    
+    function inputOperator(op) {
+        if (operator !== null && !shouldResetDisplay) {
+            calculate();
+        }
+        
+        previousInput = currentInput;
+        operator = op;
+        shouldResetDisplay = true;
+    }
+    
+    function calculate() {
+        if (operator === null || shouldResetDisplay) return;
+        
+        const prev = parseFloat(previousInput);
+        const current = parseFloat(currentInput);
+        
+        let result;
+        
+        switch(operator) {
+            case '+':
+                result = prev + current;
+                break;
+            case '-':
+                result = prev - current;
+                break;
+            case '×':
+                result = prev * current;
+                break;
+            case '÷':
+                if (current === 0) {
+                    currentInput = 'Error';
+                    operator = null;
+                    return;
+                }
+                result = prev / current;
+                break;
+        }
+        
+        currentInput = String(result);
+        operator = null;
+        shouldResetDisplay = true;
+    }
+    
+    function clearAll() {
+        currentInput = '0';
+        previousInput = '';
+        operator = null;
+        shouldResetDisplay = false;
+    }
+    
+    function backspace() {
+        if (currentInput.length > 1) {
+            currentInput = currentInput.slice(0, -1);
+        } else {
+            currentInput = '0';
+        }
+    }
+    
+    function negate() {
+        currentInput = String(parseFloat(currentInput) * -1);
+    }
+    
+    function percent() {
+        currentInput = String(parseFloat(currentInput) / 100);
+    }
+    
+    function updateDisplay() {
+        display.textContent = currentInput;
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (calcSection.style.display === 'none') return;
+        
+        const key = e.key;
+        
+        if (key >= '0' && key <= '9') {
+            inputNumber(key);
+            updateDisplay();
+        } else if (key === '.') {
+            inputDecimal();
+            updateDisplay();
+        } else if (key === '+') {
+            inputOperator('+');
+            updateDisplay();
+        } else if (key === '-') {
+            inputOperator('-');
+            updateDisplay();
+        } else if (key === '*') {
+            inputOperator('×');
+            updateDisplay();
+        } else if (key === '/') {
+            e.preventDefault();
+            inputOperator('÷');
+            updateDisplay();
+        } else if (key === 'Enter' || key === '=') {
+            calculate();
+            updateDisplay();
+        } else if (key === 'Backspace') {
+            backspace();
+            updateDisplay();
+        } else if (key === 'Escape') {
+            clearAll();
+            updateDisplay();
+        } else if (key === '%') {
+            percent();
+            updateDisplay();
+        }
+    });
+});
