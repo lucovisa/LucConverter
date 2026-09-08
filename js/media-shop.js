@@ -61,7 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let ffmpegInstance = null;
     let mediaDuration = 0;
-    let isPlaying = false;
+    let originalFile = null;
+    let processedBlob = null;
     
     async function initFFmpeg() {
         if (ffmpegInstance) return ffmpegInstance;
@@ -94,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function processFile(file) {
         const extension = file.name.split('.').pop().toLowerCase();
-        const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma', 'opus', 'webm'];
+        const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma', 'opus'];
         const videoExtensions = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'gif', 'flv', 'wmv', 'm4v'];
         
         const isAudio = file.type.startsWith('audio/') || audioExtensions.includes(extension);
@@ -105,6 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        originalFile = file;
+        processedBlob = null;
+        
         editorContainer.style.display = 'block';
         editorContainer.innerHTML = '';
         
@@ -114,22 +118,65 @@ document.addEventListener('DOMContentLoaded', function() {
         mediaTitle.style.color = 'var(--accent)';
         editorContainer.appendChild(mediaTitle);
         
+        const splitContainer = document.createElement('div');
+        splitContainer.style.display = 'flex';
+        splitContainer.style.gap = '1rem';
+        splitContainer.style.flexWrap = 'wrap';
+        splitContainer.style.marginBottom = '1rem';
+        
+        const originalContainer = document.createElement('div');
+        originalContainer.style.flex = '1';
+        originalContainer.style.minWidth = '300px';
+        
+        const originalLabel = document.createElement('h4');
+        originalLabel.textContent = 'Original';
+        originalLabel.style.color = 'var(--accent)';
+        originalLabel.style.marginBottom = '0.5rem';
+        originalContainer.appendChild(originalLabel);
+        
         const mediaElement = document.createElement(isVideo ? 'video' : 'audio');
         mediaElement.controls = true;
         mediaElement.style.width = '100%';
-        mediaElement.style.maxWidth = '800px';
         mediaElement.style.display = 'block';
-        mediaElement.style.margin = '0 auto 1rem';
         mediaElement.src = URL.createObjectURL(file);
         
         mediaElement.addEventListener('loadedmetadata', function() {
             mediaDuration = mediaElement.duration;
-            endTimeInput.max = mediaDuration;
             endTimeInput.value = mediaDuration;
+            endTimeInput.max = mediaDuration;
+            startTimeInput.max = mediaDuration;
             durationLabel.textContent = `Duration: ${formatTime(mediaDuration)}`;
         });
         
-        editorContainer.appendChild(mediaElement);
+        originalContainer.appendChild(mediaElement);
+        splitContainer.appendChild(originalContainer);
+        
+        const resultContainer = document.createElement('div');
+        resultContainer.style.flex = '1';
+        resultContainer.style.minWidth = '300px';
+        
+        const resultLabel = document.createElement('h4');
+        resultLabel.textContent = 'Result';
+        resultLabel.style.color = 'var(--accent)';
+        resultLabel.style.marginBottom = '0.5rem';
+        resultContainer.appendChild(resultLabel);
+        
+        const resultPlaceholder = document.createElement('div');
+        resultPlaceholder.style.width = '100%';
+        resultPlaceholder.style.minHeight = '200px';
+        resultPlaceholder.style.background = 'var(--bg)';
+        resultPlaceholder.style.border = '1px solid var(--border)';
+        resultPlaceholder.style.borderRadius = '4px';
+        resultPlaceholder.style.display = 'flex';
+        resultPlaceholder.style.alignItems = 'center';
+        resultPlaceholder.style.justifyContent = 'center';
+        resultPlaceholder.style.color = 'var(--text)';
+        resultPlaceholder.style.opacity = '0.5';
+        resultPlaceholder.textContent = 'Result will appear here';
+        resultContainer.appendChild(resultPlaceholder);
+        splitContainer.appendChild(resultContainer);
+        
+        editorContainer.appendChild(splitContainer);
         
         const controlsContainer = document.createElement('div');
         controlsContainer.style.padding = '1rem';
@@ -141,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
         trimSection.style.marginBottom = '1rem';
         
         const trimTitle = document.createElement('h4');
-        trimTitle.textContent = 'Trim';
+        trimTitle.textContent = 'Select Start and End';
         trimTitle.style.marginBottom = '0.5rem';
         trimTitle.style.color = 'var(--accent)';
         trimSection.appendChild(trimTitle);
@@ -185,17 +232,61 @@ document.addEventListener('DOMContentLoaded', function() {
         durationLabel.style.fontSize = '0.85rem';
         durationLabel.style.opacity = '0.8';
         
-        const trimBtn = document.createElement('button');
-        trimBtn.textContent = 'Trim';
-        trimBtn.style.padding = '0.6rem 1rem';
-        trimBtn.style.background = 'var(--button-bg)';
-        trimBtn.style.color = 'white';
-        trimBtn.style.border = 'none';
-        trimBtn.style.borderRadius = '4px';
-        trimBtn.style.cursor = 'pointer';
-        trimBtn.addEventListener('click', async function() {
+        trimControls.appendChild(startTimeInput);
+        trimControls.appendChild(endTimeInput);
+        trimSection.appendChild(trimControls);
+        trimSection.appendChild(durationLabel);
+        controlsContainer.appendChild(trimSection);
+        
+        const formatSection = document.createElement('div');
+        formatSection.style.marginBottom = '1rem';
+        
+        const formatTitle = document.createElement('h4');
+        formatTitle.textContent = 'Output Format';
+        formatTitle.style.marginBottom = '0.5rem';
+        formatTitle.style.color = 'var(--accent)';
+        formatSection.appendChild(formatTitle);
+        
+        const formatSelect = document.createElement('select');
+        formatSelect.style.width = '100%';
+        formatSelect.style.padding = '0.6rem';
+        formatSelect.style.background = 'var(--bg)';
+        formatSelect.style.border = '1px solid var(--border)';
+        formatSelect.style.borderRadius = '4px';
+        formatSelect.style.color = 'var(--text)';
+        
+        const formats = isVideo ? 
+            ['MP4', 'WebM', 'AVI', 'MOV', 'GIF', 'MP3', 'WAV', 'OGG', 'JPG', 'PNG'] : 
+            ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
+        
+        formats.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format.toLowerCase();
+            option.textContent = format;
+            formatSelect.appendChild(option);
+        });
+        
+        formatSection.appendChild(formatSelect);
+        controlsContainer.appendChild(formatSection);
+        
+        const actionContainer = document.createElement('div');
+        actionContainer.style.display = 'flex';
+        actionContainer.style.gap = '0.5rem';
+        actionContainer.style.flexWrap = 'wrap';
+        
+        const processBtn = document.createElement('button');
+        processBtn.textContent = 'Process';
+        processBtn.style.padding = '0.7rem 1.5rem';
+        processBtn.style.background = 'var(--button-bg)';
+        processBtn.style.color = 'white';
+        processBtn.style.border = 'none';
+        processBtn.style.borderRadius = '4px';
+        processBtn.style.cursor = 'pointer';
+        processBtn.style.fontSize = '1rem';
+        processBtn.addEventListener('click', async function() {
             const startTime = parseFloat(startTimeInput.value);
             const endTime = parseFloat(endTimeInput.value);
+            const format = formatSelect.value;
             
             if (isNaN(startTime) || startTime < 0) {
                 showError(startTimeInput, 'Please enter a valid start time');
@@ -212,172 +303,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            const duration = endTime - startTime;
-            
             const statusDiv = document.createElement('div');
             statusDiv.className = 'success-message';
-            statusDiv.textContent = 'Trimming... Please wait...';
-            trimSection.appendChild(statusDiv);
+            statusDiv.textContent = 'Processing... Please wait...';
+            controlsContainer.appendChild(statusDiv);
             
-            const ffmpeg = await initFFmpeg();
-            if (!ffmpeg) {
-                statusDiv.textContent = 'FFmpeg not loaded. Preview only.';
-                mediaElement.currentTime = startTime;
-                mediaElement.play();
-                setTimeout(() => mediaElement.pause(), duration * 1000);
-                return;
-            }
+            const resultBlob = await processMedia(file, startTime, endTime, format);
             
-            try {
-                const { fetchFile } = FFmpeg;
-                const inputName = 'input' + getExtension(file.name);
-                const outputName = 'output' + getExtension(file.name);
+            statusDiv.remove();
+            
+            if (resultBlob) {
+                processedBlob = resultBlob;
                 
-                ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+                const url = URL.createObjectURL(resultBlob);
                 
-                await ffmpeg.run(
-                    '-i', inputName,
-                    '-ss', startTime.toString(),
-                    '-t', duration.toString(),
-                    '-c', 'copy',
-                    outputName
-                );
+                const resultElement = document.createElement(isVideo && ['mp4', 'webm', 'avi', 'mov'].includes(format) ? 'video' : 
+                    ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format) ? 'audio' : 'img');
                 
-                const data = ffmpeg.FS('readFile', outputName);
-                const blob = new Blob([data.buffer], { type: file.type });
-                downloadFile(blob, 'trimmed_' + file.name);
+                resultElement.controls = resultElement.tagName !== 'IMG';
+                resultElement.style.width = '100%';
+                resultElement.style.display = 'block';
+                resultElement.src = url;
                 
-                ffmpeg.FS('unlink', inputName);
-                ffmpeg.FS('unlink', outputName);
-                
-                statusDiv.textContent = 'Trim complete! Downloaded.';
-                setTimeout(() => statusDiv.remove(), 3000);
-            } catch (e) {
-                statusDiv.remove();
-                showError(trimBtn, 'Trim failed. Try different format or shorter duration.');
+                resultPlaceholder.innerHTML = '';
+                resultPlaceholder.style.opacity = '1';
+                resultPlaceholder.appendChild(resultElement);
             }
         });
-        
-        trimControls.appendChild(startTimeInput);
-        trimControls.appendChild(endTimeInput);
-        trimControls.appendChild(trimBtn);
-        trimSection.appendChild(trimControls);
-        trimSection.appendChild(durationLabel);
-        controlsContainer.appendChild(trimSection);
-        
-        const convertSection = document.createElement('div');
-        convertSection.style.marginBottom = '1rem';
-        
-        const convertTitle = document.createElement('h4');
-        convertTitle.textContent = 'Convert';
-        convertTitle.style.marginBottom = '0.5rem';
-        convertTitle.style.color = 'var(--accent)';
-        convertSection.appendChild(convertTitle);
-        
-        const convertControls = document.createElement('div');
-        convertControls.style.display = 'flex';
-        convertControls.style.gap = '0.5rem';
-        convertControls.style.flexWrap = 'wrap';
-        
-        const formats = isVideo ? 
-            ['MP4', 'WebM', 'AVI', 'MOV', 'GIF', 'MP3', 'WAV', 'OGG', 'JPG', 'PNG'] : 
-            ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
-        
-        formats.forEach(format => {
-            const convertBtn = document.createElement('button');
-            convertBtn.textContent = format;
-            convertBtn.style.padding = '0.5rem 0.8rem';
-            convertBtn.style.background = 'var(--button-bg)';
-            convertBtn.style.color = 'white';
-            convertBtn.style.border = 'none';
-            convertBtn.style.borderRadius = '4px';
-            convertBtn.style.cursor = 'pointer';
-            convertBtn.style.fontSize = '0.85rem';
-            convertBtn.addEventListener('click', async function() {
-                const statusDiv = document.createElement('div');
-                statusDiv.className = 'success-message';
-                statusDiv.textContent = `Converting to ${format}...`;
-                convertSection.appendChild(statusDiv);
-                
-                await convertWithFFmpeg(file, format.toLowerCase(), statusDiv);
-                
-                setTimeout(() => statusDiv.remove(), 3000);
-            });
-            convertControls.appendChild(convertBtn);
-        });
-        
-        convertSection.appendChild(convertControls);
-        controlsContainer.appendChild(convertSection);
-        
-        const volumeSection = document.createElement('div');
-        volumeSection.style.marginBottom = '1rem';
-        
-        const volumeTitle = document.createElement('h4');
-        volumeTitle.textContent = 'Volume';
-        volumeTitle.style.marginBottom = '0.5rem';
-        volumeTitle.style.color = 'var(--accent)';
-        volumeSection.appendChild(volumeTitle);
-        
-        const volumeSlider = document.createElement('input');
-        volumeSlider.type = 'range';
-        volumeSlider.min = '0';
-        volumeSlider.max = '200';
-        volumeSlider.value = '100';
-        volumeSlider.style.width = '100%';
-        volumeSlider.style.marginBottom = '0.5rem';
-        
-        const volumeLabel = document.createElement('span');
-        volumeLabel.textContent = '100%';
-        volumeLabel.style.fontSize = '0.9rem';
-        volumeSlider.addEventListener('input', function() {
-            volumeLabel.textContent = this.value + '%';
-            mediaElement.volume = this.value / 100;
-        });
-        
-        volumeSection.appendChild(volumeSlider);
-        volumeSection.appendChild(volumeLabel);
-        controlsContainer.appendChild(volumeSection);
-        
-        const downloadSection = document.createElement('div');
-        
-        const downloadTitle = document.createElement('h4');
-        downloadTitle.textContent = 'Download';
-        downloadTitle.style.marginBottom = '0.5rem';
-        downloadTitle.style.color = 'var(--accent)';
-        downloadSection.appendChild(downloadTitle);
         
         const downloadBtn = document.createElement('button');
-        downloadBtn.textContent = 'Download Original';
-        downloadBtn.style.padding = '0.6rem 1rem';
-        downloadBtn.style.background = 'var(--button-bg)';
+        downloadBtn.textContent = 'Download Result';
+        downloadBtn.style.padding = '0.7rem 1.5rem';
+        downloadBtn.style.background = '#2e7d32';
         downloadBtn.style.color = 'white';
         downloadBtn.style.border = 'none';
         downloadBtn.style.borderRadius = '4px';
         downloadBtn.style.cursor = 'pointer';
+        downloadBtn.style.fontSize = '1rem';
         downloadBtn.addEventListener('click', function() {
-            const url = URL.createObjectURL(file);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            if (processedBlob) {
+                const format = formatSelect.value;
+                const url = URL.createObjectURL(processedBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                showError(downloadBtn, 'No processed file. Click Process first.');
+            }
         });
         
-        downloadSection.appendChild(downloadBtn);
-        controlsContainer.appendChild(downloadSection);
+        actionContainer.appendChild(processBtn);
+        actionContainer.appendChild(downloadBtn);
+        controlsContainer.appendChild(actionContainer);
         
         editorContainer.appendChild(controlsContainer);
     }
     
-    async function convertWithFFmpeg(file, format, statusDiv) {
+    async function processMedia(file, startTime, endTime, format) {
+        const duration = endTime - startTime;
+        
         const ffmpeg = await initFFmpeg();
         
         if (!ffmpeg) {
-            statusDiv.textContent = 'FFmpeg not loaded. Basic conversion only.';
-            basicConvert(file, format);
-            return;
+            return basicProcess(file, format);
         }
         
         try {
@@ -387,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             ffmpeg.FS('writeFile', inputName, await fetchFile(file));
             
-            const args = ['-i', inputName];
+            const args = ['-i', inputName, '-ss', startTime.toString(), '-t', duration.toString()];
             
             if (['jpg', 'png'].includes(format)) {
                 args.push('-vframes', '1');
@@ -408,49 +400,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = ffmpeg.FS('readFile', outputName);
             const mimeType = getMimeType(format);
             const blob = new Blob([data.buffer], { type: mimeType });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
             
             ffmpeg.FS('unlink', inputName);
             ffmpeg.FS('unlink', outputName);
             
-            statusDiv.textContent = `Converted to ${format.toUpperCase()}! Downloaded.`;
+            return blob;
         } catch (e) {
-            statusDiv.textContent = 'Conversion failed. Try different format.';
+            console.error('FFmpeg error:', e);
+            return basicProcess(file, format);
         }
     }
     
-    function basicConvert(file, format) {
+    function basicProcess(file, format) {
         if (format === 'jpg' || format === 'png') {
-            extractFrame(file, format);
-        } else {
-            const blob = new Blob([file], { type: getMimeType(format) });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
+            return null;
         }
-    }
-    
-    function extractFrame(videoFile, format) {
-        const video = document.createElement('video');
-        video.src = URL.createObjectURL(videoFile);
         
-        video.onloadedmetadata = function() {
-            video.currentTime = Math.min(1, video.duration / 2);
-        };
-        
-        video.onseeked = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            
-            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-            canvas.toBlob(function(blob) {
-                downloadFile(blob, videoFile.name.replace(/\.[^.]+$/, '.' + format));
-            }, mimeType);
-            
-            video.src = '';
-        };
+        return new Blob([file], { type: getMimeType(format) });
     }
     
     function getExtension(filename) {
@@ -480,16 +446,5 @@ document.addEventListener('DOMContentLoaded', function() {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    function downloadFile(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     }
 });

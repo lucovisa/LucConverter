@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
+    fillAllSelects();
+    
     const colorPicker = document.getElementById('colorPicker');
     const hexInput = document.getElementById('hexInput');
     const rgbInput = document.getElementById('rgbInput');
@@ -34,9 +36,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    function fillSelect(select, options) {
-        select.innerHTML = '';
-        Object.keys(options).forEach(key => {
+    function fillAllSelects() {
+        fillSelect(document.getElementById('timezoneFrom'), timezones);
+        fillSelect(document.getElementById('timezoneTo'), timezones);
+        fillSelect(document.querySelector('#weightConverter select'), weightUnits);
+        fillSelect(document.querySelector('#temperatureConverter select'), tempUnits);
+        fillSelect(document.querySelector('#distanceConverter select'), distanceUnits);
+        fillSelect(document.querySelector('#durationConverter select'), durationUnits);
+        fillSelect(document.querySelector('#speedConverter select'), speedUnits);
+        fillSelect(document.querySelector('#areaConverter select'), areaUnits);
+        fillSelect(document.querySelector('#volumeConverter select'), volumeUnits);
+        fillSelect(document.querySelector('#pressureConverter select'), pressureUnits);
+        fillSelect(document.querySelector('#energyConverter select'), energyUnits);
+        fillSelect(document.querySelector('#powerConverter select'), powerUnits);
+        fillSelect(document.querySelector('#angleConverter select'), angleUnits);
+    }
+    
+    function fillSelect(select, units) {
+        if (!select || select.options.length > 0) return;
+        
+        Object.keys(units).forEach(key => {
             const option = document.createElement('option');
             option.value = key;
             option.textContent = key;
@@ -44,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function setupConverter(containerId, units, baseUnit, formatFn) {
+    function setupConverter(containerId, units, convertFn) {
         const container = document.getElementById(containerId);
         if (!container) return;
         
@@ -55,8 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!input || !select || !btn || !result) return;
         
-        fillSelect(select, units);
-        
         btn.addEventListener('click', function() {
             const value = parseFloat(input.value);
             const unit = select.value;
@@ -66,123 +83,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            const baseValue = value * units[unit];
-            let results = [];
-            
-            for (const u in units) {
-                if (u !== unit) {
-                    const converted = baseValue / units[u];
-                    results.push(`${converted.toFixed(6)} ${u}`);
-                }
-            }
-            
-            result.textContent = results.join(' | ');
+            const results = convertFn(value, unit, units);
+            result.textContent = results;
         });
     }
     
-    setupConverter('weightConverter', {
-        'Milligrams (mg)': 0.000001, 'Grams (g)': 0.001, 'Kilograms (kg)': 1,
-        'Tons (t)': 1000, 'Ounces (oz)': 0.0283495, 'Pounds (lbs)': 0.453592,
-        'Stones (st)': 6.35029, 'Carats (ct)': 0.0002
-    });
+    function genericConvert(value, unit, units) {
+        const baseValue = value * units[unit];
+        let results = [];
+        
+        for (const u in units) {
+            if (u !== unit) {
+                results.push(`${(baseValue / units[u]).toFixed(6)} ${u}`);
+            }
+        }
+        
+        return results.join(' | ');
+    }
     
-    setupConverter('temperatureConverter', {
-        'Celsius (°C)': 1, 'Fahrenheit (°F)': 1, 'Kelvin (K)': 1,
-        'Rankine (°R)': 1, 'Réaumur (°Ré)': 1
-    });
+    function temperatureConvert(value, unit) {
+        let celsius;
+        
+        switch(unit) {
+            case 'Celsius (°C)': celsius = value; break;
+            case 'Fahrenheit (°F)': celsius = (value - 32) * 5/9; break;
+            case 'Kelvin (K)': celsius = value - 273.15; break;
+            case 'Rankine (°R)': celsius = (value - 491.67) * 5/9; break;
+            case 'Réaumur (°Ré)': celsius = value * 5/4; break;
+            default: celsius = value;
+        }
+        
+        const fahrenheit = celsius * 9/5 + 32;
+        const kelvin = celsius + 273.15;
+        const rankine = (celsius + 273.15) * 9/5;
+        const reaumur = celsius * 4/5;
+        
+        return `${celsius.toFixed(2)}°C | ${fahrenheit.toFixed(2)}°F | ${kelvin.toFixed(2)}K | ${rankine.toFixed(2)}°R | ${reaumur.toFixed(2)}°Ré`;
+    }
     
-    setupConverter('distanceConverter', {
-        'Millimeters (mm)': 0.001, 'Centimeters (cm)': 0.01, 'Meters (m)': 1,
-        'Kilometers (km)': 1000, 'Inches (in)': 0.0254, 'Feet (ft)': 0.3048,
-        'Yards (yd)': 0.9144, 'Miles (mi)': 1609.344,
-        'Nautical Miles (nmi)': 1852
-    });
-    
-    setupConverter('durationConverter', {
-        'Milliseconds (ms)': 0.001, 'Seconds (s)': 1, 'Minutes (min)': 60,
-        'Hours (h)': 3600, 'Days (d)': 86400, 'Weeks (wk)': 604800,
-        'Months (mo)': 2592000, 'Years (yr)': 31536000
-    });
-    
-    setupConverter('speedConverter', {
-        'Meters per second (m/s)': 1,
-        'Kilometers per hour (km/h)': 0.277778,
-        'Miles per hour (mph)': 0.44704,
-        'Knots (kn)': 0.514444,
-        'Feet per second (ft/s)': 0.3048,
-        'Mach (M)': 340.29
-    });
-    
-    setupConverter('areaConverter', {
-        'Square meters (m²)': 1,
-        'Square kilometers (km²)': 1000000,
-        'Square feet (ft²)': 0.092903,
-        'Square yards (yd²)': 0.836127,
-        'Acres': 4046.86,
-        'Hectares (ha)': 10000,
-        'Square miles (mi²)': 2589988.11
-    });
-    
-    setupConverter('volumeConverter', {
-        'Liters (L)': 1,
-        'Milliliters (mL)': 0.001,
-        'Cubic meters (m³)': 1000,
-        'Gallons (gal)': 3.78541,
-        'Quarts (qt)': 0.946353,
-        'Pints (pt)': 0.473176,
-        'Cups': 0.236588,
-        'Fluid ounces (fl oz)': 0.0295735
-    });
-    
-    setupConverter('pressureConverter', {
-        'Pascal (Pa)': 1,
-        'Kilopascal (kPa)': 1000,
-        'Bar': 100000,
-        'Atmosphere (atm)': 101325,
-        'mmHg': 133.322,
-        'PSI': 6894.76
-    });
-    
-    setupConverter('energyConverter', {
-        'Joules (J)': 1,
-        'Kilojoules (kJ)': 1000,
-        'Calories (cal)': 4.184,
-        'Kilocalories (kcal)': 4184,
-        'Watt-hours (Wh)': 3600,
-        'BTU': 1055.06
-    });
-    
-    setupConverter('powerConverter', {
-        'Watts (W)': 1,
-        'Kilowatts (kW)': 1000,
-        'Horsepower (hp)': 745.7,
-        'BTU per hour': 0.293071
-    });
-    
-    setupConverter('angleConverter', {
-        'Degrees (°)': 1,
-        'Radians (rad)': 57.2958,
-        'Gradians (grad)': 0.9,
-        'Minutes (')': 0.0166667,
-        'Seconds (")': 0.000277778
-    });
+    setupConverter('weightConverter', weightUnits, genericConvert);
+    setupConverter('temperatureConverter', tempUnits, temperatureConvert);
+    setupConverter('distanceConverter', distanceUnits, genericConvert);
+    setupConverter('durationConverter', durationUnits, genericConvert);
+    setupConverter('speedConverter', speedUnits, genericConvert);
+    setupConverter('areaConverter', areaUnits, genericConvert);
+    setupConverter('volumeConverter', volumeUnits, genericConvert);
+    setupConverter('pressureConverter', pressureUnits, genericConvert);
+    setupConverter('energyConverter', energyUnits, genericConvert);
+    setupConverter('powerConverter', powerUnits, genericConvert);
+    setupConverter('angleConverter', angleUnits, genericConvert);
     
     const timezoneFrom = document.getElementById('timezoneFrom');
     const timezoneTo = document.getElementById('timezoneTo');
     const timeConvertBtn = document.querySelector('#timeConverter button');
     const timeResult = document.querySelector('#timeConverter .result-display');
-    
-    const timezones = {
-        'UTC': 0, 'GMT': 0, 'EST': -5, 'EDT': -4, 'CST': -6, 'CDT': -5,
-        'MST': -7, 'MDT': -6, 'PST': -8, 'PDT': -7, 'AKST': -9, 'HST': -10,
-        'CET': 1, 'CEST': 2, 'EET': 2, 'EEST': 3, 'MSK': 3, 'JST': 9,
-        'KST': 9, 'AEST': 10, 'AEDT': 11, 'ACST': 9.5,
-        'AWST': 8, 'NZST': 12, 'NZDT': 13, 'IST': 5.5, 'PKT': 5,
-        'BST': 6, 'WIB': 7, 'WITA': 8, 'WIT': 9, 'SGT': 8, 'HKT': 8, 'PHT': 8
-    };
-    
-    fillSelect(timezoneFrom, timezones);
-    fillSelect(timezoneTo, timezones);
     
     timeConvertBtn.addEventListener('click', function() {
         const from = timezones[timezoneFrom.value];
@@ -348,6 +302,102 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+const timezones = {
+    'UTC': 0, 'GMT': 0, 'EST': -5, 'EDT': -4, 'CST': -6, 'CDT': -5,
+    'MST': -7, 'MDT': -6, 'PST': -8, 'PDT': -7, 'AKST': -9, 'HST': -10,
+    'CET': 1, 'CEST': 2, 'EET': 2, 'EEST': 3, 'MSK': 3, 'JST': 9,
+    'KST': 9, 'AEST': 10, 'AEDT': 11, 'ACST': 9.5,
+    'AWST': 8, 'NZST': 12, 'NZDT': 13, 'IST': 5.5, 'PKT': 5,
+    'BST': 6, 'WIB': 7, 'WITA': 8, 'WIT': 9, 'SGT': 8, 'HKT': 8, 'PHT': 8
+};
+
+const weightUnits = {
+    'Milligrams (mg)': 0.000001, 'Grams (g)': 0.001, 'Kilograms (kg)': 1,
+    'Tons (t)': 1000, 'Ounces (oz)': 0.0283495, 'Pounds (lbs)': 0.453592,
+    'Stones (st)': 6.35029, 'Carats (ct)': 0.0002
+};
+
+const tempUnits = {
+    'Celsius (°C)': 1, 'Fahrenheit (°F)': 1, 'Kelvin (K)': 1,
+    'Rankine (°R)': 1, 'Réaumur (°Ré)': 1
+};
+
+const distanceUnits = {
+    'Millimeters (mm)': 0.001, 'Centimeters (cm)': 0.01, 'Meters (m)': 1,
+    'Kilometers (km)': 1000, 'Inches (in)': 0.0254, 'Feet (ft)': 0.3048,
+    'Yards (yd)': 0.9144, 'Miles (mi)': 1609.344,
+    'Nautical Miles (nmi)': 1852
+};
+
+const durationUnits = {
+    'Milliseconds (ms)': 0.001, 'Seconds (s)': 1, 'Minutes (min)': 60,
+    'Hours (h)': 3600, 'Days (d)': 86400, 'Weeks (wk)': 604800,
+    'Months (mo)': 2592000, 'Years (yr)': 31536000
+};
+
+const speedUnits = {
+    'Meters per second (m/s)': 1,
+    'Kilometers per hour (km/h)': 0.277778,
+    'Miles per hour (mph)': 0.44704,
+    'Knots (kn)': 0.514444,
+    'Feet per second (ft/s)': 0.3048,
+    'Mach (M)': 340.29
+};
+
+const areaUnits = {
+    'Square meters (m²)': 1,
+    'Square kilometers (km²)': 1000000,
+    'Square feet (ft²)': 0.092903,
+    'Square yards (yd²)': 0.836127,
+    'Acres': 4046.86,
+    'Hectares (ha)': 10000,
+    'Square miles (mi²)': 2589988.11
+};
+
+const volumeUnits = {
+    'Liters (L)': 1,
+    'Milliliters (mL)': 0.001,
+    'Cubic meters (m³)': 1000,
+    'Gallons (gal)': 3.78541,
+    'Quarts (qt)': 0.946353,
+    'Pints (pt)': 0.473176,
+    'Cups': 0.236588,
+    'Fluid ounces (fl oz)': 0.0295735
+};
+
+const pressureUnits = {
+    'Pascal (Pa)': 1,
+    'Kilopascal (kPa)': 1000,
+    'Bar': 100000,
+    'Atmosphere (atm)': 101325,
+    'mmHg': 133.322,
+    'PSI': 6894.76
+};
+
+const energyUnits = {
+    'Joules (J)': 1,
+    'Kilojoules (kJ)': 1000,
+    'Calories (cal)': 4.184,
+    'Kilocalories (kcal)': 4184,
+    'Watt-hours (Wh)': 3600,
+    'BTU': 1055.06
+};
+
+const powerUnits = {
+    'Watts (W)': 1,
+    'Kilowatts (kW)': 1000,
+    'Horsepower (hp)': 745.7,
+    'BTU per hour': 0.293071
+};
+
+const angleUnits = {
+    'Degrees (°)': 1,
+    'Radians (rad)': 57.2958,
+    'Gradians (grad)': 0.9,
+    'Minutes (')': 0.0166667,
+    'Seconds (")': 0.000277778
+};
 
 function hexToRgb(hex) {
     const r = parseInt(hex.slice(1, 3), 16);

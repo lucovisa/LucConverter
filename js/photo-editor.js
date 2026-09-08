@@ -53,16 +53,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let brushSize = 5;
     let brushColor = '#000000';
     let brushOpacity = 100;
-    let zoomLevel = 1;
-    let panX = 0;
-    let panY = 0;
-    let isPanning = false;
     let currentTool = 'brush';
-    let touchStartDistance = 0;
-    let touchStartZoom = 1;
-    let imageWidth = 800;
-    let imageHeight = 600;
     let history = [];
+    let offsetX = 0;
+    let offsetY = 0;
     
     function saveState() {
         history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
@@ -129,51 +123,6 @@ document.addEventListener('DOMContentLoaded', function() {
         canvas.style.cursor = 'pointer';
     });
     toolbar.appendChild(fillBtn);
-    
-    const zoomInBtn = document.createElement('button');
-    zoomInBtn.textContent = '🔍+';
-    zoomInBtn.style.padding = '0.5rem 0.8rem';
-    zoomInBtn.style.fontSize = '0.85rem';
-    zoomInBtn.style.background = 'var(--button-bg)';
-    zoomInBtn.style.color = 'white';
-    zoomInBtn.style.border = 'none';
-    zoomInBtn.style.borderRadius = '4px';
-    zoomInBtn.style.cursor = 'pointer';
-    zoomInBtn.addEventListener('click', function() {
-        zoomLevel = Math.min(zoomLevel * 1.2, 5);
-        redrawCanvas();
-    });
-    toolbar.appendChild(zoomInBtn);
-    
-    const zoomOutBtn = document.createElement('button');
-    zoomOutBtn.textContent = '🔍-';
-    zoomOutBtn.style.padding = '0.5rem 0.8rem';
-    zoomOutBtn.style.fontSize = '0.85rem';
-    zoomOutBtn.style.background = 'var(--button-bg)';
-    zoomOutBtn.style.color = 'white';
-    zoomOutBtn.style.border = 'none';
-    zoomOutBtn.style.borderRadius = '4px';
-    zoomOutBtn.style.cursor = 'pointer';
-    zoomOutBtn.addEventListener('click', function() {
-        zoomLevel = Math.max(zoomLevel / 1.2, 0.1);
-        redrawCanvas();
-    });
-    toolbar.appendChild(zoomOutBtn);
-    
-    const panBtn = document.createElement('button');
-    panBtn.textContent = '✋ Pan';
-    panBtn.style.padding = '0.5rem 0.8rem';
-    panBtn.style.fontSize = '0.85rem';
-    panBtn.style.background = 'var(--button-bg)';
-    panBtn.style.color = 'white';
-    panBtn.style.border = 'none';
-    panBtn.style.borderRadius = '4px';
-    panBtn.style.cursor = 'pointer';
-    panBtn.addEventListener('click', function() {
-        currentTool = 'pan';
-        canvas.style.cursor = 'grab';
-    });
-    toolbar.appendChild(panBtn);
     
     const colorLabel = document.createElement('span');
     colorLabel.textContent = '🎨';
@@ -252,64 +201,164 @@ document.addEventListener('DOMContentLoaded', function() {
     resolutionLabel.textContent = '📐';
     toolbar.appendChild(resolutionLabel);
     
-    const resolutionInput = document.createElement('input');
-    resolutionInput.type = 'number';
-    resolutionInput.placeholder = 'Width';
-    resolutionInput.value = '800';
-    resolutionInput.style.width = '70px';
-    resolutionInput.style.padding = '0.3rem';
-    resolutionInput.style.background = 'var(--bg)';
-    resolutionInput.style.border = '1px solid var(--border)';
-    resolutionInput.style.borderRadius = '4px';
-    resolutionInput.style.color = 'var(--text)';
-    resolutionInput.style.fontSize = '0.85rem';
-    toolbar.appendChild(resolutionInput);
+    const widthInput = document.createElement('input');
+    widthInput.type = 'number';
+    widthInput.placeholder = 'Width';
+    widthInput.value = '800';
+    widthInput.style.width = '70px';
+    widthInput.style.padding = '0.3rem';
+    widthInput.style.background = 'var(--bg)';
+    widthInput.style.border = '1px solid var(--border)';
+    widthInput.style.borderRadius = '4px';
+    widthInput.style.color = 'var(--text)';
+    widthInput.style.fontSize = '0.85rem';
+    toolbar.appendChild(widthInput);
     
-    const resolutionBtn = document.createElement('button');
-    resolutionBtn.textContent = 'Resize';
-    resolutionBtn.style.padding = '0.4rem 0.8rem';
-    resolutionBtn.style.fontSize = '0.85rem';
-    resolutionBtn.style.background = 'var(--button-bg)';
-    resolutionBtn.style.color = 'white';
-    resolutionBtn.style.border = 'none';
-    resolutionBtn.style.borderRadius = '4px';
-    resolutionBtn.style.cursor = 'pointer';
-    resolutionBtn.addEventListener('click', function() {
-        const newWidth = parseInt(resolutionInput.value);
+    const heightInput = document.createElement('input');
+    heightInput.type = 'number';
+    heightInput.placeholder = 'Height';
+    heightInput.value = '600';
+    heightInput.style.width = '70px';
+    heightInput.style.padding = '0.3rem';
+    heightInput.style.background = 'var(--bg)';
+    heightInput.style.border = '1px solid var(--border)';
+    heightInput.style.borderRadius = '4px';
+    heightInput.style.color = 'var(--text)';
+    heightInput.style.fontSize = '0.85rem';
+    toolbar.appendChild(heightInput);
+    
+    const resizeBtn = document.createElement('button');
+    resizeBtn.textContent = 'Resize';
+    resizeBtn.style.padding = '0.4rem 0.8rem';
+    resizeBtn.style.fontSize = '0.85rem';
+    resizeBtn.style.background = 'var(--button-bg)';
+    resizeBtn.style.color = 'white';
+    resizeBtn.style.border = 'none';
+    resizeBtn.style.borderRadius = '4px';
+    resizeBtn.style.cursor = 'pointer';
+    resizeBtn.addEventListener('click', function() {
+        const newWidth = parseInt(widthInput.value);
+        const newHeight = parseInt(heightInput.value);
         
-        if (!newWidth || newWidth < 1 || newWidth > 4096) {
-            showError(resolutionInput, 'Width must be between 1 and 4096');
+        if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1 || newWidth > 4096 || newHeight > 4096) {
+            showError(widthInput, 'Size must be between 1 and 4096');
             return;
         }
-        
-        if (!originalImage) {
-            showError(resolutionInput, 'Upload an image first');
-            return;
-        }
-        
-        const ratio = newWidth / canvas.width;
-        const newHeight = Math.floor(canvas.height * ratio);
         
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = newWidth;
         tempCanvas.height = newHeight;
         
         const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.fillStyle = 'white';
+        tempCtx.fillRect(0, 0, newWidth, newHeight);
         tempCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
         
         canvas.width = newWidth;
         canvas.height = newHeight;
         
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, newWidth, newHeight);
         ctx.drawImage(tempCanvas, 0, 0);
         
         originalImage = new Image();
         originalImage.src = canvas.toDataURL();
         currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        history = [];
         
         brushSizeInput.max = Math.max(newWidth, newHeight);
         brushSizeValue.max = Math.max(newWidth, newHeight);
     });
-    toolbar.appendChild(resolutionBtn);
+    toolbar.appendChild(resizeBtn);
+    
+    const nudgeContainer = document.createElement('div');
+    nudgeContainer.style.display = 'grid';
+    nudgeContainer.style.gridTemplateColumns = 'repeat(3, 30px)';
+    nudgeContainer.style.gridTemplateRows = 'repeat(3, 30px)';
+    nudgeContainer.style.gap = '2px';
+    
+    const nudgeUp = document.createElement('button');
+    nudgeUp.textContent = '↑';
+    nudgeUp.style.gridColumn = '2';
+    nudgeUp.style.gridRow = '1';
+    nudgeUp.style.padding = '0';
+    nudgeUp.style.background = 'var(--button-bg)';
+    nudgeUp.style.color = 'white';
+    nudgeUp.style.border = 'none';
+    nudgeUp.style.borderRadius = '4px';
+    nudgeUp.style.cursor = 'pointer';
+    nudgeUp.addEventListener('click', function() {
+        offsetY -= 10;
+        redrawCanvas();
+    });
+    nudgeContainer.appendChild(nudgeUp);
+    
+    const nudgeLeft = document.createElement('button');
+    nudgeLeft.textContent = '←';
+    nudgeLeft.style.gridColumn = '1';
+    nudgeLeft.style.gridRow = '2';
+    nudgeLeft.style.padding = '0';
+    nudgeLeft.style.background = 'var(--button-bg)';
+    nudgeLeft.style.color = 'white';
+    nudgeLeft.style.border = 'none';
+    nudgeLeft.style.borderRadius = '4px';
+    nudgeLeft.style.cursor = 'pointer';
+    nudgeLeft.addEventListener('click', function() {
+        offsetX -= 10;
+        redrawCanvas();
+    });
+    nudgeContainer.appendChild(nudgeLeft);
+    
+    const nudgeCenter = document.createElement('button');
+    nudgeCenter.textContent = '•';
+    nudgeCenter.style.gridColumn = '2';
+    nudgeCenter.style.gridRow = '2';
+    nudgeCenter.style.padding = '0';
+    nudgeCenter.style.background = 'var(--border)';
+    nudgeCenter.style.color = 'var(--text)';
+    nudgeCenter.style.border = 'none';
+    nudgeCenter.style.borderRadius = '4px';
+    nudgeCenter.style.cursor = 'pointer';
+    nudgeCenter.addEventListener('click', function() {
+        offsetX = 0;
+        offsetY = 0;
+        redrawCanvas();
+    });
+    nudgeContainer.appendChild(nudgeCenter);
+    
+    const nudgeRight = document.createElement('button');
+    nudgeRight.textContent = '→';
+    nudgeRight.style.gridColumn = '3';
+    nudgeRight.style.gridRow = '2';
+    nudgeRight.style.padding = '0';
+    nudgeRight.style.background = 'var(--button-bg)';
+    nudgeRight.style.color = 'white';
+    nudgeRight.style.border = 'none';
+    nudgeRight.style.borderRadius = '4px';
+    nudgeRight.style.cursor = 'pointer';
+    nudgeRight.addEventListener('click', function() {
+        offsetX += 10;
+        redrawCanvas();
+    });
+    nudgeContainer.appendChild(nudgeRight);
+    
+    const nudgeDown = document.createElement('button');
+    nudgeDown.textContent = '↓';
+    nudgeDown.style.gridColumn = '2';
+    nudgeDown.style.gridRow = '3';
+    nudgeDown.style.padding = '0';
+    nudgeDown.style.background = 'var(--button-bg)';
+    nudgeDown.style.color = 'white';
+    nudgeDown.style.border = 'none';
+    nudgeDown.style.borderRadius = '4px';
+    nudgeDown.style.cursor = 'pointer';
+    nudgeDown.addEventListener('click', function() {
+        offsetY += 10;
+        redrawCanvas();
+    });
+    nudgeContainer.appendChild(nudgeDown);
+    
+    toolbar.appendChild(nudgeContainer);
     
     const filterContainer = document.createElement('div');
     filterContainer.style.display = 'flex';
@@ -408,10 +457,6 @@ document.addEventListener('DOMContentLoaded', function() {
     applyBtn.style.borderRadius = '4px';
     applyBtn.style.cursor = 'pointer';
     applyBtn.addEventListener('click', function() {
-        if (!originalImage) {
-            showError(canvas, 'Please upload an image first');
-            return;
-        }
         saveState();
         applyFilters();
     });
@@ -427,19 +472,21 @@ document.addEventListener('DOMContentLoaded', function() {
     resetBtn.style.borderRadius = '4px';
     resetBtn.style.cursor = 'pointer';
     resetBtn.addEventListener('click', function() {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
         if (originalImage) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(originalImage, 0, 0);
-            currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            zoomLevel = 1;
-            panX = 0;
-            panY = 0;
-            history = [];
-            
-            filters.forEach(filter => {
-                sliders[filter.name.toLowerCase()] = filter.value;
-            });
         }
+        
+        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        offsetX = 0;
+        offsetY = 0;
+        history = [];
+        
+        filters.forEach(filter => {
+            sliders[filter.name.toLowerCase()] = filter.value;
+        });
     });
     actionContainer.appendChild(resetBtn);
     
@@ -476,6 +523,8 @@ document.addEventListener('DOMContentLoaded', function() {
         originalImage = null;
         currentImage = null;
         history = [];
+        offsetX = 0;
+        offsetY = 0;
     });
     actionContainer.appendChild(clearBtn);
     
@@ -517,20 +566,21 @@ document.addEventListener('DOMContentLoaded', function() {
             canvas.width = width;
             canvas.height = height;
             
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
             
             originalImage = new Image();
             originalImage.src = canvas.toDataURL();
             currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            zoomLevel = 1;
-            panX = 0;
-            panY = 0;
             history = [];
+            offsetX = 0;
+            offsetY = 0;
             
             brushSizeInput.max = Math.max(width, height);
             brushSizeValue.max = Math.max(width, height);
-            resolutionInput.value = width;
+            widthInput.value = width;
+            heightInput.value = height;
         };
         img.src = URL.createObjectURL(file);
     });
@@ -550,8 +600,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         
-        const x = (clientX - rect.left) * scaleX;
-        const y = (clientY - rect.top) * scaleY;
+        const x = (clientX - rect.left) * scaleX - offsetX;
+        const y = (clientY - rect.top) * scaleY - offsetY;
         
         return { x, y, clientX, clientY };
     }
@@ -564,11 +614,6 @@ document.addEventListener('DOMContentLoaded', function() {
             lastX = coords.x;
             lastY = coords.y;
             saveState();
-        } else if (currentTool === 'pan') {
-            isPanning = true;
-            lastX = coords.clientX;
-            lastY = coords.clientY;
-            canvas.style.cursor = 'grabbing';
         } else if (currentTool === 'fill') {
             saveState();
             floodFill(Math.floor(coords.x), Math.floor(coords.y), brushColor, brushOpacity);
@@ -594,36 +639,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             lastX = coords.x;
             lastY = coords.y;
-        } else if (isPanning) {
-            const dx = coords.clientX - lastX;
-            const dy = coords.clientY - lastY;
-            panX += dx;
-            panY += dy;
-            lastX = coords.clientX;
-            lastY = coords.clientY;
         }
     });
     
     canvas.addEventListener('mouseup', function() {
         isDrawing = false;
-        isPanning = false;
-        canvas.style.cursor = currentTool === 'pan' ? 'grab' : 'crosshair';
         currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     });
     
     canvas.addEventListener('mouseleave', function() {
         isDrawing = false;
-        isPanning = false;
     });
     
     canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        
-        if (e.touches.length === 2) {
-            touchStartDistance = getDistance(e.touches[0], e.touches[1]);
-            touchStartZoom = zoomLevel;
-            return;
-        }
         
         const touch = e.touches[0];
         const mouseEvent = new MouseEvent('mousedown', {
@@ -635,12 +664,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     canvas.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        
-        if (e.touches.length === 2) {
-            const currentDistance = getDistance(e.touches[0], e.touches[1]);
-            zoomLevel = Math.max(0.1, Math.min(5, touchStartZoom * (currentDistance / touchStartDistance)));
-            return;
-        }
         
         const touch = e.touches[0];
         const mouseEvent = new MouseEvent('mousemove', {
@@ -657,27 +680,13 @@ document.addEventListener('DOMContentLoaded', function() {
         canvas.dispatchEvent(mouseEvent);
     });
     
-    function getDistance(touch1, touch2) {
-        const dx = touch1.clientX - touch2.clientX;
-        const dy = touch1.clientY - touch2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-    
-    canvas.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        
-        if (e.deltaY < 0) {
-            zoomLevel = Math.min(zoomLevel * 1.1, 5);
-        } else {
-            zoomLevel = Math.max(zoomLevel / 1.1, 0.1);
-        }
-    });
-    
     function redrawCanvas() {
-        if (!originalImage) return;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(originalImage, 0, 0);
+        if (originalImage) {
+            ctx.drawImage(originalImage, offsetX, offsetY);
+        }
         
         if (currentImage) {
             ctx.putImageData(currentImage, 0, 0);
@@ -733,10 +742,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function applyFilters() {
-        if (!originalImage) return;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(originalImage, 0, 0);
+        if (originalImage) {
+            ctx.drawImage(originalImage, 0, 0);
+        }
         
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;

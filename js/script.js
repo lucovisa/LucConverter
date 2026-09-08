@@ -5,6 +5,8 @@ function showSection(sectionId) {
         section.style.display = 'none';
     });
     document.getElementById(sectionId).style.display = 'block';
+    
+    document.title = 'LucConverter - ' + sectionId.replace(/([A-Z])/g, ' $1').trim();
 }
 
 function showMainMenu() {
@@ -13,6 +15,8 @@ function showMainMenu() {
     sections.forEach(section => {
         section.style.display = 'none';
     });
+    
+    document.title = 'LucConverter';
 }
 
 function showConverter(converterId) {

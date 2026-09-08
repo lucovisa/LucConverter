@@ -76,28 +76,50 @@ document.addEventListener('DOMContentLoaded', function() {
         
         qrCode.innerHTML = '';
         
-        const canvas = document.createElement('canvas');
-        canvas.width = 200;
-        canvas.height = 200;
-        const ctx = canvas.getContext('2d');
-        
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 200, 200);
-        ctx.fillStyle = 'black';
-        
-        const qrData = generateQRData(text);
-        const cellSize = 200 / 25;
-        
-        for (let i = 0; i < qrData.length; i++) {
-            for (let j = 0; j < qrData[i].length; j++) {
-                if (qrData[i][j] === 1) {
-                    ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+        if (typeof QRCode !== 'undefined') {
+            const canvas = document.createElement('canvas');
+            qrCode.appendChild(canvas);
+            
+            QRCode.toCanvas(canvas, text, {
+                width: 200,
+                height: 200,
+                margin: 1,
+                errorCorrectionLevel: 'M'
+            }, function(error) {
+                if (error) {
+                    console.error('QR generation error:', error);
+                    qrCode.textContent = 'QR generation failed';
+                } else {
+                    addQRDownloadButton(canvas, text);
+                }
+            });
+        } else {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, 200, 200);
+            ctx.fillStyle = 'black';
+            
+            const qrData = generateQRData(text);
+            const cellSize = 200 / 25;
+            
+            for (let i = 0; i < qrData.length; i++) {
+                for (let j = 0; j < qrData[i].length; j++) {
+                    if (qrData[i][j] === 1) {
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                    }
                 }
             }
+            
+            qrCode.appendChild(canvas);
+            addQRDownloadButton(canvas, text);
         }
-        
-        qrCode.appendChild(canvas);
-        
+    });
+    
+    function addQRDownloadButton(canvas, text) {
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = 'Download QR Code';
         downloadBtn.style.marginTop = '0.5rem';
@@ -116,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
         qrCode.appendChild(downloadBtn);
         
         qrCode.dataset.text = text;
-    });
+    }
     
     const qrDropZone = document.getElementById('qrDropZone');
     const qrImageInput = document.getElementById('qrImageInput');
@@ -182,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (code && code.data) {
                     qrScanResult.textContent = `Decoded: ${code.data}`;
                 } else {
-                    qrScanResult.textContent = 'No QR code found in image. Try the generated QR code.';
+                    qrScanResult.textContent = 'No QR code found in image.';
                 }
             } else {
                 qrScanResult.textContent = 'QR scanner library not loaded';
@@ -356,20 +378,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const encoder = new TextEncoder();
             const data = encoder.encode(text);
             
-            let hashBuffer;
-            
-            if (algorithm === 'md5') {
-                hashResult.textContent = 'MD5 requires external library';
-                return;
-            }
-            
             const algoMap = {
                 'sha1': 'SHA-1',
                 'sha256': 'SHA-256',
                 'sha512': 'SHA-512'
             };
             
-            hashBuffer = await crypto.subtle.digest(algoMap[algorithm], data);
+            const hashBuffer = await crypto.subtle.digest(algoMap[algorithm], data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             

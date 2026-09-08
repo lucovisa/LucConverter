@@ -153,6 +153,26 @@ document.addEventListener('DOMContentLoaded', function() {
         resultDiv.style.display = 'none';
         rateInfo.textContent = 'Fetching exchange rates...';
         
+        fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.rates && data.rates[to]) {
+                    const rate = data.rates[to];
+                    const result = amount * rate;
+                    
+                    resultDiv.style.display = 'block';
+                    resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
+                    rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Date: ${data.date}`;
+                } else {
+                    fetchBackupRate(from, to, amount);
+                }
+            })
+            .catch(() => {
+                fetchBackupRate(from, to, amount);
+            });
+    }
+    
+    function fetchBackupRate(from, to, amount) {
         fetch(`https://api.exchangerate-api.com/v4/latest/${from}`)
             .then(response => response.json())
             .then(data => {
@@ -162,22 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultDiv.style.display = 'block';
                 resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
                 rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${new Date(data.time_last_updated * 1000).toLocaleString()}`;
-            })
-            .catch(() => {
-                fetchBackupRate(from, to, amount);
-            });
-    }
-    
-    function fetchBackupRate(from, to, amount) {
-        fetch(`https://open.er-api.com/v6/latest/${from}`)
-            .then(response => response.json())
-            .then(data => {
-                const rate = data.rates[to];
-                const result = amount * rate;
-                
-                resultDiv.style.display = 'block';
-                resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
-                rateInfo.textContent = `1 ${from} = ${rate.toFixed(6)} ${to} | Updated: ${data.time_last_update_utc}`;
             })
             .catch(() => {
                 rateInfo.textContent = '';

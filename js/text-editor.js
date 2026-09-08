@@ -114,6 +114,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     toolbar.appendChild(saveBtn);
     
+    const printBtn = document.createElement('button');
+    printBtn.textContent = '🖨️';
+    printBtn.title = 'Print';
+    printBtn.style.padding = '0.5rem 0.8rem';
+    printBtn.style.background = 'var(--button-bg)';
+    printBtn.style.color = 'white';
+    printBtn.style.border = 'none';
+    printBtn.style.borderRadius = '4px';
+    printBtn.style.cursor = 'pointer';
+    printBtn.style.fontSize = '1rem';
+    printBtn.addEventListener('click', function() {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write('<pre>' + textarea.value.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+        printWindow.document.close();
+        printWindow.print();
+    });
+    toolbar.appendChild(printBtn);
+    
     const clearBtn = document.createElement('button');
     clearBtn.textContent = '🗑️';
     clearBtn.title = 'Clear';
@@ -212,7 +230,15 @@ document.addEventListener('DOMContentLoaded', function() {
         { value: 'python', label: 'Python' },
         { value: 'html', label: 'HTML' },
         { value: 'css', label: 'CSS' },
-        { value: 'json', label: 'JSON' }
+        { value: 'json', label: 'JSON' },
+        { value: 'cpp', label: 'C++' },
+        { value: 'csharp', label: 'C#' },
+        { value: 'java', label: 'Java' },
+        { value: 'php', label: 'PHP' },
+        { value: 'ruby', label: 'Ruby' },
+        { value: 'go', label: 'Go' },
+        { value: 'rust', label: 'Rust' },
+        { value: 'sql', label: 'SQL' }
     ];
     
     languages.forEach(lang => {
@@ -233,10 +259,20 @@ document.addEventListener('DOMContentLoaded', function() {
     runBtn.style.borderRadius = '4px';
     runBtn.style.cursor = 'pointer';
     runBtn.style.fontSize = '0.9rem';
+    runBtn.style.display = 'none';
     runBtn.addEventListener('click', function() {
         runCode();
     });
     toolbar.appendChild(runBtn);
+    
+    languageSelect.addEventListener('change', function() {
+        if (this.value === 'none') {
+            runBtn.style.display = 'none';
+            clearConsole();
+        } else {
+            runBtn.style.display = 'inline-block';
+        }
+    });
     
     const separator3 = document.createElement('span');
     separator3.style.width = '1px';
@@ -397,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
         outputDiv.style.wordBreak = 'break-all';
         consoleContainer.appendChild(outputDiv);
         
-        if (language === 'javascript' || language === 'none') {
+        if (language === 'javascript') {
             try {
                 const originalLog = console.log;
                 let output = '';
@@ -421,8 +457,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 outputDiv.style.color = '#ff6b6b';
                 outputDiv.textContent = `Error: ${e.message}`;
             }
-        } else if (language === 'python') {
-            outputDiv.textContent = 'Python requires Pyodide library (20MB). Not loaded. Use JavaScript for now.';
         } else if (language === 'html') {
             const previewWindow = window.open('', '_blank');
             previewWindow.document.write(code);
@@ -437,7 +471,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 outputDiv.textContent = `Invalid JSON: ${e.message}`;
             }
         } else if (language === 'css') {
-            outputDiv.textContent = 'CSS cannot be executed. Use with HTML.';
+            outputDiv.textContent = 'CSS cannot be executed alone. Use with HTML.';
+        } else if (language === 'python') {
+            outputDiv.textContent = 'Python requires Pyodide (20MB).\n\n' +
+                'Install Pyodide:\n' +
+                '<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"><\/script>\n\n' +
+                'Then:\n' +
+                'const pyodide = await loadPyodide();\n' +
+                'pyodide.runPython(code);';
+        } else if (language === 'cpp' || language === 'csharp' || language === 'java' || language === 'php' || language === 'ruby' || language === 'go' || language === 'rust' || language === 'sql') {
+            outputDiv.textContent = `${language.toUpperCase()} requires server-side compilation.\n\n` +
+                `You can use online compiler:\n` +
+                `https://silvertests.ru/Compiler.aspx\n\n` +
+                `Paste your code there to compile and run.`;
         }
     }
     
