@@ -413,6 +413,7 @@
             <div class="converter-options">
                 <button class="converter-btn" onclick="showConverter('urlConverter')">URL Encoder/Decoder</button>
                 <button class="converter-btn" onclick="showConverter('qrConverter')">QR Code Generator</button>
+                <button class="converter-btn" onclick="showConverter('qrLogoConverter')">QR with Logo</button>
                 <button class="converter-btn" onclick="showConverter('qrScanner')">QR Scanner</button>
                 <button class="converter-btn" onclick="showConverter('linkShortener')">Link Shortener</button>
                 <button class="converter-btn" onclick="showConverter('linkLengthener')">Link Lengthener</button>
@@ -439,6 +440,14 @@
                 <input type="text" placeholder="Enter text or URL">
                 <button>Generate QR</button>
                 <div id="qrCode"></div>
+            </div>
+            
+            <div id="qrLogoConverter" class="converter-content">
+                <h3>QR Code with Logo</h3>
+                <input type="text" placeholder="Enter text or URL">
+                <input type="file" accept="image/*">
+                <button>Generate QR with Logo</button>
+                <div id="qrLogoResult"></div>
             </div>
             
             <div id="qrScanner" class="converter-content">
@@ -670,6 +679,7 @@
                     <ul>
                         <li>URL Encoder/Decoder</li>
                         <li>QR Code Generator</li>
+                        <li>QR with Logo - generate QR code with custom logo</li>
                         <li>QR Scanner - upload or drag QR image</li>
                         <li>Link Shortener</li>
                         <li>Link Lengthener</li>
@@ -678,7 +688,7 @@
                         <li>Hash Generator - SHA-1, SHA-256, SHA-512</li>
                         <li>Text to Binary</li>
                         <li>ASCII Converter</li>
-                        <li>Download from Link - paste any video or audio link</li>
+                        <li>Download from Link - uses cobalt.tools API for video downloads</li>
                     </ul>
                 </div>
                 
@@ -810,6 +820,7 @@
                             <li>Very large files may exceed memory limits</li>
                             <li>Some OGG/Opus codecs may not be supported in Safari</li>
                             <li>Some external libraries (three.js, libarchive.js) may fail to load due to CDN MIME type issues; in that case, 3D conversion and archive extraction will be unavailable</li>
+                            <li>Download from Link uses cobalt.tools API, which may be unavailable or rate-limited</li>
                         </ul>
                     </div>
                     

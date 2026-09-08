@@ -267,16 +267,97 @@ function initLinkConverter() {
         if (!url) { showError(downloadFromLinkInput, 'Please enter a link'); return; }
         downloadFromLinkResult.textContent = 'Trying to fetch...';
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network error');
-            const blob = await response.blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = url.split('/').pop().split('?')[0] || 'download';
-            a.click();
-            downloadFromLinkResult.textContent = 'Download started';
+            const apiUrl = 'https://api.cobalt.tools/api/json';
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            });
+            if (!response.ok) throw new Error('API error');
+            const data = await response.json();
+            if (data.status === 'success' && data.url) {
+                const a = document.createElement('a');
+                a.href = data.url;
+                a.target = '_blank';
+                a.textContent = 'Download link ready. Click here to download.';
+                downloadFromLinkResult.textContent = '';
+                downloadFromLinkResult.appendChild(a);
+                a.click();
+            } else if (data.status === 'error') {
+                downloadFromLinkResult.textContent = 'Error: ' + (data.text || 'Unknown error');
+            } else {
+                downloadFromLinkResult.textContent = 'Download failed. Try a different link.';
+            }
         } catch (e) {
-            downloadFromLinkResult.textContent = 'Download failed. The site may block direct downloads. Try a different link.';
+            downloadFromLinkResult.textContent = 'Download failed. The service may be unavailable.';
+        }
+    });
+
+    const qrWithLogoInput = document.querySelector('#qrLogoConverter input[type="text"]');
+    const qrLogoFileInput = document.querySelector('#qrLogoConverter input[type="file"]');
+    const qrLogoBtn = document.querySelector('#qrLogoConverter button');
+    const qrLogoResult = document.getElementById('qrLogoResult');
+    qrLogoBtn.addEventListener('click', () => {
+        const text = qrWithLogoInput.value.trim();
+        if (!text) { showError(qrWithLogoInput, 'Please enter text or URL'); return; }
+        if (typeof QRCode !== 'undefined') {
+            const container = document.createElement('div');
+            qrLogoResult.innerHTML = '';
+            qrLogoResult.appendChild(container);
+            new QRCode(container, {
+                text: text,
+                width: 300,
+                height: 300,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            if (qrLogoFileInput.files.length > 0) {
+                const logoFile = qrLogoFileInput.files[0];
+                const logoImg = new Image();
+                logoImg.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 300;
+                    canvas.height = 300;
+                    const ctx = canvas.getContext('2d');
+                    const qrCanvas = container.querySelector('canvas');
+                    if (qrCanvas) {
+                        ctx.drawImage(qrCanvas, 0, 0, 300, 300);
+                    } else {
+                        const qrImg = container.querySelector('img');
+                        if (qrImg) {
+                            ctx.drawImage(qrImg, 0, 0, 300, 300);
+                        }
+                    }
+                    const logoSize = 60;
+                    const logoX = (300 - logoSize) / 2;
+                    const logoY = (300 - logoSize) / 2;
+                    ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.textContent = 'Download QR with Logo';
+                    downloadBtn.style.marginTop = '0.5rem';
+                    downloadBtn.style.padding = '0.5rem 1rem';
+                    downloadBtn.style.background = 'var(--button-bg)';
+                    downloadBtn.style.color = 'white';
+                    downloadBtn.style.border = 'none';
+                    downloadBtn.style.borderRadius = '4px';
+                    downloadBtn.style.cursor = 'pointer';
+                    downloadBtn.addEventListener('click', () => {
+                        const a = document.createElement('a');
+                        a.href = canvas.toDataURL('image/png');
+                        a.download = 'qr-with-logo.png';
+                        a.click();
+                    });
+                    qrLogoResult.appendChild(canvas);
+                    qrLogoResult.appendChild(downloadBtn);
+                };
+                logoImg.src = URL.createObjectURL(logoFile);
+            }
+        } else {
+            showError(qrLogoBtn, 'QR library not loaded');
         }
     });
 }
