@@ -3,6 +3,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     photoSection.innerHTML = '';
     
+    const backBtn = document.createElement('button');
+    backBtn.className = 'back-btn';
+    backBtn.textContent = '← Back';
+    backBtn.style.marginBottom = '1rem';
+    backBtn.addEventListener('click', function() {
+        showMainMenu();
+    });
+    photoSection.appendChild(backBtn);
+    
     const toolbar = document.createElement('div');
     toolbar.style.display = 'flex';
     toolbar.style.flexWrap = 'wrap';
@@ -12,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     toolbar.style.background = 'var(--panel-bg)';
     toolbar.style.border = '1px solid var(--border)';
     toolbar.style.borderRadius = '4px';
+    toolbar.style.alignItems = 'center';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -28,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
     canvas.style.backgroundColor = 'white';
     canvas.style.cursor = 'crosshair';
     canvas.style.touchAction = 'none';
+    canvas.style.display = 'block';
+    canvas.style.margin = '0 auto';
     
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'white';
@@ -49,18 +61,28 @@ document.addEventListener('DOMContentLoaded', function() {
     let touchStartZoom = 1;
     
     const uploadBtn = document.createElement('button');
-    uploadBtn.textContent = 'Upload';
-    uploadBtn.style.padding = '0.6rem 1rem';
-    uploadBtn.style.fontSize = '0.9rem';
+    uploadBtn.textContent = '📁 Upload';
+    uploadBtn.style.padding = '0.5rem 0.8rem';
+    uploadBtn.style.fontSize = '0.85rem';
+    uploadBtn.style.background = 'var(--button-bg)';
+    uploadBtn.style.color = 'white';
+    uploadBtn.style.border = 'none';
+    uploadBtn.style.borderRadius = '4px';
+    uploadBtn.style.cursor = 'pointer';
     uploadBtn.addEventListener('click', function() {
         fileInput.click();
     });
     toolbar.appendChild(uploadBtn);
     
     const brushBtn = document.createElement('button');
-    brushBtn.textContent = 'Brush';
-    brushBtn.style.padding = '0.6rem 1rem';
-    brushBtn.style.fontSize = '0.9rem';
+    brushBtn.textContent = '✏️ Brush';
+    brushBtn.style.padding = '0.5rem 0.8rem';
+    brushBtn.style.fontSize = '0.85rem';
+    brushBtn.style.background = 'var(--button-bg)';
+    brushBtn.style.color = 'white';
+    brushBtn.style.border = 'none';
+    brushBtn.style.borderRadius = '4px';
+    brushBtn.style.cursor = 'pointer';
     brushBtn.addEventListener('click', function() {
         currentTool = 'brush';
         canvas.style.cursor = 'crosshair';
@@ -68,19 +90,44 @@ document.addEventListener('DOMContentLoaded', function() {
     toolbar.appendChild(brushBtn);
     
     const eraserBtn = document.createElement('button');
-    eraserBtn.textContent = 'Eraser';
-    eraserBtn.style.padding = '0.6rem 1rem';
-    eraserBtn.style.fontSize = '0.9rem';
+    eraserBtn.textContent = '🧹 Eraser';
+    eraserBtn.style.padding = '0.5rem 0.8rem';
+    eraserBtn.style.fontSize = '0.85rem';
+    eraserBtn.style.background = 'var(--button-bg)';
+    eraserBtn.style.color = 'white';
+    eraserBtn.style.border = 'none';
+    eraserBtn.style.borderRadius = '4px';
+    eraserBtn.style.cursor = 'pointer';
     eraserBtn.addEventListener('click', function() {
         currentTool = 'eraser';
         canvas.style.cursor = 'cell';
     });
     toolbar.appendChild(eraserBtn);
     
+    const fillBtn = document.createElement('button');
+    fillBtn.textContent = '🪣 Fill';
+    fillBtn.style.padding = '0.5rem 0.8rem';
+    fillBtn.style.fontSize = '0.85rem';
+    fillBtn.style.background = 'var(--button-bg)';
+    fillBtn.style.color = 'white';
+    fillBtn.style.border = 'none';
+    fillBtn.style.borderRadius = '4px';
+    fillBtn.style.cursor = 'pointer';
+    fillBtn.addEventListener('click', function() {
+        currentTool = 'fill';
+        canvas.style.cursor = 'pointer';
+    });
+    toolbar.appendChild(fillBtn);
+    
     const zoomInBtn = document.createElement('button');
-    zoomInBtn.textContent = 'Zoom In';
-    zoomInBtn.style.padding = '0.6rem 1rem';
-    zoomInBtn.style.fontSize = '0.9rem';
+    zoomInBtn.textContent = '🔍+';
+    zoomInBtn.style.padding = '0.5rem 0.8rem';
+    zoomInBtn.style.fontSize = '0.85rem';
+    zoomInBtn.style.background = 'var(--button-bg)';
+    zoomInBtn.style.color = 'white';
+    zoomInBtn.style.border = 'none';
+    zoomInBtn.style.borderRadius = '4px';
+    zoomInBtn.style.cursor = 'pointer';
     zoomInBtn.addEventListener('click', function() {
         zoomLevel = Math.min(zoomLevel * 1.2, 5);
         redrawCanvas();
@@ -88,9 +135,14 @@ document.addEventListener('DOMContentLoaded', function() {
     toolbar.appendChild(zoomInBtn);
     
     const zoomOutBtn = document.createElement('button');
-    zoomOutBtn.textContent = 'Zoom Out';
-    zoomOutBtn.style.padding = '0.6rem 1rem';
-    zoomOutBtn.style.fontSize = '0.9rem';
+    zoomOutBtn.textContent = '🔍-';
+    zoomOutBtn.style.padding = '0.5rem 0.8rem';
+    zoomOutBtn.style.fontSize = '0.85rem';
+    zoomOutBtn.style.background = 'var(--button-bg)';
+    zoomOutBtn.style.color = 'white';
+    zoomOutBtn.style.border = 'none';
+    zoomOutBtn.style.borderRadius = '4px';
+    zoomOutBtn.style.cursor = 'pointer';
     zoomOutBtn.addEventListener('click', function() {
         zoomLevel = Math.max(zoomLevel / 1.2, 0.1);
         redrawCanvas();
@@ -98,44 +150,72 @@ document.addEventListener('DOMContentLoaded', function() {
     toolbar.appendChild(zoomOutBtn);
     
     const panBtn = document.createElement('button');
-    panBtn.textContent = 'Pan';
-    panBtn.style.padding = '0.6rem 1rem';
-    panBtn.style.fontSize = '0.9rem';
+    panBtn.textContent = '✋ Pan';
+    panBtn.style.padding = '0.5rem 0.8rem';
+    panBtn.style.fontSize = '0.85rem';
+    panBtn.style.background = 'var(--button-bg)';
+    panBtn.style.color = 'white';
+    panBtn.style.border = 'none';
+    panBtn.style.borderRadius = '4px';
+    panBtn.style.cursor = 'pointer';
     panBtn.addEventListener('click', function() {
         currentTool = 'pan';
         canvas.style.cursor = 'grab';
     });
     toolbar.appendChild(panBtn);
     
+    const colorLabel = document.createElement('span');
+    colorLabel.textContent = '🎨';
+    colorLabel.style.fontSize = '1rem';
+    toolbar.appendChild(colorLabel);
+    
     const colorPicker = document.createElement('input');
     colorPicker.type = 'color';
     colorPicker.value = '#000000';
-    colorPicker.style.width = '40px';
-    colorPicker.style.height = '40px';
+    colorPicker.style.width = '35px';
+    colorPicker.style.height = '35px';
     colorPicker.style.border = 'none';
     colorPicker.style.borderRadius = '4px';
+    colorPicker.style.cursor = 'pointer';
     colorPicker.addEventListener('change', function() {
         brushColor = this.value;
     });
     toolbar.appendChild(colorPicker);
+    
+    const sizeLabel = document.createElement('span');
+    sizeLabel.textContent = '📏';
+    sizeLabel.style.fontSize = '1rem';
+    toolbar.appendChild(sizeLabel);
     
     const brushSizeInput = document.createElement('input');
     brushSizeInput.type = 'range';
     brushSizeInput.min = '1';
     brushSizeInput.max = '50';
     brushSizeInput.value = '5';
-    brushSizeInput.style.flex = '1';
-    brushSizeInput.style.minWidth = '100px';
+    brushSizeInput.style.width = '80px';
     brushSizeInput.addEventListener('input', function() {
         brushSize = parseInt(this.value);
-        brushSizeLabel.textContent = this.value + 'px';
+        brushSizeValue.value = this.value;
     });
     toolbar.appendChild(brushSizeInput);
     
-    const brushSizeLabel = document.createElement('span');
-    brushSizeLabel.textContent = '5px';
-    brushSizeLabel.style.fontSize = '0.9rem';
-    toolbar.appendChild(brushSizeLabel);
+    const brushSizeValue = document.createElement('input');
+    brushSizeValue.type = 'number';
+    brushSizeValue.min = '1';
+    brushSizeValue.max = '50';
+    brushSizeValue.value = '5';
+    brushSizeValue.style.width = '50px';
+    brushSizeValue.style.padding = '0.3rem';
+    brushSizeValue.style.background = 'var(--bg)';
+    brushSizeValue.style.border = '1px solid var(--border)';
+    brushSizeValue.style.borderRadius = '4px';
+    brushSizeValue.style.color = 'var(--text)';
+    brushSizeValue.style.fontSize = '0.85rem';
+    brushSizeValue.addEventListener('input', function() {
+        brushSize = parseInt(this.value) || 5;
+        brushSizeInput.value = this.value;
+    });
+    toolbar.appendChild(brushSizeValue);
     
     const filterContainer = document.createElement('div');
     filterContainer.style.display = 'flex';
@@ -158,14 +238,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const sliderContainer = document.createElement('div');
         sliderContainer.style.display = 'flex';
         sliderContainer.style.alignItems = 'center';
-        sliderContainer.style.gap = '0.5rem';
+        sliderContainer.style.gap = '0.3rem';
         sliderContainer.style.flex = '1';
-        sliderContainer.style.minWidth = '200px';
+        sliderContainer.style.minWidth = '180px';
+        sliderContainer.style.background = 'var(--bg)';
+        sliderContainer.style.padding = '0.4rem';
+        sliderContainer.style.borderRadius = '4px';
         
         const label = document.createElement('label');
         label.textContent = filter.name + ':';
-        label.style.minWidth = '80px';
-        label.style.fontSize = '0.9rem';
+        label.style.minWidth = '70px';
+        label.style.fontSize = '0.8rem';
+        label.style.color = 'var(--text)';
         
         const slider = document.createElement('input');
         slider.type = 'range';
@@ -173,15 +257,33 @@ document.addEventListener('DOMContentLoaded', function() {
         slider.max = filter.max;
         slider.value = filter.value;
         slider.style.flex = '1';
+        slider.style.minWidth = '60px';
         
-        const valueDisplay = document.createElement('span');
-        valueDisplay.textContent = filter.value;
-        valueDisplay.style.minWidth = '40px';
-        valueDisplay.style.fontSize = '0.9rem';
+        const valueDisplay = document.createElement('input');
+        valueDisplay.type = 'number';
+        valueDisplay.value = filter.value;
+        valueDisplay.min = filter.min;
+        valueDisplay.max = filter.max;
+        valueDisplay.style.width = '50px';
+        valueDisplay.style.padding = '0.2rem';
+        valueDisplay.style.background = 'var(--panel-bg)';
+        valueDisplay.style.border = '1px solid var(--border)';
+        valueDisplay.style.borderRadius = '4px';
+        valueDisplay.style.color = 'var(--text)';
+        valueDisplay.style.fontSize = '0.8rem';
         
         slider.addEventListener('input', function() {
-            valueDisplay.textContent = this.value;
+            valueDisplay.value = this.value;
             sliders[filter.name.toLowerCase()] = parseInt(this.value);
+            applyFilters();
+        });
+        
+        valueDisplay.addEventListener('input', function() {
+            let val = parseInt(this.value) || 0;
+            val = Math.max(filter.min, Math.min(filter.max, val));
+            this.value = val;
+            slider.value = val;
+            sliders[filter.name.toLowerCase()] = val;
             applyFilters();
         });
         
@@ -203,9 +305,14 @@ document.addEventListener('DOMContentLoaded', function() {
     actionContainer.style.flexWrap = 'wrap';
     
     const applyBtn = document.createElement('button');
-    applyBtn.textContent = 'Apply Filters';
-    applyBtn.style.padding = '0.6rem 1rem';
-    applyBtn.style.fontSize = '0.9rem';
+    applyBtn.textContent = '✅ Apply';
+    applyBtn.style.padding = '0.5rem 0.8rem';
+    applyBtn.style.fontSize = '0.85rem';
+    applyBtn.style.background = 'var(--button-bg)';
+    applyBtn.style.color = 'white';
+    applyBtn.style.border = 'none';
+    applyBtn.style.borderRadius = '4px';
+    applyBtn.style.cursor = 'pointer';
     applyBtn.addEventListener('click', function() {
         if (!originalImage) {
             showError(canvas, 'Please upload an image first');
@@ -216,9 +323,14 @@ document.addEventListener('DOMContentLoaded', function() {
     actionContainer.appendChild(applyBtn);
     
     const resetBtn = document.createElement('button');
-    resetBtn.textContent = 'Reset';
-    resetBtn.style.padding = '0.6rem 1rem';
-    resetBtn.style.fontSize = '0.9rem';
+    resetBtn.textContent = '🔄 Reset';
+    resetBtn.style.padding = '0.5rem 0.8rem';
+    resetBtn.style.fontSize = '0.85rem';
+    resetBtn.style.background = 'var(--button-bg)';
+    resetBtn.style.color = 'white';
+    resetBtn.style.border = 'none';
+    resetBtn.style.borderRadius = '4px';
+    resetBtn.style.cursor = 'pointer';
     resetBtn.addEventListener('click', function() {
         if (originalImage) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -236,9 +348,14 @@ document.addEventListener('DOMContentLoaded', function() {
     actionContainer.appendChild(resetBtn);
     
     const undoBtn = document.createElement('button');
-    undoBtn.textContent = 'Undo';
-    undoBtn.style.padding = '0.6rem 1rem';
-    undoBtn.style.fontSize = '0.9rem';
+    undoBtn.textContent = '↩️ Undo';
+    undoBtn.style.padding = '0.5rem 0.8rem';
+    undoBtn.style.fontSize = '0.85rem';
+    undoBtn.style.background = 'var(--button-bg)';
+    undoBtn.style.color = 'white';
+    undoBtn.style.border = 'none';
+    undoBtn.style.borderRadius = '4px';
+    undoBtn.style.cursor = 'pointer';
     undoBtn.addEventListener('click', function() {
         if (originalImage) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -248,10 +365,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     actionContainer.appendChild(undoBtn);
     
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = '🗑️ Clear';
+    clearBtn.style.padding = '0.5rem 0.8rem';
+    clearBtn.style.fontSize = '0.85rem';
+    clearBtn.style.background = '#8B0000';
+    clearBtn.style.color = 'white';
+    clearBtn.style.border = 'none';
+    clearBtn.style.borderRadius = '4px';
+    clearBtn.style.cursor = 'pointer';
+    clearBtn.addEventListener('click', function() {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        originalImage = null;
+        currentImage = null;
+    });
+    actionContainer.appendChild(clearBtn);
+    
     const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = 'Download';
-    downloadBtn.style.padding = '0.6rem 1rem';
-    downloadBtn.style.fontSize = '0.9rem';
+    downloadBtn.textContent = '💾 Download';
+    downloadBtn.style.padding = '0.5rem 0.8rem';
+    downloadBtn.style.fontSize = '0.85rem';
+    downloadBtn.style.background = 'var(--button-bg)';
+    downloadBtn.style.color = 'white';
+    downloadBtn.style.border = 'none';
+    downloadBtn.style.borderRadius = '4px';
+    downloadBtn.style.cursor = 'pointer';
     downloadBtn.addEventListener('click', function() {
         const link = document.createElement('a');
         link.download = 'edited-image.png';
@@ -327,6 +466,8 @@ document.addEventListener('DOMContentLoaded', function() {
             lastX = coords.clientX;
             lastY = coords.clientY;
             canvas.style.cursor = 'grabbing';
+        } else if (currentTool === 'fill') {
+            floodFill(Math.floor(coords.x), Math.floor(coords.y), brushColor);
         }
     });
     
@@ -451,6 +592,50 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentImage) {
             ctx.putImageData(currentImage, 0, 0);
         }
+    }
+    
+    function floodFill(startX, startY, fillColor) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        const startIdx = (startY * width + startX) * 4;
+        const targetR = data[startIdx];
+        const targetG = data[startIdx + 1];
+        const targetB = data[startIdx + 2];
+        
+        const fillR = parseInt(fillColor.slice(1, 3), 16);
+        const fillG = parseInt(fillColor.slice(3, 5), 16);
+        const fillB = parseInt(fillColor.slice(5, 7), 16);
+        
+        const queue = [[startX, startY]];
+        const visited = new Set();
+        
+        while (queue.length > 0) {
+            const [x, y] = queue.shift();
+            const key = `${x},${y}`;
+            
+            if (x < 0 || x >= width || y < 0 || y >= height || visited.has(key)) continue;
+            
+            const idx = (y * width + x) * 4;
+            
+            if (Math.abs(data[idx] - targetR) > 30 || 
+                Math.abs(data[idx + 1] - targetG) > 30 || 
+                Math.abs(data[idx + 2] - targetB) > 30) continue;
+            
+            visited.add(key);
+            
+            data[idx] = fillR;
+            data[idx + 1] = fillG;
+            data[idx + 2] = fillB;
+            data[idx + 3] = 255;
+            
+            queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        currentImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
     
     function applyFilters() {

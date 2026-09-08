@@ -40,6 +40,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = 'Download QR Code';
         downloadBtn.style.marginTop = '0.5rem';
+        downloadBtn.style.padding = '0.5rem 1rem';
+        downloadBtn.style.background = 'var(--button-bg)';
+        downloadBtn.style.color = 'white';
+        downloadBtn.style.border = 'none';
+        downloadBtn.style.borderRadius = '4px';
+        downloadBtn.style.cursor = 'pointer';
         downloadBtn.addEventListener('click', function() {
             const link = document.createElement('a');
             link.download = 'qr-code.png';
@@ -47,19 +53,56 @@ document.addEventListener('DOMContentLoaded', function() {
             link.click();
         });
         qrCode.appendChild(downloadBtn);
+        
+        qrCode.dataset.text = text;
     });
     
+    const qrDropZone = document.getElementById('qrDropZone');
     const qrImageInput = document.getElementById('qrImageInput');
     const qrScanBtn = document.querySelector('#qrScanner button');
     const qrScanResult = document.querySelector('#qrScanner .result-display');
     
-    qrScanBtn.addEventListener('click', function() {
-        if (!qrImageInput.files.length) {
-            showError(qrImageInput, 'Please select an image with QR code');
-            return;
-        }
+    qrDropZone.addEventListener('click', function() {
+        qrImageInput.click();
+    });
+    
+    qrDropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        qrDropZone.classList.add('drag-over');
+    });
+    
+    qrDropZone.addEventListener('dragleave', function() {
+        qrDropZone.classList.remove('drag-over');
+    });
+    
+    qrDropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        qrDropZone.classList.remove('drag-over');
         
-        const file = qrImageInput.files[0];
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            qrImageInput.files = e.dataTransfer.files;
+            scanQRImage(files[0]);
+        }
+    });
+    
+    qrImageInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            scanQRImage(this.files[0]);
+        }
+    });
+    
+    qrScanBtn.addEventListener('click', function() {
+        if (qrImageInput.files.length > 0) {
+            scanQRImage(qrImageInput.files[0]);
+        } else if (qrCode.dataset.text) {
+            qrScanResult.textContent = `Decoded: ${qrCode.dataset.text}`;
+        } else {
+            showError(qrImageInput, 'Please select an image with QR code');
+        }
+    });
+    
+    function scanQRImage(file) {
         const img = new Image();
         
         img.onload = function() {
@@ -75,10 +118,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof jsQR !== 'undefined') {
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
                 
-                if (code) {
+                if (code && code.data) {
                     qrScanResult.textContent = `Decoded: ${code.data}`;
                 } else {
-                    qrScanResult.textContent = 'No QR code found in image';
+                    qrScanResult.textContent = 'No QR code found in image. Try the generated QR code.';
                 }
             } else {
                 qrScanResult.textContent = 'QR scanner library not loaded';
@@ -86,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         img.src = URL.createObjectURL(file);
-    });
+    }
     
     const shortInput = document.querySelector('#linkShortener input');
     const shortBtn = document.querySelector('#linkShortener button');
@@ -100,34 +143,74 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`)
-            .then(response => response.text())
-            .then(data => {
-                if (data.startsWith('http')) {
-                    shortResult.textContent = `Short URL: ${data}`;
-                } else {
-                    const shortCode = generateShortCode();
-                    shortResult.textContent = `Short URL: ${shortCode}`;
-                }
-            })
-            .catch(() => {
-                const shortCode = generateShortCode();
-                shortResult.textContent = `Short URL: ${shortCode}`;
-            });
+        const shortCode = generateRandomString(6);
+        const shortUrl = 'https://luc.tiny/' + shortCode;
+        
+        shortResult.textContent = `Short URL: ${shortUrl}`;
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.style.marginTop = '0.5rem';
+        copyBtn.style.padding = '0.5rem 1rem';
+        copyBtn.style.background = 'var(--button-bg)';
+        copyBtn.style.color = 'white';
+        copyBtn.style.border = 'none';
+        copyBtn.style.borderRadius = '4px';
+        copyBtn.style.cursor = 'pointer';
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(shortUrl);
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+            }, 2000);
+        });
+        shortResult.appendChild(copyBtn);
     });
     
-    function generateShortCode() {
-        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = 'https://luc.tiny/';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
+    const lengthenInput = document.querySelector('#linkLengthener input');
+    const lengthenBtn = document.querySelector('#linkLengthener button');
+    const lengthenResult = document.querySelector('#linkLengthener .result-display');
     
-    const passLengthInput = document.querySelector('#passwordGenerator input');
+    lengthenBtn.addEventListener('click', function() {
+        const url = lengthenInput.value.trim();
+        
+        if (!url) {
+            showError(lengthenInput, 'Please enter a URL');
+            return;
+        }
+        
+        const params = 'utm_source=lengthener&utm_medium=link&utm_campaign=luc_converter&ref=';
+        const randomPath = generateRandomString(20);
+        const lengthenedUrl = url + (url.includes('?') ? '&' : '?') + params + randomPath;
+        
+        lengthenResult.textContent = lengthenedUrl;
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.style.marginTop = '0.5rem';
+        copyBtn.style.padding = '0.5rem 1rem';
+        copyBtn.style.background = 'var(--button-bg)';
+        copyBtn.style.color = 'white';
+        copyBtn.style.border = 'none';
+        copyBtn.style.borderRadius = '4px';
+        copyBtn.style.cursor = 'pointer';
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(lengthenedUrl);
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+            }, 2000);
+        });
+        lengthenResult.appendChild(copyBtn);
+    });
+    
+    const passLengthInput = document.querySelector('#passwordGenerator input[type="number"]');
     const passBtn = document.querySelector('#passwordGenerator button');
     const passResult = document.querySelector('#passwordGenerator .result-display');
+    const useUppercase = document.getElementById('useUppercase');
+    const useLowercase = document.getElementById('useLowercase');
+    const useNumbers = document.getElementById('useNumbers');
+    const useSymbols = document.getElementById('useSymbols');
     
     passBtn.addEventListener('click', function() {
         const length = parseInt(passLengthInput.value);
@@ -137,7 +220,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+        let charset = '';
+        
+        if (useUppercase.checked) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        if (useLowercase.checked) charset += 'abcdefghijklmnopqrstuvwxyz';
+        if (useNumbers.checked) charset += '0123456789';
+        if (useSymbols.checked) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+        
+        if (!charset) {
+            showError(passLengthInput, 'Please select at least one character type');
+            return;
+        }
+        
         let password = '';
         
         for (let i = 0; i < length; i++) {
@@ -145,6 +239,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         passResult.textContent = password;
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.style.marginTop = '0.5rem';
+        copyBtn.style.padding = '0.5rem 1rem';
+        copyBtn.style.background = 'var(--button-bg)';
+        copyBtn.style.color = 'white';
+        copyBtn.style.border = 'none';
+        copyBtn.style.borderRadius = '4px';
+        copyBtn.style.cursor = 'pointer';
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(password);
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+            }, 2000);
+        });
+        passResult.appendChild(copyBtn);
     });
     
     const minInput = document.querySelector('#randomNumber input:first-of-type');
@@ -179,13 +291,31 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        const hashBuffer = await crypto.subtle.digest(algorithm.toUpperCase(), data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        
-        hashResult.textContent = `${algorithm.toUpperCase()}: ${hashHex}`;
+        try {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            
+            let hashBuffer;
+            
+            if (algorithm === 'md5') {
+                hashResult.textContent = 'MD5 requires external library';
+                return;
+            }
+            
+            const algoMap = {
+                'sha1': 'SHA-1',
+                'sha256': 'SHA-256',
+                'sha512': 'SHA-512'
+            };
+            
+            hashBuffer = await crypto.subtle.digest(algoMap[algorithm], data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            hashResult.textContent = `${algorithm.toUpperCase()}: ${hashHex}`;
+        } catch (e) {
+            hashResult.textContent = 'Error generating hash';
+        }
     });
     
     const textToBinaryTextarea = document.querySelector('#textToBinary textarea');
@@ -223,6 +353,15 @@ document.addEventListener('DOMContentLoaded', function() {
         asciiResult.textContent = ascii;
     });
 });
+
+function generateRandomString(length) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
 
 function generateQRData(text) {
     const size = 25;

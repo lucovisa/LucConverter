@@ -4,24 +4,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const rgbInput = document.getElementById('rgbInput');
     const hslInput = document.getElementById('hslInput');
     
-    colorPicker.addEventListener('input', function() {
-        const hex = this.value;
+    function updateColorFromHex(hex) {
         const rgb = hexToRgb(hex);
         const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
         
         hexInput.value = hex;
         rgbInput.value = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
         hslInput.value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+    }
+    
+    colorPicker.addEventListener('input', function() {
+        updateColorFromHex(this.value);
     });
     
     hexInput.addEventListener('input', function() {
-        const hex = this.value;
+        const hex = this.value.trim();
         if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
             colorPicker.value = hex;
-            const rgb = hexToRgb(hex);
-            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-            rgbInput.value = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-            hslInput.value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+            updateColorFromHex(hex);
+        }
+    });
+    
+    rgbInput.addEventListener('input', function() {
+        const match = this.value.trim().match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (match) {
+            const r = parseInt(match[1]);
+            const g = parseInt(match[2]);
+            const b = parseInt(match[3]);
+            
+            if (r <= 255 && g <= 255 && b <= 255) {
+                const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+                colorPicker.value = hex;
+                updateColorFromHex(hex);
+            }
         }
     });
     
@@ -38,6 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
         'AWST': 8, 'NZST': 12, 'NZDT': 13, 'IST': 5.5, 'PKT': 5,
         'BST': 6, 'WIB': 7, 'WITA': 8, 'WIT': 9, 'SGT': 8, 'HKT': 8, 'PHT': 8
     };
+    
+    timezoneFrom.innerHTML = '';
+    timezoneTo.innerHTML = '';
     
     Object.keys(timezones).forEach(tz => {
         const option1 = document.createElement('option');
@@ -74,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Stones (st)': 6.35029, 'Carats (ct)': 0.0002, 'Grains (gr)': 0.0000647989
     };
     
+    weightUnit.innerHTML = '';
     Object.keys(weightUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -112,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Kelvin (K)': 'kelvin', 'Rankine (°R)': 'rankine', 'Réaumur (°Ré)': 'reaumur'
     };
     
+    tempUnit.innerHTML = '';
     Object.keys(tempUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = tempUnits[unit];
@@ -158,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Astronomical Units (au)': 149597870700
     };
     
+    distanceUnit.innerHTML = '';
     Object.keys(distanceUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -198,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Decades': 315360000, 'Centuries': 3153600000
     };
     
+    durationUnit.innerHTML = '';
     Object.keys(durationUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -240,6 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Mach (M)': 340.29
     };
     
+    speedUnit.innerHTML = '';
     Object.keys(speedUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -283,6 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Square miles (mi²)': 2589988.11
     };
     
+    areaUnit.innerHTML = '';
     Object.keys(areaUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -328,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Barrels (bbl)': 158.987
     };
     
+    volumeUnit.innerHTML = '';
     Object.keys(volumeUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -370,6 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'PSI': 6894.76
     };
     
+    pressureUnit.innerHTML = '';
     Object.keys(pressureUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -413,6 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'BTU': 1055.06
     };
     
+    energyUnit.innerHTML = '';
     Object.keys(energyUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -454,6 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Foot-pounds per minute': 0.022597
     };
     
+    powerUnit.innerHTML = '';
     Object.keys(powerUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;
@@ -495,6 +523,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Seconds (")': 0.000277778
     };
     
+    angleUnit.innerHTML = '';
     Object.keys(angleUnits).forEach(unit => {
         const option = document.createElement('option');
         option.value = unit;

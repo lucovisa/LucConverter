@@ -3,16 +3,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     calcSection.innerHTML = '';
     
+    const backBtn = document.createElement('button');
+    backBtn.className = 'back-btn';
+    backBtn.textContent = '← Back';
+    backBtn.style.marginBottom = '1rem';
+    backBtn.addEventListener('click', function() {
+        showMainMenu();
+    });
+    calcSection.appendChild(backBtn);
+    
     const calcContainer = document.createElement('div');
-    calcContainer.style.maxWidth = '400px';
+    calcContainer.style.maxWidth = '350px';
     calcContainer.style.margin = '0 auto';
-    calcContainer.style.background = 'var(--panel-bg)';
-    calcContainer.style.border = '1px solid var(--border)';
-    calcContainer.style.borderRadius = '8px';
-    calcContainer.style.padding = '1rem';
+    calcContainer.style.background = 'transparent';
+    calcContainer.style.padding = '0';
     
     const display = document.createElement('div');
-    display.style.background = 'var(--bg)';
+    display.style.background = 'var(--panel-bg)';
     display.style.border = '1px solid var(--border)';
     display.style.borderRadius = '4px';
     display.style.padding = '1rem';
@@ -30,26 +37,26 @@ document.addEventListener('DOMContentLoaded', function() {
     buttonsContainer.style.gap = '0.5rem';
     
     const buttons = [
-        { text: 'C', type: 'clear', color: '#d32f2f' },
-        { text: '±', type: 'negate', color: 'var(--border)' },
-        { text: '%', type: 'percent', color: 'var(--border)' },
-        { text: '÷', type: 'operator', color: 'var(--accent)' },
-        { text: '7', type: 'number', color: 'var(--bg)' },
-        { text: '8', type: 'number', color: 'var(--bg)' },
-        { text: '9', type: 'number', color: 'var(--bg)' },
-        { text: '×', type: 'operator', color: 'var(--accent)' },
-        { text: '4', type: 'number', color: 'var(--bg)' },
-        { text: '5', type: 'number', color: 'var(--bg)' },
-        { text: '6', type: 'number', color: 'var(--bg)' },
-        { text: '-', type: 'operator', color: 'var(--accent)' },
-        { text: '1', type: 'number', color: 'var(--bg)' },
-        { text: '2', type: 'number', color: 'var(--bg)' },
-        { text: '3', type: 'number', color: 'var(--bg)' },
-        { text: '+', type: 'operator', color: 'var(--accent)' },
-        { text: '0', type: 'number', color: 'var(--bg)' },
-        { text: '.', type: 'decimal', color: 'var(--bg)' },
-        { text: '⌫', type: 'backspace', color: 'var(--border)' },
-        { text: '=', type: 'equals', color: '#4CAF50' }
+        { text: 'C', type: 'clear', bg: '#8B0000', color: '#fff' },
+        { text: '±', type: 'negate', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: '%', type: 'percent', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: '÷', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '7', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '8', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '9', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '×', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '4', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '5', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '6', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '-', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '1', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '2', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '3', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '+', type: 'operator', bg: '#1a44c2', color: '#fff' },
+        { text: '0', type: 'number', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '.', type: 'decimal', bg: '#2a475e', color: '#c7d5e0' },
+        { text: '⌫', type: 'backspace', bg: '#3d5a80', color: '#c7d5e0' },
+        { text: '=', type: 'equals', bg: '#2e7d32', color: '#fff' }
     ];
     
     let currentInput = '0';
@@ -63,8 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
         button.style.padding = '1rem';
         button.style.border = 'none';
         button.style.borderRadius = '4px';
-        button.style.background = btn.color;
-        button.style.color = 'var(--text)';
+        button.style.background = btn.bg;
+        button.style.color = btn.color;
         button.style.fontSize = '1.2rem';
         button.style.cursor = 'pointer';
         button.style.transition = 'all 0.2s ease';
@@ -95,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     keyboardInfo.style.textAlign = 'center';
     keyboardInfo.style.fontSize = '0.85rem';
     keyboardInfo.style.opacity = '0.7';
-    keyboardInfo.textContent = 'Keyboard supported: 0-9, +, -, *, /, Enter, Backspace, Escape';
+    keyboardInfo.textContent = 'Keyboard: 0-9, +, -, *, /, Enter, Backspace, Escape';
     calcContainer.appendChild(keyboardInfo);
     
     calcSection.appendChild(calcContainer);

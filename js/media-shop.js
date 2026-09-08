@@ -3,13 +3,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     mediaSection.innerHTML = '';
     
+    const backBtn = document.createElement('button');
+    backBtn.className = 'back-btn';
+    backBtn.textContent = '← Back';
+    backBtn.style.marginBottom = '1rem';
+    backBtn.addEventListener('click', function() {
+        showMainMenu();
+    });
+    mediaSection.appendChild(backBtn);
+    
     const dropZone = document.createElement('div');
     dropZone.className = 'drop-zone';
     dropZone.innerHTML = '<p>Drag and drop audio or video files here or click to select</p>';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'audio/*,video/*';
+    fileInput.accept = 'audio/*,video/*,.mp3,.wav,.ogg,.aac,.flac,.m4a,.mp4,.webm,.avi,.mov,.mkv,.gif';
     fileInput.style.display = 'none';
     
     dropZone.appendChild(fileInput);
@@ -58,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const { createFFmpeg, fetchFile } = FFmpeg;
             ffmpegInstance = createFFmpeg({ 
-                log: true,
+                log: false,
                 corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js'
             });
             
@@ -70,12 +79,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    function showError(element, message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        element.parentElement.insertBefore(errorDiv, element.nextSibling);
+        
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 3000);
+    }
+    
     function processFile(file) {
-        const isAudio = file.type.startsWith('audio/');
-        const isVideo = file.type.startsWith('video/');
+        const extension = file.name.split('.').pop().toLowerCase();
+        const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma', 'opus', 'webm'];
+        const videoExtensions = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'gif', 'flv', 'wmv', 'm4v'];
+        
+        const isAudio = file.type.startsWith('audio/') || audioExtensions.includes(extension);
+        const isVideo = file.type.startsWith('video/') || videoExtensions.includes(extension);
         
         if (!isAudio && !isVideo) {
-            alert('Unsupported file type. Please select audio or video.');
+            showError(dropZone, 'Unsupported file type. Please select audio or video.');
             return;
         }
         
@@ -124,6 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
         startTimeInput.step = '0.1';
         startTimeInput.style.flex = '1';
         startTimeInput.style.minWidth = '150px';
+        startTimeInput.style.padding = '0.6rem';
+        startTimeInput.style.background = 'var(--bg)';
+        startTimeInput.style.border = '1px solid var(--border)';
+        startTimeInput.style.borderRadius = '4px';
+        startTimeInput.style.color = 'var(--text)';
         
         const endTimeInput = document.createElement('input');
         endTimeInput.type = 'number';
@@ -132,6 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
         endTimeInput.step = '0.1';
         endTimeInput.style.flex = '1';
         endTimeInput.style.minWidth = '150px';
+        endTimeInput.style.padding = '0.6rem';
+        endTimeInput.style.background = 'var(--bg)';
+        endTimeInput.style.border = '1px solid var(--border)';
+        endTimeInput.style.borderRadius = '4px';
+        endTimeInput.style.color = 'var(--text)';
         
         const trimBtn = document.createElement('button');
         trimBtn.textContent = 'Trim';
@@ -146,12 +180,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const endTime = parseFloat(endTimeInput.value);
             
             if (isNaN(startTime) || startTime < 0) {
-                alert('Please enter a valid start time');
+                showError(startTimeInput, 'Please enter a valid start time');
                 return;
             }
             
             if (isNaN(endTime) || endTime <= startTime) {
-                alert('End time must be greater than start time');
+                showError(endTimeInput, 'End time must be greater than start time');
                 return;
             }
             
@@ -159,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const ffmpeg = await initFFmpeg();
             if (!ffmpeg) {
-                alert('FFmpeg not loaded. Using preview instead.');
                 mediaElement.currentTime = startTime;
                 mediaElement.play();
                 setTimeout(() => mediaElement.pause(), duration * 1000);
@@ -167,19 +200,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const { fetchFile } = FFmpeg;
-            ffmpeg.FS('writeFile', 'input' + getExtension(file.name), await fetchFile(file));
+            const inputName = 'input' + getExtension(file.name);
+            const outputName = 'output' + getExtension(file.name);
+            
+            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
             
             await ffmpeg.run(
-                '-i', 'input' + getExtension(file.name),
+                '-i', inputName,
                 '-ss', startTime.toString(),
                 '-t', duration.toString(),
                 '-c', 'copy',
-                'output' + getExtension(file.name)
+                outputName
             );
             
-            const data = ffmpeg.FS('readFile', 'output' + getExtension(file.name));
+            const data = ffmpeg.FS('readFile', outputName);
             const blob = new Blob([data.buffer], { type: file.type });
             downloadFile(blob, 'trimmed_' + file.name);
+            
+            ffmpeg.FS('unlink', inputName);
+            ffmpeg.FS('unlink', outputName);
         });
         
         trimControls.appendChild(startTimeInput);
@@ -209,12 +248,13 @@ document.addEventListener('DOMContentLoaded', function() {
         formats.forEach(format => {
             const convertBtn = document.createElement('button');
             convertBtn.textContent = format;
-            convertBtn.style.padding = '0.6rem 1rem';
+            convertBtn.style.padding = '0.5rem 0.8rem';
             convertBtn.style.background = 'var(--button-bg)';
             convertBtn.style.color = 'white';
             convertBtn.style.border = 'none';
             convertBtn.style.borderRadius = '4px';
             convertBtn.style.cursor = 'pointer';
+            convertBtn.style.fontSize = '0.85rem';
             convertBtn.addEventListener('click', async function() {
                 await convertWithFFmpeg(file, format.toLowerCase());
             });
@@ -243,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const volumeLabel = document.createElement('span');
         volumeLabel.textContent = '100%';
+        volumeLabel.style.fontSize = '0.9rem';
         volumeSlider.addEventListener('input', function() {
             volumeLabel.textContent = this.value + '%';
             mediaElement.volume = this.value / 100;
@@ -289,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const ffmpeg = await initFFmpeg();
         
         if (!ffmpeg) {
-            alert('FFmpeg not loaded. Using basic conversion.');
             basicConvert(file, format);
             return;
         }

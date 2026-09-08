@@ -39,6 +39,22 @@ function showError(inputElement, message) {
     }, 3000);
 }
 
+function showSuccess(inputElement, message) {
+    const existingSuccess = inputElement.parentElement.querySelector('.success-message');
+    if (existingSuccess) {
+        existingSuccess.remove();
+    }
+    
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.textContent = message;
+    inputElement.parentElement.insertBefore(successDiv, inputElement.nextSibling);
+    
+    setTimeout(() => {
+        successDiv.remove();
+    }, 3000);
+}
+
 function encodeURL() {
     const input = document.querySelector('#urlConverter textarea');
     const result = document.getElementById('urlResult');
@@ -49,6 +65,7 @@ function encodeURL() {
     }
     
     result.value = encodeURIComponent(input.value);
+    showSuccess(input, 'Text encoded successfully');
 }
 
 function decodeURL() {
@@ -62,6 +79,7 @@ function decodeURL() {
     
     try {
         result.value = decodeURIComponent(input.value);
+        showSuccess(input, 'Text decoded successfully');
     } catch (e) {
         showError(input, 'Invalid encoded text');
     }

@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LucConverter</title>
-    <meta name="description" content="Free anonymous file and currency converter">
+    <meta name="description" content="Free Anonymous File & Currency Converter — convert files and currencies, edit photos, videos, and audio without leaving digital traces. No registrations, no logs, no remembering your files. You download the result — and the service instantly forgets you ever existed. Clean, fast, secure.">
     <meta name="keywords" content="github, lucovisa, converter, convert, files, currency, crypto, anonymous, free, online, tool, luc, luc converter, file converter, currency converter, crypto converter, bitcoin, ethereum, ton, usdt, exchange, file conversion, лук, луковица, лук конвертер, конвертер, конвертер файлов, конвертер валют, криптовалюта, анонимный, бесплатный, онлайн, файлы, валюта, биткоин, эфириум, тон, обмен">
     <meta property="og:title" content="LucConverter">
-    <meta property="og:description" content="Free anonymous file and currency converter">
+    <meta property="og:description" content="Free Anonymous File & Currency Converter — convert files and currencies, edit photos, videos, and audio without leaving digital traces. No registrations, no logs, no remembering your files. You download the result — and the service instantly forgets you ever existed. Clean, fast, secure.">
     <meta property="og:image" content="og-image-1200x630.png">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://lucovisa.github.io/LucConverter/">
@@ -16,6 +16,12 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 </head>
 <body>
     <header>
@@ -63,6 +69,10 @@
                 </div>
                 
                 <div class="function-card">
+                    <button class="menu-btn" onclick="showSection('info')">Info</button>
+                </div>
+                
+                <div class="function-card">
                     <button class="menu-btn" onclick="window.location.href='https://lucovisa.github.io/SQL-in-image/'">Embed Text in Image</button>
                 </div>
                 
@@ -88,18 +98,18 @@
             <div class="supported-formats">
                 <h3>Supported conversions:</h3>
                 <div class="format-tags">
-                    <span class="format-tag">PDF → Word, Excel, JPG, HTML</span>
-                    <span class="format-tag">Images → PNG, JPG, WebP, SVG</span>
-                    <span class="format-tag">Video → MP4, AVI, MOV, GIF</span>
-                    <span class="format-tag">Video → Audio (MP3, WAV)</span>
+                    <span class="format-tag">PDF → TXT, HTML, JPG, PNG</span>
+                    <span class="format-tag">Images → PNG, JPG, WebP, SVG, BMP, ICO</span>
+                    <span class="format-tag">Images → Text (OCR)</span>
+                    <span class="format-tag">Video → MP4, AVI, MOV, GIF, WebM</span>
+                    <span class="format-tag">Video → Audio (MP3, WAV, OGG)</span>
                     <span class="format-tag">Video → Image (JPG, PNG)</span>
-                    <span class="format-tag">Audio → Video (MP4)</span>
-                    <span class="format-tag">Audio → MP3, WAV, OGG</span>
-                    <span class="format-tag">Documents → DOC, TXT, HTML, MD</span>
-                    <span class="format-tag">Code → JSON, XML, YAML, CSV</span>
-                    <span class="format-tag">Fonts → TTF, OTF, WOFF, WOFF2</span>
-                    <span class="format-tag">HTML → Text</span>
-                    <span class="format-tag">Any file → Any format</span>
+                    <span class="format-tag">Audio → Video (MP4, WebM)</span>
+                    <span class="format-tag">Audio → MP3, WAV, OGG, AAC, FLAC, M4A</span>
+                    <span class="format-tag">DOCX → TXT, HTML, PDF</span>
+                    <span class="format-tag">XLSX → CSV, JSON, HTML</span>
+                    <span class="format-tag">HTML → TXT, Markdown, PDF</span>
+                    <span class="format-tag">Any file → ZIP</span>
                 </div>
             </div>
             
@@ -285,6 +295,7 @@
                 <button class="converter-btn" onclick="showConverter('qrConverter')">QR Code Generator</button>
                 <button class="converter-btn" onclick="showConverter('qrScanner')">QR Scanner</button>
                 <button class="converter-btn" onclick="showConverter('linkShortener')">Link Shortener</button>
+                <button class="converter-btn" onclick="showConverter('linkLengthener')">Link Lengthener</button>
                 <button class="converter-btn" onclick="showConverter('passwordGenerator')">Password Generator</button>
                 <button class="converter-btn" onclick="showConverter('randomNumber')">Random Number</button>
                 <button class="converter-btn" onclick="showConverter('hashGenerator')">Hash Generator</button>
@@ -311,7 +322,10 @@
             
             <div id="qrScanner" class="converter-content">
                 <h3>QR Scanner</h3>
-                <input type="file" accept="image/*" id="qrImageInput">
+                <div class="drop-zone" id="qrDropZone" style="padding: 2rem;">
+                    <p>Drag and drop QR image here or click</p>
+                    <input type="file" accept="image/*" id="qrImageInput" style="display: none;">
+                </div>
                 <button>Scan QR</button>
                 <div class="result-display"></div>
             </div>
@@ -323,9 +337,22 @@
                 <div class="result-display"></div>
             </div>
             
+            <div id="linkLengthener" class="converter-content">
+                <h3>Link Lengthener</h3>
+                <input type="url" placeholder="Enter short URL">
+                <button>Lengthen</button>
+                <div class="result-display"></div>
+            </div>
+            
             <div id="passwordGenerator" class="converter-content">
                 <h3>Password Generator</h3>
                 <input type="number" placeholder="Password length" min="4" max="100" value="12">
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="useUppercase" checked> Uppercase</label>
+                    <label><input type="checkbox" id="useLowercase" checked> Lowercase</label>
+                    <label><input type="checkbox" id="useNumbers" checked> Numbers</label>
+                    <label><input type="checkbox" id="useSymbols" checked> Symbols</label>
+                </div>
                 <button>Generate Password</button>
                 <div class="result-display"></div>
             </div>
@@ -342,7 +369,6 @@
                 <h3>Hash Generator</h3>
                 <input type="text" placeholder="Enter text to hash">
                 <select>
-                    <option value="md5">MD5</option>
                     <option value="sha1">SHA-1</option>
                     <option value="sha256">SHA-256</option>
                     <option value="sha512">SHA-512</option>
@@ -414,6 +440,137 @@
         <section id="calculator" class="tool-section">
             <button class="back-btn" onclick="showMainMenu()">← Back</button>
             <h2>Calculator</h2>
+        </section>
+        
+        <section id="info" class="tool-section">
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+            <h2>Site Guide</h2>
+            
+            <div class="guide-container">
+                <div class="guide-section">
+                    <h3>File Converter</h3>
+                    <p>Click on File Converter to convert files between different formats.</p>
+                    <ul>
+                        <li>PDF → TXT, HTML, JPG, PNG</li>
+                        <li>Images → PNG, JPG, WebP, SVG, BMP, ICO</li>
+                        <li>Images → Text (OCR)</li>
+                        <li>Video → MP4, AVI, MOV, GIF, WebM</li>
+                        <li>Video → Audio (MP3, WAV, OGG)</li>
+                        <li>Video → Image (JPG, PNG)</li>
+                        <li>Audio → MP3, WAV, OGG, AAC, FLAC, M4A</li>
+                        <li>Audio → Video (MP4, WebM)</li>
+                        <li>DOCX → TXT, HTML, PDF</li>
+                        <li>XLSX → CSV, JSON, HTML</li>
+                        <li>HTML → TXT, Markdown, PDF</li>
+                        <li>Any file → ZIP</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Unit Converter</h3>
+                    <p>Click on Unit Converter to convert between different units.</p>
+                    <ul>
+                        <li>Color — HEX, RGB, HSL</li>
+                        <li>Time Zones — convert time between zones</li>
+                        <li>Weight — kg, lbs, oz, etc.</li>
+                        <li>Temperature — Celsius, Fahrenheit, Kelvin</li>
+                        <li>Distance — km, miles, meters, etc.</li>
+                        <li>Duration — seconds, minutes, hours, days</li>
+                        <li>Speed — km/h, mph, m/s</li>
+                        <li>Area — m², km², acres, hectares</li>
+                        <li>Volume — liters, gallons, m³</li>
+                        <li>Pressure — Pa, bar, atm, PSI</li>
+                        <li>Energy — J, kJ, calories, Wh</li>
+                        <li>Power — W, kW, hp</li>
+                        <li>Angle — degrees, radians</li>
+                        <li>Fraction to Decimal</li>
+                        <li>Roman Numerals</li>
+                        <li>Number Systems — binary, octal, hex</li>
+                        <li>Date Converter — ISO, Unix timestamp</li>
+                        <li>UUID Generator</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Link Converter</h3>
+                    <p>Click on Link Converter to work with links and codes.</p>
+                    <ul>
+                        <li>URL Encoder/Decoder</li>
+                        <li>QR Code Generator</li>
+                        <li>QR Scanner — upload or drag QR image</li>
+                        <li>Link Shortener</li>
+                        <li>Link Lengthener</li>
+                        <li>Password Generator — with character options</li>
+                        <li>Random Number Generator</li>
+                        <li>Hash Generator — SHA-1, SHA-256, SHA-512</li>
+                        <li>Text to Binary</li>
+                        <li>ASCII Converter</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Currency Converter</h3>
+                    <p>Click on Currency Converter to convert between 100+ currencies.</p>
+                    <ul>
+                        <li>Fiat currencies — USD, EUR, RUB, JPY, etc.</li>
+                        <li>Cryptocurrencies — BTC, ETH, USDT, etc.</li>
+                        <li>Real-time exchange rates via API</li>
+                        <li>Swap button to switch currencies</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Media Shop</h3>
+                    <p>Click on Media Shop to edit audio and video.</p>
+                    <ul>
+                        <li>Upload audio or video files</li>
+                        <li>Trim — set start and end time</li>
+                        <li>Convert — MP4, WebM, MP3, WAV, etc.</li>
+                        <li>Volume control</li>
+                        <li>Download original or converted</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Photoshop</h3>
+                    <p>Click on Photoshop to edit images.</p>
+                    <ul>
+                        <li>Upload image</li>
+                        <li>Brush — draw with color and size</li>
+                        <li>Eraser — remove parts</li>
+                        <li>Fill — fill area with color</li>
+                        <li>Zoom In/Out</li>
+                        <li>Pan — move around</li>
+                        <li>Filters — brightness, contrast, saturation, blur, sharpen</li>
+                        <li>Download edited image</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Text Editor</h3>
+                    <p>Click on Text Editor to write and edit text.</p>
+                    <ul>
+                        <li>New, Open, Save files</li>
+                        <li>Bold, Italic, Underline formatting</li>
+                        <li>Language selection — Python, JS, HTML, etc.</li>
+                        <li>UPPERCASE, lowercase, Reverse</li>
+                        <li>Sort lines, Remove duplicates</li>
+                        <li>Word count</li>
+                        <li>Find and Replace</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h3>Calculator</h3>
+                    <p>Click on Calculator to perform calculations.</p>
+                    <ul>
+                        <li>Basic operations — +, -, ×, ÷</li>
+                        <li>Percentage</li>
+                        <li>Keyboard support</li>
+                        <li>Backspace, Clear</li>
+                    </ul>
+                </div>
+            </div>
         </section>
     </main>
 
