@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://lucovisa.github.io/LucConverter/sitemap.xml
