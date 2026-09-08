@@ -48,10 +48,16 @@ function initMediaShop() {
     let audioContext = null;
 
     function isAllowedFile(file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        const allowedExt = ['glb', 'gltf', 'obj'];
-        return file.type.startsWith('audio') || file.type.startsWith('video') || allowedExt.includes(ext);
-    }
+    const ext = file.name.split('.').pop().toLowerCase();
+    const allowedExt = ['glb', 'gltf', 'obj'];
+    const audioExt = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'];
+    const videoExt = ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'];
+    return file.type.startsWith('audio') || 
+           file.type.startsWith('video') || 
+           allowedExt.includes(ext) || 
+           audioExt.includes(ext) || 
+           videoExt.includes(ext);
+}
 
     function processFiles(files) {
         const validFiles = files.filter(isAllowedFile);
