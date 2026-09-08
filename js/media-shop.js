@@ -15,10 +15,10 @@ function initMediaShop() {
 
     const dropZone = document.createElement('div');
     dropZone.className = 'drop-zone';
-    dropZone.innerHTML = '<p>Drag and drop audio or video files here or click to select</p>';
+    dropZone.innerHTML = '<p>Drag and drop audio, video or 3D files here or click to select</p>';
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'audio/*,video/*';
+    fileInput.accept = 'audio/*,video/*,.glb,.gltf,.obj';
     fileInput.multiple = true;
     fileInput.style.display = 'none';
     dropZone.appendChild(fileInput);
@@ -59,330 +59,479 @@ function initMediaShop() {
         title.style.marginBottom = '1rem';
         editorContainer.appendChild(title);
 
-const fileListContainer = document.createElement('div');
-fileListContainer.style.marginBottom = '1rem';
-files.forEach((file, index) => {
-    const fileItem = document.createElement('div');
-    fileItem.style.padding = '0.5rem';
-    fileItem.style.border = '1px solid var(--border)';
-    fileItem.style.borderRadius = '4px';
-    fileItem.style.marginBottom = '0.3rem';
-    fileItem.textContent = `${index + 1}. ${file.name}`;
-    fileListContainer.appendChild(fileItem);
-});
-
-const clearBtn = document.createElement('button');
-clearBtn.textContent = 'Clear All Files';
-clearBtn.style.padding = '0.5rem 1rem';
-clearBtn.style.background = '#8B0000';
-clearBtn.style.color = 'white';
-clearBtn.style.border = 'none';
-clearBtn.style.borderRadius = '4px';
-clearBtn.style.cursor = 'pointer';
-clearBtn.style.marginTop = '0.5rem';
-clearBtn.addEventListener('click', () => {
-    editorContainer.style.display = 'none';
-    editorContainer.innerHTML = '';
-    mediaFiles = [];
-    processedBlobs = [];
-});
-fileListContainer.appendChild(clearBtn);
-
-editorContainer.appendChild(fileListContainer);
-
-        const controlsContainer = document.createElement('div');
-        controlsContainer.style.padding = '1rem';
-        controlsContainer.style.background = 'var(--panel-bg)';
-        controlsContainer.style.border = '1px solid var(--border)';
-        controlsContainer.style.borderRadius = '4px';
-
-        const settingsRow = document.createElement('div');
-        settingsRow.style.display = 'flex';
-        settingsRow.style.gap = '1rem';
-        settingsRow.style.flexWrap = 'wrap';
-        settingsRow.style.marginBottom = '1rem';
-
-        const formatGroup = document.createElement('div');
-        formatGroup.style.flex = '1';
-        formatGroup.style.minWidth = '150px';
-        formatGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Output Format</label>';
-        const formatSelect = document.createElement('select');
-        formatSelect.style.width = '100%';
-        formatSelect.style.padding = '0.5rem';
-        formatSelect.style.background = 'var(--bg)';
-        formatSelect.style.border = '1px solid var(--border)';
-        formatSelect.style.borderRadius = '4px';
-        formatSelect.style.color = 'var(--text)';
-        const isVideo = files.some(f => f.type.startsWith('video'));
-        const isAudio = files.some(f => f.type.startsWith('audio'));
-        if (isVideo && !isAudio) {
-            ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
-        } else if (isAudio && !isVideo) {
-            ['wav', 'mp3'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
-        } else {
-            ['webm', 'mp4', 'gif', 'wav', 'mp3', 'jpg', 'png'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
-        }
-        formatGroup.appendChild(formatSelect);
-        settingsRow.appendChild(formatGroup);
-
-        const qualityGroup = document.createElement('div');
-        qualityGroup.style.flex = '1';
-        qualityGroup.style.minWidth = '150px';
-        qualityGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Quality / Bitrate</label>';
-        const qualitySelect = document.createElement('select');
-        qualitySelect.style.width = '100%';
-        qualitySelect.style.padding = '0.5rem';
-        qualitySelect.style.background = 'var(--bg)';
-        qualitySelect.style.border = '1px solid var(--border)';
-        qualitySelect.style.borderRadius = '4px';
-        qualitySelect.style.color = 'var(--text)';
-        [
-            { value: 'low', label: 'Low (96 kbps)' },
-            { value: 'medium', label: 'Medium (128 kbps)' },
-            { value: 'high', label: 'High (192 kbps)' },
-            { value: 'best', label: 'Best (320 kbps)' }
-        ].forEach(q => qualitySelect.add(new Option(q.label, q.value)));
-        qualityGroup.appendChild(qualitySelect);
-        settingsRow.appendChild(qualityGroup);
-
-        const resolutionGroup = document.createElement('div');
-        resolutionGroup.style.flex = '1';
-        resolutionGroup.style.minWidth = '150px';
-        resolutionGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Resolution</label>';
-        const resolutionSelect = document.createElement('select');
-        resolutionSelect.style.width = '100%';
-        resolutionSelect.style.padding = '0.5rem';
-        resolutionSelect.style.background = 'var(--bg)';
-        resolutionSelect.style.border = '1px solid var(--border)';
-        resolutionSelect.style.borderRadius = '4px';
-        resolutionSelect.style.color = 'var(--text)';
-        [
-            { value: 'original', label: 'Original' },
-            { value: '1080p', label: '1080p (1920x1080)' },
-            { value: '720p', label: '720p (1280x720)' },
-            { value: '480p', label: '480p (854x480)' },
-            { value: '360p', label: '360p (640x360)' }
-        ].forEach(r => resolutionSelect.add(new Option(r.label, r.value)));
-        resolutionGroup.appendChild(resolutionSelect);
-        settingsRow.appendChild(resolutionGroup);
-
-        const volumeGroup = document.createElement('div');
-        volumeGroup.style.flex = '1';
-        volumeGroup.style.minWidth = '150px';
-        volumeGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Volume</label>';
-        const volumeSlider = document.createElement('input');
-        volumeSlider.type = 'range';
-        volumeSlider.min = '0';
-        volumeSlider.max = '1000';
-        volumeSlider.value = '100';
-        volumeSlider.style.width = '100%';
-        const volumeLabel = document.createElement('span');
-        volumeLabel.textContent = '100%';
-        volumeLabel.style.fontSize = '0.85rem';
-        volumeSlider.addEventListener('input', () => {
-            volumeLabel.textContent = volumeSlider.value + '%';
+        const fileListContainer = document.createElement('div');
+        fileListContainer.style.marginBottom = '1rem';
+        files.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.style.padding = '0.5rem';
+            fileItem.style.border = '1px solid var(--border)';
+            fileItem.style.borderRadius = '4px';
+            fileItem.style.marginBottom = '0.3rem';
+            fileItem.textContent = `${index + 1}. ${file.name}`;
+            fileListContainer.appendChild(fileItem);
         });
-        volumeGroup.appendChild(volumeSlider);
-        volumeGroup.appendChild(volumeLabel);
-        settingsRow.appendChild(volumeGroup);
 
-        const speedGroup = document.createElement('div');
-        speedGroup.style.flex = '1';
-        speedGroup.style.minWidth = '150px';
-        speedGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Speed</label>';
-        const speedSlider = document.createElement('input');
-        speedSlider.type = 'range';
-        speedSlider.min = '0.5';
-        speedSlider.max = '2';
-        speedSlider.step = '0.1';
-        speedSlider.value = '1';
-        speedSlider.style.width = '100%';
-        const speedLabel = document.createElement('span');
-        speedLabel.textContent = '1x';
-        speedLabel.style.fontSize = '0.85rem';
-        speedSlider.addEventListener('input', () => {
-            speedLabel.textContent = speedSlider.value + 'x';
-        });
-        speedGroup.appendChild(speedSlider);
-        speedGroup.appendChild(speedLabel);
-        settingsRow.appendChild(speedGroup);
-
-        controlsContainer.appendChild(settingsRow);
-
-        const trimRow = document.createElement('div');
-        trimRow.style.display = 'flex';
-        trimRow.style.gap = '1rem';
-        trimRow.style.flexWrap = 'wrap';
-        trimRow.style.marginBottom = '1rem';
-
-        const startGroup = document.createElement('div');
-        startGroup.style.flex = '1';
-        startGroup.style.minWidth = '120px';
-        startGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Start (seconds)</label>';
-        const startInput = document.createElement('input');
-        startInput.type = 'number';
-        startInput.min = '0';
-        startInput.step = '0.1';
-        startInput.value = '0';
-        startInput.style.width = '100%';
-        startInput.style.padding = '0.5rem';
-        startInput.style.background = 'var(--bg)';
-        startInput.style.border = '1px solid var(--border)';
-        startInput.style.borderRadius = '4px';
-        startInput.style.color = 'var(--text)';
-        startGroup.appendChild(startInput);
-        trimRow.appendChild(startGroup);
-
-        const endGroup = document.createElement('div');
-        endGroup.style.flex = '1';
-        endGroup.style.minWidth = '120px';
-        endGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">End (seconds)</label>';
-        const endInput = document.createElement('input');
-        endInput.type = 'number';
-        endInput.min = '0';
-        endInput.step = '0.1';
-        endInput.value = '0';
-        endInput.style.width = '100%';
-        endInput.style.padding = '0.5rem';
-        endInput.style.background = 'var(--bg)';
-        endInput.style.border = '1px solid var(--border)';
-        endInput.style.borderRadius = '4px';
-        endInput.style.color = 'var(--text)';
-        endGroup.appendChild(endInput);
-        trimRow.appendChild(endGroup);
-
-        const textOverlayGroup = document.createElement('div');
-        textOverlayGroup.style.flex = '1';
-        textOverlayGroup.style.minWidth = '200px';
-        textOverlayGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Text Overlay (for video)</label>';
-        const textOverlayInput = document.createElement('input');
-        textOverlayInput.type = 'text';
-        textOverlayInput.placeholder = 'Enter text to overlay';
-        textOverlayInput.style.width = '100%';
-        textOverlayInput.style.padding = '0.5rem';
-        textOverlayInput.style.background = 'var(--bg)';
-        textOverlayInput.style.border = '1px solid var(--border)';
-        textOverlayInput.style.borderRadius = '4px';
-        textOverlayInput.style.color = 'var(--text)';
-        textOverlayGroup.appendChild(textOverlayInput);
-        trimRow.appendChild(textOverlayGroup);
-
-        controlsContainer.appendChild(trimRow);
-
-        const mixRow = document.createElement('div');
-        mixRow.style.display = 'flex';
-        mixRow.style.gap = '1rem';
-        mixRow.style.flexWrap = 'wrap';
-        mixRow.style.marginBottom = '1rem';
-
-        const mixSelectGroup = document.createElement('div');
-        mixSelectGroup.style.flex = '1';
-        mixSelectGroup.style.minWidth = '150px';
-        mixSelectGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Mix with another file</label>';
-        const mixSelect = document.createElement('select');
-        mixSelect.style.width = '100%';
-        mixSelect.style.padding = '0.5rem';
-        mixSelect.style.background = 'var(--bg)';
-        mixSelect.style.border = '1px solid var(--border)';
-        mixSelect.style.borderRadius = '4px';
-        mixSelect.style.color = 'var(--text)';
-        mixSelect.add(new Option('None', ''));
-        mediaFiles.forEach((f, i) => {
-            mixSelect.add(new Option(f.name, i));
-        });
-        mixSelectGroup.appendChild(mixSelect);
-        mixRow.appendChild(mixSelectGroup);
-
-        const mixVolumeGroup = document.createElement('div');
-        mixVolumeGroup.style.flex = '1';
-        mixVolumeGroup.style.minWidth = '150px';
-        mixVolumeGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Mix Volume</label>';
-        const mixVolume = document.createElement('input');
-        mixVolume.type = 'range';
-        mixVolume.min = '0';
-        mixVolume.max = '100';
-        mixVolume.value = '50';
-        mixVolume.style.width = '100%';
-        mixVolumeGroup.appendChild(mixVolume);
-        mixRow.appendChild(mixVolumeGroup);
-
-        controlsContainer.appendChild(mixRow);
-
-        const actionRow = document.createElement('div');
-        actionRow.style.display = 'flex';
-        actionRow.style.gap = '0.5rem';
-        actionRow.style.flexWrap = 'wrap';
-
-        const processBtn = document.createElement('button');
-        processBtn.textContent = 'Process All';
-        processBtn.style.padding = '0.7rem 1.5rem';
-        processBtn.style.background = 'var(--button-bg)';
-        processBtn.style.color = 'white';
-        processBtn.style.border = 'none';
-        processBtn.style.borderRadius = '4px';
-        processBtn.style.cursor = 'pointer';
-        processBtn.addEventListener('click', async () => {
-            const format = formatSelect.value;
-            const quality = qualitySelect.value;
-            const resolution = resolutionSelect.value;
-            const volume = parseInt(volumeSlider.value);
-            const speed = parseFloat(speedSlider.value);
-            const start = parseFloat(startInput.value) || 0;
-            const end = parseFloat(endInput.value) || 0;
-            const overlayText = textOverlayInput.value.trim();
-            const mixIndex = mixSelect.value;
-            const mixVol = parseInt(mixVolume.value) / 100;
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear All Files';
+        clearBtn.style.padding = '0.5rem 1rem';
+        clearBtn.style.background = '#8B0000';
+        clearBtn.style.color = 'white';
+        clearBtn.style.border = 'none';
+        clearBtn.style.borderRadius = '4px';
+        clearBtn.style.cursor = 'pointer';
+        clearBtn.style.marginTop = '0.5rem';
+        clearBtn.addEventListener('click', () => {
+            editorContainer.style.display = 'none';
+            editorContainer.innerHTML = '';
+            mediaFiles = [];
             processedBlobs = [];
-            const statusDiv = document.createElement('div');
-            statusDiv.className = 'success-message';
-            statusDiv.textContent = 'Processing...';
-            controlsContainer.appendChild(statusDiv);
-            for (let i = 0; i < mediaFiles.length; i++) {
-                const file = mediaFiles[i];
-                let mixFile = null;
-                if (mixIndex !== '' && i != mixIndex) {
-                    mixFile = mediaFiles[mixIndex];
-                }
-                const blob = await processMediaFile(file, mixFile, start, end, format, volume, speed, quality, resolution, overlayText, mixVol);
-                if (blob) {
-                    processedBlobs.push({ blob, fileName: 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format) });
-                }
-            }
-            statusDiv.textContent = `Processed ${processedBlobs.length}/${mediaFiles.length} files`;
-            setTimeout(() => statusDiv.remove(), 3000);
-            if (processedBlobs.length > 0) {
-                showDownloadButtons(processedBlobs, controlsContainer);
-            }
         });
-        actionRow.appendChild(processBtn);
+        fileListContainer.appendChild(clearBtn);
 
-        const downloadZipBtn = document.createElement('button');
-        downloadZipBtn.textContent = 'Download All as ZIP';
-        downloadZipBtn.style.padding = '0.7rem 1.5rem';
-        downloadZipBtn.style.background = '#2e7d32';
-        downloadZipBtn.style.color = 'white';
-        downloadZipBtn.style.border = 'none';
-        downloadZipBtn.style.borderRadius = '4px';
-        downloadZipBtn.style.cursor = 'pointer';
-        downloadZipBtn.addEventListener('click', async () => {
-            if (processedBlobs.length === 0) {
-                showError(downloadZipBtn, 'No processed files');
-                return;
+        editorContainer.appendChild(fileListContainer);
+
+        const has3D = files.some(f => {
+            const ext = f.name.split('.').pop().toLowerCase();
+            return ['glb', 'gltf', 'obj'].includes(ext);
+        });
+
+        if (has3D) {
+            const viewerContainer = document.createElement('div');
+            viewerContainer.style.width = '100%';
+            viewerContainer.style.height = '500px';
+            viewerContainer.style.position = 'relative';
+            viewerContainer.style.background = '#0a0a0a';
+            viewerContainer.style.borderRadius = '4px';
+            viewerContainer.style.marginBottom = '1rem';
+            viewerContainer.style.overflow = 'hidden';
+            editorContainer.appendChild(viewerContainer);
+
+            const viewerInfo = document.createElement('div');
+            viewerInfo.textContent = 'Loading 3D model...';
+            viewerInfo.style.position = 'absolute';
+            viewerInfo.style.top = '50%';
+            viewerInfo.style.left = '50%';
+            viewerInfo.style.transform = 'translate(-50%, -50%)';
+            viewerInfo.style.color = 'white';
+            viewerInfo.style.fontSize = '1.2rem';
+            viewerInfo.style.zIndex = '10';
+            viewerContainer.appendChild(viewerInfo);
+
+            const controlsInfo = document.createElement('div');
+            controlsInfo.textContent = 'Mouse: rotate | Wheel: zoom | Right click: pan';
+            controlsInfo.style.position = 'absolute';
+            controlsInfo.style.bottom = '10px';
+            controlsInfo.style.left = '50%';
+            controlsInfo.style.transform = 'translateX(-50%)';
+            controlsInfo.style.color = '#aaa';
+            controlsInfo.style.fontSize = '0.85rem';
+            controlsInfo.style.zIndex = '10';
+            controlsInfo.style.background = 'rgba(0,0,0,0.7)';
+            controlsInfo.style.padding = '0.3rem 0.8rem';
+            controlsInfo.style.borderRadius = '4px';
+            viewerContainer.appendChild(controlsInfo);
+
+            const autoRotateBtn = document.createElement('button');
+            autoRotateBtn.textContent = 'Auto Rotate: Off';
+            autoRotateBtn.style.position = 'absolute';
+            autoRotateBtn.style.top = '10px';
+            autoRotateBtn.style.right = '10px';
+            autoRotateBtn.style.padding = '0.5rem 1rem';
+            autoRotateBtn.style.background = 'rgba(0,0,0,0.7)';
+            autoRotateBtn.style.color = 'white';
+            autoRotateBtn.style.border = '1px solid #444';
+            autoRotateBtn.style.borderRadius = '4px';
+            autoRotateBtn.style.cursor = 'pointer';
+            autoRotateBtn.style.zIndex = '20';
+            viewerContainer.appendChild(autoRotateBtn);
+
+            const bgColorBtn = document.createElement('button');
+            bgColorBtn.textContent = 'Background';
+            bgColorBtn.style.position = 'absolute';
+            bgColorBtn.style.top = '10px';
+            bgColorBtn.style.left = '10px';
+            bgColorBtn.style.padding = '0.5rem 1rem';
+            bgColorBtn.style.background = 'rgba(0,0,0,0.7)';
+            bgColorBtn.style.color = 'white';
+            bgColorBtn.style.border = '1px solid #444';
+            bgColorBtn.style.borderRadius = '4px';
+            bgColorBtn.style.cursor = 'pointer';
+            bgColorBtn.style.zIndex = '20';
+            viewerContainer.appendChild(bgColorBtn);
+
+            init3DViewer(viewerContainer, files.find(f => ['glb', 'gltf', 'obj'].includes(f.name.split('.').pop().toLowerCase())), viewerInfo, autoRotateBtn, bgColorBtn);
+        }
+
+        const hasMedia = files.some(f => f.type.startsWith('audio') || f.type.startsWith('video'));
+        if (hasMedia) {
+            const controlsContainer = document.createElement('div');
+            controlsContainer.style.padding = '1rem';
+            controlsContainer.style.background = 'var(--panel-bg)';
+            controlsContainer.style.border = '1px solid var(--border)';
+            controlsContainer.style.borderRadius = '4px';
+
+            const settingsRow = document.createElement('div');
+            settingsRow.style.display = 'flex';
+            settingsRow.style.gap = '1rem';
+            settingsRow.style.flexWrap = 'wrap';
+            settingsRow.style.marginBottom = '1rem';
+
+            const formatGroup = document.createElement('div');
+            formatGroup.style.flex = '1';
+            formatGroup.style.minWidth = '150px';
+            formatGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Output Format</label>';
+            const formatSelect = document.createElement('select');
+            formatSelect.style.width = '100%';
+            formatSelect.style.padding = '0.5rem';
+            formatSelect.style.background = 'var(--bg)';
+            formatSelect.style.border = '1px solid var(--border)';
+            formatSelect.style.borderRadius = '4px';
+            formatSelect.style.color = 'var(--text)';
+            const isVideo = files.some(f => f.type.startsWith('video'));
+            const isAudio = files.some(f => f.type.startsWith('audio'));
+            if (isVideo && !isAudio) {
+                ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+            } else if (isAudio && !isVideo) {
+                ['wav', 'mp3'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+            } else {
+                ['webm', 'mp4', 'gif', 'wav', 'mp3', 'jpg', 'png'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
             }
-            const zip = new JSZip();
-            processedBlobs.forEach(item => {
-                zip.file(item.fileName, item.blob);
+            formatGroup.appendChild(formatSelect);
+            settingsRow.appendChild(formatGroup);
+
+            const qualityGroup = document.createElement('div');
+            qualityGroup.style.flex = '1';
+            qualityGroup.style.minWidth = '150px';
+            qualityGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Quality / Bitrate</label>';
+            const qualitySelect = document.createElement('select');
+            qualitySelect.style.width = '100%';
+            qualitySelect.style.padding = '0.5rem';
+            qualitySelect.style.background = 'var(--bg)';
+            qualitySelect.style.border = '1px solid var(--border)';
+            qualitySelect.style.borderRadius = '4px';
+            qualitySelect.style.color = 'var(--text)';
+            [
+                { value: 'low', label: 'Low (96 kbps)' },
+                { value: 'medium', label: 'Medium (128 kbps)' },
+                { value: 'high', label: 'High (192 kbps)' },
+                { value: 'best', label: 'Best (320 kbps)' }
+            ].forEach(q => qualitySelect.add(new Option(q.label, q.value)));
+            qualityGroup.appendChild(qualitySelect);
+            settingsRow.appendChild(qualityGroup);
+
+            const resolutionGroup = document.createElement('div');
+            resolutionGroup.style.flex = '1';
+            resolutionGroup.style.minWidth = '150px';
+            resolutionGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Resolution</label>';
+            const resolutionSelect = document.createElement('select');
+            resolutionSelect.style.width = '100%';
+            resolutionSelect.style.padding = '0.5rem';
+            resolutionSelect.style.background = 'var(--bg)';
+            resolutionSelect.style.border = '1px solid var(--border)';
+            resolutionSelect.style.borderRadius = '4px';
+            resolutionSelect.style.color = 'var(--text)';
+            [
+                { value: 'original', label: 'Original' },
+                { value: '1080p', label: '1080p (1920x1080)' },
+                { value: '720p', label: '720p (1280x720)' },
+                { value: '480p', label: '480p (854x480)' },
+                { value: '360p', label: '360p (640x360)' }
+            ].forEach(r => resolutionSelect.add(new Option(r.label, r.value)));
+            resolutionGroup.appendChild(resolutionSelect);
+            settingsRow.appendChild(resolutionGroup);
+
+            const volumeGroup = document.createElement('div');
+            volumeGroup.style.flex = '1';
+            volumeGroup.style.minWidth = '150px';
+            volumeGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Volume</label>';
+            const volumeSlider = document.createElement('input');
+            volumeSlider.type = 'range';
+            volumeSlider.min = '0';
+            volumeSlider.max = '1000';
+            volumeSlider.value = '100';
+            volumeSlider.style.width = '100%';
+            const volumeLabel = document.createElement('span');
+            volumeLabel.textContent = '100%';
+            volumeLabel.style.fontSize = '0.85rem';
+            volumeSlider.addEventListener('input', () => {
+                volumeLabel.textContent = volumeSlider.value + '%';
             });
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(zipBlob);
-            a.download = 'processed_media.zip';
-            a.click();
-        });
-        actionRow.appendChild(downloadZipBtn);
+            volumeGroup.appendChild(volumeSlider);
+            volumeGroup.appendChild(volumeLabel);
+            settingsRow.appendChild(volumeGroup);
 
-        controlsContainer.appendChild(actionRow);
-        editorContainer.appendChild(controlsContainer);
+            const speedGroup = document.createElement('div');
+            speedGroup.style.flex = '1';
+            speedGroup.style.minWidth = '150px';
+            speedGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Speed</label>';
+            const speedSlider = document.createElement('input');
+            speedSlider.type = 'range';
+            speedSlider.min = '0.5';
+            speedSlider.max = '2';
+            speedSlider.step = '0.1';
+            speedSlider.value = '1';
+            speedSlider.style.width = '100%';
+            const speedLabel = document.createElement('span');
+            speedLabel.textContent = '1x';
+            speedLabel.style.fontSize = '0.85rem';
+            speedSlider.addEventListener('input', () => {
+                speedLabel.textContent = speedSlider.value + 'x';
+            });
+            speedGroup.appendChild(speedSlider);
+            speedGroup.appendChild(speedLabel);
+            settingsRow.appendChild(speedGroup);
+
+            controlsContainer.appendChild(settingsRow);
+
+            const trimRow = document.createElement('div');
+            trimRow.style.display = 'flex';
+            trimRow.style.gap = '1rem';
+            trimRow.style.flexWrap = 'wrap';
+            trimRow.style.marginBottom = '1rem';
+
+            const startGroup = document.createElement('div');
+            startGroup.style.flex = '1';
+            startGroup.style.minWidth = '120px';
+            startGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Start (seconds)</label>';
+            const startInput = document.createElement('input');
+            startInput.type = 'number';
+            startInput.min = '0';
+            startInput.step = '0.1';
+            startInput.value = '0';
+            startInput.style.width = '100%';
+            startInput.style.padding = '0.5rem';
+            startInput.style.background = 'var(--bg)';
+            startInput.style.border = '1px solid var(--border)';
+            startInput.style.borderRadius = '4px';
+            startInput.style.color = 'var(--text)';
+            startGroup.appendChild(startInput);
+            trimRow.appendChild(startGroup);
+
+            const endGroup = document.createElement('div');
+            endGroup.style.flex = '1';
+            endGroup.style.minWidth = '120px';
+            endGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">End (seconds)</label>';
+            const endInput = document.createElement('input');
+            endInput.type = 'number';
+            endInput.min = '0';
+            endInput.step = '0.1';
+            endInput.value = '0';
+            endInput.style.width = '100%';
+            endInput.style.padding = '0.5rem';
+            endInput.style.background = 'var(--bg)';
+            endInput.style.border = '1px solid var(--border)';
+            endInput.style.borderRadius = '4px';
+            endInput.style.color = 'var(--text)';
+            endGroup.appendChild(endInput);
+            trimRow.appendChild(endGroup);
+
+            const textOverlayGroup = document.createElement('div');
+            textOverlayGroup.style.flex = '1';
+            textOverlayGroup.style.minWidth = '200px';
+            textOverlayGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Text Overlay (for video)</label>';
+            const textOverlayInput = document.createElement('input');
+            textOverlayInput.type = 'text';
+            textOverlayInput.placeholder = 'Enter text to overlay';
+            textOverlayInput.style.width = '100%';
+            textOverlayInput.style.padding = '0.5rem';
+            textOverlayInput.style.background = 'var(--bg)';
+            textOverlayInput.style.border = '1px solid var(--border)';
+            textOverlayInput.style.borderRadius = '4px';
+            textOverlayInput.style.color = 'var(--text)';
+            textOverlayGroup.appendChild(textOverlayInput);
+            trimRow.appendChild(textOverlayGroup);
+
+            controlsContainer.appendChild(trimRow);
+
+            const actionRow = document.createElement('div');
+            actionRow.style.display = 'flex';
+            actionRow.style.gap = '0.5rem';
+            actionRow.style.flexWrap = 'wrap';
+
+            const processBtn = document.createElement('button');
+            processBtn.textContent = 'Process All';
+            processBtn.style.padding = '0.7rem 1.5rem';
+            processBtn.style.background = 'var(--button-bg)';
+            processBtn.style.color = 'white';
+            processBtn.style.border = 'none';
+            processBtn.style.borderRadius = '4px';
+            processBtn.style.cursor = 'pointer';
+            processBtn.addEventListener('click', async () => {
+                const format = formatSelect.value;
+                const quality = qualitySelect.value;
+                const resolution = resolutionSelect.value;
+                const volume = parseInt(volumeSlider.value);
+                const speed = parseFloat(speedSlider.value);
+                const start = parseFloat(startInput.value) || 0;
+                const end = parseFloat(endInput.value) || 0;
+                const overlayText = textOverlayInput.value.trim();
+                processedBlobs = [];
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'success-message';
+                statusDiv.textContent = 'Processing...';
+                controlsContainer.appendChild(statusDiv);
+                for (const file of mediaFiles) {
+                    if (file.type.startsWith('audio') || file.type.startsWith('video')) {
+                        const blob = await processMediaFile(file, start, end, format, volume, speed, quality, resolution, overlayText);
+                        if (blob) {
+                            processedBlobs.push({ blob, fileName: 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format) });
+                        }
+                    }
+                }
+                statusDiv.textContent = `Processed ${processedBlobs.length}/${mediaFiles.length} files`;
+                setTimeout(() => statusDiv.remove(), 3000);
+                if (processedBlobs.length > 0) {
+                    showDownloadButtons(processedBlobs, controlsContainer);
+                }
+            });
+            actionRow.appendChild(processBtn);
+
+            const downloadZipBtn = document.createElement('button');
+            downloadZipBtn.textContent = 'Download All as ZIP';
+            downloadZipBtn.style.padding = '0.7rem 1.5rem';
+            downloadZipBtn.style.background = '#2e7d32';
+            downloadZipBtn.style.color = 'white';
+            downloadZipBtn.style.border = 'none';
+            downloadZipBtn.style.borderRadius = '4px';
+            downloadZipBtn.style.cursor = 'pointer';
+            downloadZipBtn.addEventListener('click', async () => {
+                if (processedBlobs.length === 0) {
+                    showError(downloadZipBtn, 'No processed files');
+                    return;
+                }
+                const zip = new JSZip();
+                processedBlobs.forEach(item => {
+                    zip.file(item.fileName, item.blob);
+                });
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(zipBlob);
+                a.download = 'processed_media.zip';
+                a.click();
+            });
+            actionRow.appendChild(downloadZipBtn);
+
+            controlsContainer.appendChild(actionRow);
+            editorContainer.appendChild(controlsContainer);
+        }
+    }
+
+    function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn) {
+        if (!file || typeof THREE === 'undefined') {
+            infoEl.textContent = '3D library not loaded';
+            return;
+        }
+
+        const width = container.clientWidth || 500;
+        const height = container.clientHeight || 500;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+
+        const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+        camera.position.set(3, 2, 5);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 2;
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        scene.add(hemisphereLight);
+
+        const gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0x444444);
+        scene.add(gridHelper);
+
+        autoRotateBtn.addEventListener('click', () => {
+            controls.autoRotate = !controls.autoRotate;
+            autoRotateBtn.textContent = 'Auto Rotate: ' + (controls.autoRotate ? 'On' : 'Off');
+        });
+
+        let currentBgIndex = 0;
+        const bgColors = [0x1a1a1a, 0x2a2a2a, 0x3a3a3a, 0xffffff, 0x000000, 0x1b2838];
+        bgColorBtn.addEventListener('click', () => {
+            currentBgIndex = (currentBgIndex + 1) % bgColors.length;
+            scene.background = new THREE.Color(bgColors[currentBgIndex]);
+        });
+
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (ext === 'glb' || ext === 'gltf') {
+            const loader = new THREE.GLTFLoader();
+            const url = URL.createObjectURL(file);
+            loader.load(url, (gltf) => {
+                infoEl.style.display = 'none';
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 3 / maxDim;
+                model.scale.setScalar(scale);
+                model.position.sub(center.multiplyScalar(scale));
+                scene.add(model);
+                controls.target.set(0, 0, 0);
+                controls.update();
+                URL.revokeObjectURL(url);
+            }, undefined, (error) => {
+                infoEl.textContent = 'Failed to load 3D model';
+            });
+        } else if (ext === 'obj') {
+            const loader = new THREE.OBJLoader();
+            const url = URL.createObjectURL(file);
+            loader.load(url, (obj) => {
+                infoEl.style.display = 'none';
+                const box = new THREE.Box3().setFromObject(obj);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 3 / maxDim;
+                obj.scale.setScalar(scale);
+                obj.position.sub(center.multiplyScalar(scale));
+                scene.add(obj);
+                controls.target.set(0, 0, 0);
+                controls.update();
+                URL.revokeObjectURL(url);
+            }, undefined, (error) => {
+                infoEl.textContent = 'Failed to load 3D model';
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
     }
 
     function showDownloadButtons(blobs, container) {
@@ -414,24 +563,16 @@ editorContainer.appendChild(fileListContainer);
         container.appendChild(downloadContainer);
     }
 
-    async function processMediaFile(file, mixFile, start, end, format, volumePercent, speed, quality, resolution, overlayText, mixVolume) {
+    async function processMediaFile(file, start, end, format, volumePercent, speed, quality, resolution, overlayText) {
         const isVideo = file.type.startsWith('video');
         const isAudio = file.type.startsWith('audio');
         if (isAudio) {
-            if (mixFile && mixFile.type.startsWith('audio')) {
-                return await mixAudio(file, mixFile, mixVolume, speed, volumePercent, format, quality);
-            } else {
-                return await processAudio(file, start, end, volumePercent, speed, format, quality);
-            }
+            return await processAudio(file, start, end, volumePercent, speed, format, quality);
         } else if (isVideo) {
             if (format === 'jpg' || format === 'png') {
                 return await extractVideoFrame(file, start || 0, quality, resolution);
             } else if (format === 'webm' || format === 'mp4') {
-                if (mixFile && mixFile.type.startsWith('audio')) {
-                    return await mixAudioIntoVideo(file, mixFile, start, end, volumePercent, speed, quality, resolution, overlayText, mixVolume);
-                } else {
-                    return await trimVideo(file, start, end, volumePercent, speed, quality, resolution, overlayText);
-                }
+                return await trimVideo(file, start, end, volumePercent, speed, quality, resolution, overlayText);
             } else if (format === 'gif') {
                 return await videoToGif(file, start, end, quality, resolution);
             } else if (format === 'mp3' || format === 'wav') {
@@ -471,102 +612,6 @@ editorContainer.appendChild(fileListContainer);
             console.error('Audio decode error:', e);
             return null;
         }
-    }
-
-    async function mixAudio(file1, file2, mixVolume, speed, volumePercent, format, quality) {
-        const arrayBuffer1 = await file1.arrayBuffer();
-        const arrayBuffer2 = await file2.arrayBuffer();
-        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-        try {
-            const buffer1 = await audioContext.decodeAudioData(arrayBuffer1);
-            const buffer2 = await audioContext.decodeAudioData(arrayBuffer2);
-            const length = Math.max(buffer1.length, buffer2.length);
-            const newBuffer = audioContext.createBuffer(Math.max(buffer1.numberOfChannels, buffer2.numberOfChannels), length, buffer1.sampleRate);
-            for (let channel = 0; channel < newBuffer.numberOfChannels; channel++) {
-                const data1 = buffer1.getChannelData(channel);
-                const data2 = buffer2.getChannelData(channel);
-                const newData = newBuffer.getChannelData(channel);
-                for (let i = 0; i < length; i++) {
-                    const sample1 = i < buffer1.length ? data1[i] : 0;
-                    const sample2 = i < buffer2.length ? data2[i] : 0;
-                    newData[i] = (sample1 * (volumePercent / 100) + sample2 * mixVolume) / 2;
-                }
-            }
-            if (format === 'mp3') {
-                return bufferToMp3(newBuffer, quality);
-            }
-            return bufferToWav(newBuffer, quality);
-        } catch (e) {
-            return null;
-        }
-    }
-
-    async function mixAudioIntoVideo(videoFile, audioFile, start, end, volumePercent, speed, quality, resolution, overlayText, mixVolume) {
-        return new Promise((resolve, reject) => {
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(videoFile);
-            video.volume = volumePercent / 100;
-            video.playbackRate = speed;
-            const audio = new Audio();
-            audio.src = URL.createObjectURL(audioFile);
-            audio.volume = mixVolume;
-            video.onloadedmetadata = () => {
-                video.currentTime = start || 0;
-                audio.currentTime = start || 0;
-            };
-            video.onseeked = () => {
-                let width = video.videoWidth || 640;
-                let height = video.videoHeight || 360;
-                if (resolution === '1080p') { width = 1920; height = 1080; }
-                else if (resolution === '720p') { width = 1280; height = 720; }
-                else if (resolution === '480p') { width = 854; height = 480; }
-                else if (resolution === '360p') { width = 640; height = 360; }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                const stream = canvas.captureStream(30);
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioCtx.createMediaElementSource(video);
-                const dest = audioCtx.createMediaStreamDestination();
-                source.connect(dest);
-                const audioElSource = audioCtx.createMediaElementSource(audio);
-                audioElSource.connect(dest);
-                dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-                const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-                const chunks = [];
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    resolve(blob);
-                };
-                const drawOverlay = () => {
-                    ctx.drawImage(video, 0, 0, width, height);
-                    if (overlayText) {
-                        ctx.fillStyle = 'white';
-                        ctx.font = '30px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(overlayText, width / 2, height / 2);
-                    }
-                };
-                drawOverlay();
-                recorder.start();
-                video.play();
-                audio.play();
-                const duration = end > start ? (end - start) * 1000 / speed : 5000;
-                const interval = setInterval(drawOverlay, 100);
-                setTimeout(() => {
-                    clearInterval(interval);
-                    recorder.stop();
-                    video.pause();
-                    audio.pause();
-                    source.disconnect();
-                    audioElSource.disconnect();
-                    audioCtx.close();
-                }, duration);
-            };
-            video.onerror = reject;
-        });
     }
 
     async function trimVideo(file, start, end, volumePercent, speed, quality, resolution, overlayText) {
@@ -623,6 +668,32 @@ editorContainer.appendChild(fileListContainer);
                     source.disconnect();
                     audioCtx.close();
                 }, duration);
+            };
+            video.onerror = reject;
+        });
+    }
+
+    async function extractVideoFrame(file, time, quality, resolution) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = () => {
+                video.currentTime = time || 0;
+            };
+            video.onseeked = () => {
+                let width = video.videoWidth;
+                let height = video.videoHeight;
+                if (resolution === '1080p') { width = 1920; height = 1080; }
+                else if (resolution === '720p') { width = 1280; height = 720; }
+                else if (resolution === '480p') { width = 854; height = 480; }
+                else if (resolution === '360p') { width = 640; height = 360; }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, width, height);
+                canvas.toBlob(blob => resolve(blob), 'image/png');
+                video.src = '';
             };
             video.onerror = reject;
         });

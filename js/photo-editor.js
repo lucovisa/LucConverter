@@ -44,7 +44,7 @@ function initPhotoEditor() {
 
     const scrollContainer = document.createElement('div');
     scrollContainer.style.overflow = 'auto';
-    scrollContainer.style.maxHeight = '70vh';
+    scrollContainer.style.maxHeight = '60vh';
     scrollContainer.style.border = '1px solid var(--border)';
     scrollContainer.style.borderRadius = '4px';
     scrollContainer.appendChild(canvas);
@@ -78,6 +78,14 @@ function initPhotoEditor() {
     let shapeMode = false;
     let shapeStart = null;
     let shapeType = null;
+
+    let animationMode = false;
+    let frames = [];
+    let currentFrameIndex = 0;
+    let animationPlaying = false;
+    let animationInterval = null;
+    let fps = 10;
+    let onionSkin = false;
 
     const originalCanvas = document.createElement('canvas');
     originalCanvas.width = canvas.width;
@@ -168,6 +176,12 @@ function initPhotoEditor() {
             } else if (shapeType === 'square') {
                 mainCtx.strokeRect(shapeStart.x, shapeStart.y, lastX - shapeStart.x, lastY - shapeStart.y);
             }
+            mainCtx.globalAlpha = 1;
+        }
+        if (onionSkin && animationMode && frames.length > 1 && currentFrameIndex > 0) {
+            const prevFrame = frames[currentFrameIndex - 1];
+            mainCtx.globalAlpha = 0.3;
+            mainCtx.drawImage(prevFrame, 0, 0);
             mainCtx.globalAlpha = 1;
         }
     }
@@ -305,6 +319,260 @@ function initPhotoEditor() {
             if (activeLayerIndex >= 0 && activeLayerIndex < layers.length - 1) moveLayer(activeLayerIndex, activeLayerIndex + 1);
         });
         layersPanel.appendChild(moveDownBtn);
+
+        const animationSection = document.createElement('div');
+        animationSection.style.marginTop = '1rem';
+        animationSection.style.padding = '1rem';
+        animationSection.style.background = 'var(--bg)';
+        animationSection.style.border = '1px solid var(--border)';
+        animationSection.style.borderRadius = '4px';
+        animationSection.innerHTML = '<h4 style="color:var(--accent);margin-bottom:0.5rem">Animation</h4>';
+
+        const animButtons = document.createElement('div');
+        animButtons.style.display = 'flex';
+        animButtons.style.gap = '0.3rem';
+        animButtons.style.flexWrap = 'wrap';
+        animButtons.style.marginBottom = '0.5rem';
+
+        const addFrameBtn = document.createElement('button');
+        addFrameBtn.textContent = '+ Frame';
+        addFrameBtn.style.padding = '0.4rem 0.6rem';
+        addFrameBtn.style.background = 'var(--button-bg)';
+        addFrameBtn.style.color = 'white';
+        addFrameBtn.style.border = 'none';
+        addFrameBtn.style.borderRadius = '4px';
+        addFrameBtn.style.cursor = 'pointer';
+        addFrameBtn.style.fontSize = '0.8rem';
+        addFrameBtn.addEventListener('click', () => {
+            updateOriginalCanvas();
+            const frameCanvas = document.createElement('canvas');
+            frameCanvas.width = canvas.width;
+            frameCanvas.height = canvas.height;
+            frameCanvas.getContext('2d').drawImage(originalCanvas, 0, 0);
+            frames.push(frameCanvas);
+            currentFrameIndex = frames.length - 1;
+            updateFramesPanel();
+        });
+        animButtons.appendChild(addFrameBtn);
+
+        const duplicateFrameBtn = document.createElement('button');
+        duplicateFrameBtn.textContent = '⧉';
+        duplicateFrameBtn.style.padding = '0.4rem 0.6rem';
+        duplicateFrameBtn.style.background = 'var(--button-bg)';
+        duplicateFrameBtn.style.color = 'white';
+        duplicateFrameBtn.style.border = 'none';
+        duplicateFrameBtn.style.borderRadius = '4px';
+        duplicateFrameBtn.style.cursor = 'pointer';
+        duplicateFrameBtn.style.fontSize = '0.8rem';
+        duplicateFrameBtn.addEventListener('click', () => {
+            if (frames.length === 0) return;
+            const newFrame = document.createElement('canvas');
+            newFrame.width = frames[currentFrameIndex].width;
+            newFrame.height = frames[currentFrameIndex].height;
+            newFrame.getContext('2d').drawImage(frames[currentFrameIndex], 0, 0);
+            frames.splice(currentFrameIndex + 1, 0, newFrame);
+            currentFrameIndex++;
+            updateFramesPanel();
+        });
+        animButtons.appendChild(duplicateFrameBtn);
+
+        const deleteFrameBtn = document.createElement('button');
+        deleteFrameBtn.textContent = '🗑️';
+        deleteFrameBtn.style.padding = '0.4rem 0.6rem';
+        deleteFrameBtn.style.background = '#8B0000';
+        deleteFrameBtn.style.color = 'white';
+        deleteFrameBtn.style.border = 'none';
+        deleteFrameBtn.style.borderRadius = '4px';
+        deleteFrameBtn.style.cursor = 'pointer';
+        deleteFrameBtn.style.fontSize = '0.8rem';
+        deleteFrameBtn.addEventListener('click', () => {
+            if (frames.length === 0) return;
+            frames.splice(currentFrameIndex, 1);
+            if (currentFrameIndex >= frames.length) currentFrameIndex = frames.length - 1;
+            updateFramesPanel();
+        });
+        animButtons.appendChild(deleteFrameBtn);
+
+        const playBtn = document.createElement('button');
+        playBtn.textContent = '▶';
+        playBtn.style.padding = '0.4rem 0.6rem';
+        playBtn.style.background = '#2e7d32';
+        playBtn.style.color = 'white';
+        playBtn.style.border = 'none';
+        playBtn.style.borderRadius = '4px';
+        playBtn.style.cursor = 'pointer';
+        playBtn.style.fontSize = '0.8rem';
+        playBtn.addEventListener('click', () => {
+            if (frames.length < 2) return;
+            if (animationPlaying) {
+                clearInterval(animationInterval);
+                animationPlaying = false;
+                playBtn.textContent = '▶';
+            } else {
+                animationPlaying = true;
+                playBtn.textContent = '⏸';
+                animationInterval = setInterval(() => {
+                    currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+                    loadFrame(currentFrameIndex);
+                    updateFramesPanel();
+                }, 1000 / fps);
+            }
+        });
+        animButtons.appendChild(playBtn);
+
+        const onionSkinBtn = document.createElement('button');
+        onionSkinBtn.textContent = '👻';
+        onionSkinBtn.style.padding = '0.4rem 0.6rem';
+        onionSkinBtn.style.background = onionSkin ? '#4CAF50' : 'var(--button-bg)';
+        onionSkinBtn.style.color = 'white';
+        onionSkinBtn.style.border = 'none';
+        onionSkinBtn.style.borderRadius = '4px';
+        onionSkinBtn.style.cursor = 'pointer';
+        onionSkinBtn.style.fontSize = '0.8rem';
+        onionSkinBtn.addEventListener('click', () => {
+            onionSkin = !onionSkin;
+            onionSkinBtn.style.background = onionSkin ? '#4CAF50' : 'var(--button-bg)';
+            redrawCanvas();
+        });
+        animButtons.appendChild(onionSkinBtn);
+
+        const fpsSelect = document.createElement('select');
+        fpsSelect.style.padding = '0.3rem';
+        fpsSelect.style.background = 'var(--bg)';
+        fpsSelect.style.border = '1px solid var(--border)';
+        fpsSelect.style.borderRadius = '4px';
+        fpsSelect.style.color = 'var(--text)';
+        fpsSelect.style.fontSize = '0.8rem';
+        [1, 2, 5, 10, 15, 24, 30].forEach(f => {
+            fpsSelect.add(new Option(f + ' fps', f));
+        });
+        fpsSelect.value = 10;
+        fpsSelect.addEventListener('change', () => {
+            fps = parseInt(fpsSelect.value);
+        });
+        animButtons.appendChild(fpsSelect);
+
+        const exportGifBtn = document.createElement('button');
+        exportGifBtn.textContent = 'Export GIF';
+        exportGifBtn.style.padding = '0.4rem 0.6rem';
+        exportGifBtn.style.background = '#1a44c2';
+        exportGifBtn.style.color = 'white';
+        exportGifBtn.style.border = 'none';
+        exportGifBtn.style.borderRadius = '4px';
+        exportGifBtn.style.cursor = 'pointer';
+        exportGifBtn.style.fontSize = '0.8rem';
+        exportGifBtn.addEventListener('click', () => {
+            exportAnimation('gif');
+        });
+        animButtons.appendChild(exportGifBtn);
+
+        const exportWebmBtn = document.createElement('button');
+        exportWebmBtn.textContent = 'Export WebM';
+        exportWebmBtn.style.padding = '0.4rem 0.6rem';
+        exportWebmBtn.style.background = '#1a44c2';
+        exportWebmBtn.style.color = 'white';
+        exportWebmBtn.style.border = 'none';
+        exportWebmBtn.style.borderRadius = '4px';
+        exportWebmBtn.style.cursor = 'pointer';
+        exportWebmBtn.style.fontSize = '0.8rem';
+        exportWebmBtn.addEventListener('click', () => {
+            exportAnimation('webm');
+        });
+        animButtons.appendChild(exportWebmBtn);
+
+        animationSection.appendChild(animButtons);
+
+        const framesContainer = document.createElement('div');
+        framesContainer.style.display = 'flex';
+        framesContainer.style.gap = '0.3rem';
+        framesContainer.style.overflowX = 'auto';
+        framesContainer.style.padding = '0.3rem';
+        framesContainer.style.minHeight = '60px';
+        animationSection.appendChild(framesContainer);
+
+        layersPanel.appendChild(animationSection);
+
+        function updateFramesPanel() {
+            framesContainer.innerHTML = '';
+            frames.forEach((frame, i) => {
+                const thumb = document.createElement('canvas');
+                thumb.width = 50;
+                thumb.height = 40;
+                thumb.getContext('2d').drawImage(frame, 0, 0, 50, 40);
+                thumb.style.border = i === currentFrameIndex ? '2px solid var(--accent)' : '1px solid var(--border)';
+                thumb.style.cursor = 'pointer';
+                thumb.style.borderRadius = '4px';
+                thumb.style.flexShrink = '0';
+                thumb.addEventListener('click', () => {
+                    currentFrameIndex = i;
+                    loadFrame(i);
+                    updateFramesPanel();
+                });
+                framesContainer.appendChild(thumb);
+            });
+        }
+
+        function loadFrame(index) {
+            if (index < 0 || index >= frames.length) return;
+            canvas.width = frames[index].width;
+            canvas.height = frames[index].height;
+            canvas.getContext('2d').drawImage(frames[index], 0, 0);
+            layers = [];
+            const imgData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            addLayer('Frame ' + (index + 1), imgData);
+        }
+
+        function exportAnimation(format) {
+            if (frames.length < 2) {
+                showError(exportGifBtn, 'Need at least 2 frames');
+                return;
+            }
+            if (format === 'gif') {
+                const gif = new GIF({
+                    workers: 2,
+                    quality: 10,
+                    width: frames[0].width,
+                    height: frames[0].height
+                });
+                frames.forEach(frame => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = frame.width;
+                    tempCanvas.height = frame.height;
+                    tempCanvas.getContext('2d').drawImage(frame, 0, 0);
+                    gif.addFrame(tempCanvas, { copy: true, delay: 1000 / fps });
+                });
+                gif.on('finished', (blob) => {
+                    downloadBlob(blob, 'animation.gif');
+                });
+                gif.on('error', (e) => {
+                    showError(exportGifBtn, 'GIF export failed');
+                });
+                gif.render();
+            } else if (format === 'webm') {
+                const canvasStream = document.createElement('canvas');
+                canvasStream.width = frames[0].width;
+                canvasStream.height = frames[0].height;
+                const ctx = canvasStream.getContext('2d');
+                const stream = canvasStream.captureStream(fps);
+                const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                const chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    downloadBlob(blob, 'animation.webm');
+                };
+                recorder.start();
+                let frameIdx = 0;
+                const drawInterval = setInterval(() => {
+                    ctx.drawImage(frames[frameIdx], 0, 0);
+                    frameIdx++;
+                    if (frameIdx >= frames.length * 3) {
+                        clearInterval(drawInterval);
+                        recorder.stop();
+                    }
+                }, 1000 / fps);
+            }
+        }
     }
 
     function saveState() {
@@ -624,6 +892,8 @@ function initPhotoEditor() {
     addButton('🗑️ Clear', 'Clear', () => {
         layers = [];
         addLayer('Layer 1');
+        frames = [];
+        currentFrameIndex = 0;
         redrawCanvas();
         updateOriginalCanvas();
     });
@@ -703,6 +973,8 @@ function initPhotoEditor() {
             const imageData = tempCanvas.getContext('2d').getImageData(0, 0, tempCanvas.width, tempCanvas.height);
             layers = [];
             addLayer('Background', imageData);
+            frames = [];
+            currentFrameIndex = 0;
             redrawCanvas();
             updateOriginalCanvas();
         };
