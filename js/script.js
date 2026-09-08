@@ -136,3 +136,57 @@ function initLiveClock() {
         window.location.href = 'https://lucovisa.github.io/LucConverter/';
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const hint = document.createElement('div');
+    hint.textContent = 'Press F11 or Esc to exit fullscreen';
+    hint.style.position = 'fixed';
+    hint.style.bottom = '10px';
+    hint.style.left = '50%';
+    hint.style.transform = 'translateX(-50%)';
+    hint.style.color = 'white';
+    hint.style.fontSize = '0.9rem';
+    hint.style.zIndex = '99999';
+    hint.style.background = 'rgba(0,0,0,0.8)';
+    hint.style.padding = '0.5rem 1rem';
+    hint.style.borderRadius = '4px';
+    hint.style.display = 'none';
+    hint.style.pointerEvents = 'none';
+    document.body.appendChild(hint);
+
+    let hintTimeout = null;
+
+    function showHint() {
+        hint.style.display = 'block';
+        if (hintTimeout) clearTimeout(hintTimeout);
+        hintTimeout = setTimeout(() => {
+            hint.style.display = 'none';
+        }, 5000);
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            showHint();
+        } else {
+            hint.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('webkitfullscreenchange', () => {
+        if (document.webkitFullscreenElement) {
+            showHint();
+        } else {
+            hint.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F11') {
+            setTimeout(() => {
+                if (window.innerHeight === screen.height) {
+                    showHint();
+                }
+            }, 100);
+        }
+    });
+});
