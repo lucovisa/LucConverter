@@ -40,20 +40,17 @@
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/exporters/OBJExporter.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/exporters/STLExporter.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/libarchive.js@1.3.0/dist/libarchive.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/libarchive.js/1.3.0/libarchive.min.js"></script>
 </head>
 <body>
     <header>
         <div class="logo">
             <a href="https://github.com/lucovisa" target="_blank">LucConverter</a>
         </div>
-        <a href="https://lucovisa.github.io/LucConverter/" class="invisible-home-link" aria-label="Home">
-            <span id="liveClock" class="live-clock"></span>
-        </a>
         <div class="header-actions">
             <button id="donateBtn" class="donate-btn">❤️ Donate</button>
         </div>
@@ -173,6 +170,8 @@
                 <button class="converter-btn" onclick="showConverter('numberSystemConverter')">Number Systems</button>
                 <button class="converter-btn" onclick="showConverter('dateConverter')">Date Converter</button>
                 <button class="converter-btn" onclick="showConverter('uuidGenerator')">UUID Generator</button>
+                <button class="converter-btn" onclick="showConverter('timer')">Timer</button>
+                <button class="converter-btn" onclick="showConverter('stopwatch')">Stopwatch</button>
             </div>
             
             <div id="colorConverter" class="converter-content">
@@ -385,6 +384,23 @@
                 <button class="clear-btn" data-target="uuidGenerator">Clear</button>
                 <div class="result-display"></div>
             </div>
+            
+            <div id="timer" class="converter-content">
+                <h3>Timer</h3>
+                <input type="number" id="timerInput" placeholder="Enter seconds">
+                <button id="timerStartBtn">Start</button>
+                <button id="timerPauseBtn">Pause</button>
+                <button id="timerResetBtn">Reset</button>
+                <div class="result-display" id="timerDisplay">00:00:00</div>
+            </div>
+            
+            <div id="stopwatch" class="converter-content">
+                <h3>Stopwatch</h3>
+                <button id="stopwatchStartBtn">Start</button>
+                <button id="stopwatchPauseBtn">Pause</button>
+                <button id="stopwatchResetBtn">Reset</button>
+                <div class="result-display" id="stopwatchDisplay">00:00.00</div>
+            </div>
         </section>
         
         <section id="linkConverter" class="tool-section">
@@ -567,16 +583,6 @@
                 </div>
                 
                 <div class="guide-section">
-                    <h3>Live Clock</h3>
-                    <p>Between the logo and the Donate button there is a clock showing the current time with seconds. Click on it to return to the main page.</p>
-                    <ul>
-                        <li>Click on the clock to go home</li>
-                        <li>Time updates every second</li>
-                        <li>The clock is always visible in the header</li>
-                    </ul>
-                </div>
-                
-                <div class="guide-section">
                     <h3>Donate</h3>
                     <p>Click on the "❤️ Donate" button in the top right corner to support the project.</p>
                     <ul>
@@ -640,6 +646,7 @@
                         <li>Number Systems - binary, octal, hex</li>
                         <li>Date Converter - ISO, Unix timestamp, week number, dd mm yyyy</li>
                         <li>UUID Generator</li>
+                        <li>Timer and Stopwatch</li>
                         <li>Every converter has a Clear button</li>
                     </ul>
                 </div>
@@ -722,6 +729,7 @@
                         <li>Sort lines, Remove duplicates</li>
                         <li>Word count</li>
                         <li>Find and Replace</li>
+                        <li>Custom font upload and size selection</li>
                     </ul>
                 </div>
                 
@@ -731,6 +739,7 @@
                     <ul>
                         <li>Basic operations - +, -, ×, ÷</li>
                         <li>Percentage</li>
+                        <li>Scientific functions - sin, cos, log, sqrt</li>
                         <li>Keyboard support</li>
                         <li>Backspace, Clear</li>
                     </ul>
@@ -780,6 +789,7 @@
                             <li>Creating RAR or 7z archives is not possible in browser; only extraction is supported</li>
                             <li>Very large files may exceed memory limits</li>
                             <li>Some OGG/Opus codecs may not be supported in Safari</li>
+                            <li>Some external libraries (three.js, libarchive.js) may fail to load due to CDN MIME type issues; in that case, 3D conversion and archive extraction will be unavailable</li>
                         </ul>
                     </div>
                     

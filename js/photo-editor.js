@@ -79,6 +79,17 @@ function initPhotoEditor() {
     let shapeStart = null;
     let shapeType = null;
 
+    const originalCanvas = document.createElement('canvas');
+    originalCanvas.width = canvas.width;
+    originalCanvas.height = canvas.height;
+    originalCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+    function updateOriginalCanvas() {
+        originalCanvas.width = canvas.width;
+        originalCanvas.height = canvas.height;
+        originalCanvas.getContext('2d').drawImage(canvas, 0, 0);
+    }
+
     function createLayer(name, width, height, imageData = null) {
         const layerCanvas = document.createElement('canvas');
         layerCanvas.width = width;
@@ -98,6 +109,7 @@ function initPhotoEditor() {
         activeLayerIndex = layers.length - 1;
         updateLayersPanel();
         redrawCanvas();
+        updateOriginalCanvas();
     }
 
     function deleteLayer(index) {
@@ -106,6 +118,7 @@ function initPhotoEditor() {
         if (activeLayerIndex >= layers.length) activeLayerIndex = layers.length - 1;
         updateLayersPanel();
         redrawCanvas();
+        updateOriginalCanvas();
     }
 
     function moveLayer(from, to) {
@@ -115,6 +128,7 @@ function initPhotoEditor() {
         activeLayerIndex = to;
         updateLayersPanel();
         redrawCanvas();
+        updateOriginalCanvas();
     }
 
     function redrawCanvas() {
@@ -183,6 +197,7 @@ function initPhotoEditor() {
                 layer.visible = !layer.visible;
                 updateLayersPanel();
                 redrawCanvas();
+                updateOriginalCanvas();
             });
 
             const nameSpan = document.createElement('span');
@@ -198,6 +213,7 @@ function initPhotoEditor() {
             opacityInput.addEventListener('input', (e) => {
                 layer.opacity = parseInt(e.target.value) / 100;
                 redrawCanvas();
+                updateOriginalCanvas();
             });
 
             const deleteBtn = document.createElement('button');
@@ -292,6 +308,7 @@ function initPhotoEditor() {
     }
 
     function saveState() {
+        updateOriginalCanvas();
         const snapshot = canvas.toDataURL();
         history.push(snapshot);
         if (history.length > 20) history.shift();
@@ -327,6 +344,7 @@ function initPhotoEditor() {
         if (blur > 0) applyBlurToLayer(layer, blur);
         if (sharpen > 0) applySharpenToLayer(layer, sharpen);
         redrawCanvas();
+        updateOriginalCanvas();
     }
 
     function applyBlurToLayer(layer, amount) {
@@ -474,6 +492,7 @@ function initPhotoEditor() {
             layer.ctx.drawImage(tempCanvas, 0, 0);
         });
         redrawCanvas();
+        updateOriginalCanvas();
     });
     toolbar.appendChild(widthInput);
     toolbar.appendChild(heightInput);
@@ -499,6 +518,7 @@ function initPhotoEditor() {
         const layer = layers[activeLayerIndex];
         layer.rotation = (layer.rotation || 0) + degrees;
         redrawCanvas();
+        updateOriginalCanvas();
     });
     toolbar.appendChild(rotateInput);
     toolbar.appendChild(rotateBtn);
@@ -587,6 +607,7 @@ function initPhotoEditor() {
                 layer.rotation = 0;
             });
             redrawCanvas();
+            updateOriginalCanvas();
         }
     });
     addButton('↩️ Undo', 'Undo', () => {
@@ -595,6 +616,7 @@ function initPhotoEditor() {
             const img = new Image();
             img.onload = () => {
                 canvas.getContext('2d').drawImage(img, 0, 0);
+                updateOriginalCanvas();
             };
             img.src = snapshot;
         }
@@ -603,6 +625,7 @@ function initPhotoEditor() {
         layers = [];
         addLayer('Layer 1');
         redrawCanvas();
+        updateOriginalCanvas();
     });
     addButton('💾 Download', 'Download', () => {
         const formatSelect = document.createElement('select');
@@ -681,6 +704,7 @@ function initPhotoEditor() {
             layers = [];
             addLayer('Background', imageData);
             redrawCanvas();
+            updateOriginalCanvas();
         };
         img.src = URL.createObjectURL(file);
     });
@@ -695,6 +719,7 @@ function initPhotoEditor() {
 
     addLayer('Layer 1');
     redrawCanvas();
+    updateOriginalCanvas();
 
     canvas.addEventListener('mousedown', (e) => {
         if (activeLayerIndex < 0 && !cropMode && !textMode && !bgRemoveMode && !shapeMode) return;
@@ -718,6 +743,7 @@ function initPhotoEditor() {
                 layer.ctx.fillText(text, x, y);
                 saveState();
                 redrawCanvas();
+                updateOriginalCanvas();
             }
             textMode = false;
             currentTool = 'brush';
@@ -793,22 +819,13 @@ function initPhotoEditor() {
         lastX = x;
         lastY = y;
         redrawCanvas();
+        updateOriginalCanvas();
     });
 
     canvas.addEventListener('mouseup', () => {
         isDrawing = false;
         if (cropMode && cropRect && cropRect.w > 0 && cropRect.h > 0) {
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = 'Confirm Crop';
-            confirmBtn.style.position = 'absolute';
-            confirmBtn.style.left = '10px';
-            confirmBtn.style.top = '10px';
-            confirmBtn.style.zIndex = '1000';
-            confirmBtn.addEventListener('click', () => {
-                applyCrop();
-                confirmBtn.remove();
-            });
-            document.body.appendChild(confirmBtn);
+            applyCrop();
         }
         if (shapeMode && shapeStart) {
             const layer = layers[activeLayerIndex];
@@ -830,6 +847,7 @@ function initPhotoEditor() {
             canvas.style.cursor = 'crosshair';
             saveState();
             redrawCanvas();
+            updateOriginalCanvas();
         }
     });
 
@@ -845,10 +863,11 @@ function initPhotoEditor() {
         const h = Math.round(cropRect.h);
         if (w > 0 && h > 0) {
             saveState();
+            updateOriginalCanvas();
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = w;
             tempCanvas.height = h;
-            tempCanvas.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, w, h);
+            tempCanvas.getContext('2d').drawImage(originalCanvas, x, y, w, h, 0, 0, w, h);
             canvas.width = w;
             canvas.height = h;
             canvas.getContext('2d').drawImage(tempCanvas, 0, 0);
@@ -858,6 +877,7 @@ function initPhotoEditor() {
             cropMode = false;
             cropRect = null;
             redrawCanvas();
+            updateOriginalCanvas();
         }
     }
 
@@ -886,6 +906,7 @@ function initPhotoEditor() {
         }
         layer.ctx.putImageData(imageData, 0, 0);
         redrawCanvas();
+        updateOriginalCanvas();
     }
 
     function exportLayers() {
@@ -931,6 +952,7 @@ function initPhotoEditor() {
         }
         layer.ctx.putImageData(imageData, 0, 0);
         redrawCanvas();
+        updateOriginalCanvas();
     }
 
     function canvasToBMP(canvas) {

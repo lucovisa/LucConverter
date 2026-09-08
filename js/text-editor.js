@@ -53,7 +53,7 @@ function initTextEditor() {
     editor.style.borderRadius = '4px';
     editor.style.color = 'var(--text)';
     editor.style.fontSize = '1rem';
-    editor.style.fontFamily = 'monospace';
+    editor.style.fontFamily = 'Arial, sans-serif';
     editor.style.overflowY = 'auto';
     editor.style.outline = 'none';
 
@@ -104,6 +104,58 @@ function initTextEditor() {
     addButton('<b>B</b>', 'Bold', () => document.execCommand('bold'));
     addButton('<i>I</i>', 'Italic', () => document.execCommand('italic'));
     addButton('<u>U</u>', 'Underline', () => document.execCommand('underline'));
+
+    const fontUploadInput = document.createElement('input');
+    fontUploadInput.type = 'file';
+    fontUploadInput.accept = '.ttf,.otf,.woff,.woff2';
+    fontUploadInput.style.display = 'none';
+    fontUploadInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fontName = 'CustomFont';
+            const fontFace = new FontFace(fontName, e.target.result);
+            fontFace.load().then(loadedFace => {
+                document.fonts.add(loadedFace);
+                editor.style.fontFamily = fontName;
+            }).catch(err => {
+                showError(editor, 'Failed to load font');
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    const fontUploadBtn = document.createElement('button');
+    fontUploadBtn.textContent = '📝 Font';
+    fontUploadBtn.title = 'Upload custom font';
+    fontUploadBtn.style.padding = '0.5rem 0.8rem';
+    fontUploadBtn.style.background = 'var(--button-bg)';
+    fontUploadBtn.style.color = 'white';
+    fontUploadBtn.style.border = 'none';
+    fontUploadBtn.style.borderRadius = '4px';
+    fontUploadBtn.style.cursor = 'pointer';
+    fontUploadBtn.addEventListener('click', () => fontUploadInput.click());
+    toolbar.appendChild(fontUploadBtn);
+
+    const fontSizeSelect = document.createElement('select');
+    fontSizeSelect.style.padding = '0.5rem';
+    fontSizeSelect.style.background = 'var(--bg)';
+    fontSizeSelect.style.border = '1px solid var(--border)';
+    fontSizeSelect.style.borderRadius = '4px';
+    fontSizeSelect.style.color = 'var(--text)';
+    const sizes = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64, 72];
+    sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size + 'px';
+        fontSizeSelect.appendChild(option);
+    });
+    fontSizeSelect.value = 16;
+    fontSizeSelect.addEventListener('change', function() {
+        editor.style.fontSize = this.value + 'px';
+    });
+    toolbar.appendChild(fontSizeSelect);
 
     const languageSelect = document.createElement('select');
     languageSelect.style.padding = '0.5rem';

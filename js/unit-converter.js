@@ -1,40 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     initUnitConverter();
     setupClearButtons();
-    setupLiveClock();
 });
-
-function setupLiveClock() {
-    const clockElement = document.getElementById('liveClock');
-    if (!clockElement) return;
-    function updateClock() {
-        const now = new Date();
-        clockElement.textContent = now.toLocaleTimeString();
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
-}
-
-function setupClearButtons() {
-    document.querySelectorAll('.clear-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            const container = document.getElementById(targetId);
-            if (!container) return;
-            container.querySelectorAll('input').forEach(input => {
-                if (input.type === 'color') input.value = '#000000';
-                else if (input.type === 'date') input.value = '';
-                else if (input.type === 'number' || input.type === 'text') input.value = '';
-                else if (input.type === 'range') input.value = input.min;
-            });
-            container.querySelectorAll('select').forEach(select => {
-                select.selectedIndex = 0;
-            });
-            const result = container.querySelector('.result-display');
-            if (result) result.textContent = '';
-        });
-    });
-}
 
 function initUnitConverter() {
     const timezoneFrom = document.getElementById('timezoneFrom');
@@ -58,9 +25,7 @@ function initUnitConverter() {
         temperatureConverter: tempUnits,
         dataConverter: dataUnits,
         internetSpeedConverter: internetSpeedUnits,
-        cookingConverter: cookingUnits,
-        coordinateConverter: coordinateUnits,
-        ageConverter: ageUnits
+        cookingConverter: cookingUnits
     };
 
     for (const [id, units] of Object.entries(selectMap)) {
@@ -296,6 +261,124 @@ function initUnitConverter() {
             ageResult.textContent = `Age: ${years} years, ${months} months, ${days} days\nTotal days: ${totalDays}\nTotal hours: ${totalHours}\nTotal minutes: ${totalMinutes}`;
         });
     }
+
+    initTimer();
+    initStopwatch();
+}
+
+function initTimer() {
+    const timerInput = document.getElementById('timerInput');
+    const startBtn = document.getElementById('timerStartBtn');
+    const pauseBtn = document.getElementById('timerPauseBtn');
+    const resetBtn = document.getElementById('timerResetBtn');
+    const display = document.getElementById('timerDisplay');
+    if (!timerInput || !startBtn || !pauseBtn || !resetBtn || !display) return;
+
+    let timerInterval = null;
+    let remainingTime = 0;
+
+    function updateDisplay() {
+        const hours = Math.floor(remainingTime / 3600);
+        const minutes = Math.floor((remainingTime % 3600) / 60);
+        const seconds = remainingTime % 60;
+        display.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    startBtn.addEventListener('click', () => {
+        if (timerInterval) return;
+        remainingTime = parseInt(timerInput.value) || 0;
+        if (remainingTime <= 0) {
+            showError(timerInput, 'Enter valid seconds');
+            return;
+        }
+        updateDisplay();
+        timerInterval = setInterval(() => {
+            remainingTime--;
+            updateDisplay();
+            if (remainingTime <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                display.textContent = 'Time is up!';
+            }
+        }, 1000);
+    });
+
+    pauseBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    });
+
+    resetBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        remainingTime = 0;
+        timerInput.value = '';
+        display.textContent = '00:00:00';
+    });
+}
+
+function initStopwatch() {
+    const startBtn = document.getElementById('stopwatchStartBtn');
+    const pauseBtn = document.getElementById('stopwatchPauseBtn');
+    const resetBtn = document.getElementById('stopwatchResetBtn');
+    const display = document.getElementById('stopwatchDisplay');
+    if (!startBtn || !pauseBtn || !resetBtn || !display) return;
+
+    let stopwatchInterval = null;
+    let startTime = 0;
+    let elapsedTime = 0;
+    let running = false;
+
+    function updateDisplay() {
+        const totalMs = elapsedTime + (running ? Date.now() - startTime : 0);
+        const minutes = Math.floor(totalMs / 60000);
+        const seconds = Math.floor((totalMs % 60000) / 1000);
+        const milliseconds = Math.floor((totalMs % 1000) / 10);
+        display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(2, '0')}`;
+    }
+
+    startBtn.addEventListener('click', () => {
+        if (running) return;
+        running = true;
+        startTime = Date.now();
+        stopwatchInterval = setInterval(updateDisplay, 10);
+    });
+
+    pauseBtn.addEventListener('click', () => {
+        if (!running) return;
+        running = false;
+        elapsedTime += Date.now() - startTime;
+        clearInterval(stopwatchInterval);
+        updateDisplay();
+    });
+
+    resetBtn.addEventListener('click', () => {
+        running = false;
+        clearInterval(stopwatchInterval);
+        elapsedTime = 0;
+        updateDisplay();
+    });
+}
+
+function setupClearButtons() {
+    document.querySelectorAll('.clear-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const container = document.getElementById(targetId);
+            if (!container) return;
+            container.querySelectorAll('input').forEach(input => {
+                if (input.type === 'color') input.value = '#000000';
+                else if (input.type === 'date') input.value = '';
+                else if (input.type === 'number' || input.type === 'text') input.value = '';
+                else if (input.type === 'range') input.value = input.min;
+            });
+            container.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+            });
+            const result = container.querySelector('.result-display');
+            if (result) result.textContent = '';
+        });
+    });
 }
 
 function parseUTCOffset(str) {
@@ -461,19 +544,6 @@ const cookingUnits = {
     'Kilograms (kg)': 1000,
     'Ounces (oz)': 28.3495,
     'Pounds (lbs)': 453.592
-};
-
-const coordinateUnits = {
-    'Decimal Degrees': 1,
-    'Degrees Minutes Seconds': 1
-};
-
-const ageUnits = {
-    'Years': 1,
-    'Months': 12,
-    'Days': 365,
-    'Hours': 8760,
-    'Minutes': 525600
 };
 
 function hexToRgb(hex) {

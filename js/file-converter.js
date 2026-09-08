@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
 
+    let filesWithFormats = [];
+
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -21,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function processFiles(files) {
         fileList.innerHTML = '';
+        filesWithFormats = [];
         for (const file of files) {
             const realType = await detectRealType(file);
             const fileItem = document.createElement('div');
@@ -46,31 +49,120 @@ document.addEventListener('DOMContentLoaded', function() {
                 formatSelect.appendChild(opt);
             });
 
-            const convertBtn = document.createElement('button');
-            convertBtn.textContent = 'Convert';
-            convertBtn.style.padding = '0.5rem 1rem';
-            convertBtn.style.background = 'var(--button-bg)';
-            convertBtn.style.color = 'white';
-            convertBtn.style.border = 'none';
-            convertBtn.style.borderRadius = '4px';
-            convertBtn.style.cursor = 'pointer';
-            convertBtn.addEventListener('click', () => {
-                performConversion(file, formatSelect.value, realType);
-            });
+            filesWithFormats.push({ file, formatSelect, realType });
 
             fileItem.appendChild(fileInfo);
             fileItem.appendChild(formatSelect);
-            fileItem.appendChild(convertBtn);
             fileList.appendChild(fileItem);
         }
+
+        if (filesWithFormats.length > 0) {
+            const convertAllBtn = document.createElement('button');
+            convertAllBtn.textContent = 'Convert All and Download ZIP';
+            convertAllBtn.style.padding = '0.7rem 1.5rem';
+            convertAllBtn.style.background = '#2e7d32';
+            convertAllBtn.style.color = 'white';
+            convertAllBtn.style.border = 'none';
+            convertAllBtn.style.borderRadius = '4px';
+            convertAllBtn.style.cursor = 'pointer';
+            convertAllBtn.style.marginTop = '1rem';
+            convertAllBtn.addEventListener('click', () => convertAllAndZip());
+            fileList.appendChild(convertAllBtn);
+        }
+    }
+
+    async function convertAllAndZip() {
+        const zip = new JSZip();
+        for (const item of filesWithFormats) {
+            const format = item.formatSelect.value;
+            const blob = await convertFileToBlob(item.file, format, item.realType);
+            if (blob) {
+                const newName = item.file.name.replace(/\.[^.]+$/, '.' + format);
+                zip.file(newName, blob);
+            }
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(zipBlob);
+        a.download = 'converted_files.zip';
+        a.click();
+    }
+
+    function convertFileToBlob(file, format, realType) {
+        return new Promise((resolve) => {
+            const fileType = realType ? getTypeCategory(realType) : file.type.split('/')[0];
+            const extension = realType || file.name.split('.').pop().toLowerCase();
+            const isImage = fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension);
+            const isVideo = fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension);
+            const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension);
+            const isFont = ['ttf', 'otf', 'woff', 'woff2'].includes(extension);
+            const isArchive = ['zip', 'rar', '7z'].includes(extension);
+
+            if (isImage) {
+                if (format === 'txt (ocr)') {
+                    extractTextFromImage(file).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else {
+                    convertImageToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                }
+            } else if (isVideo) {
+                if (format === 'jpg' || format === 'png') {
+                    extractFrameFromVideo(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else if (format === 'mp3' || format === 'wav') {
+                    extractAudioFromVideo(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else if (window.FFmpeg && isFFmpegAvailable()) {
+                    convertWithFFmpeg(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else {
+                    resolve(new Blob([file], { type: `video/${format}` }));
+                }
+            } else if (isAudio) {
+                if (format === 'mp4' || format === 'webm') {
+                    audioToVideo(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else if (window.FFmpeg && isFFmpegAvailable()) {
+                    convertWithFFmpeg(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else if (format === 'mp3') {
+                    convertAudioToMp3(file).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else {
+                    resolve(new Blob([file], { type: `audio/${format}` }));
+                }
+            } else if (isFont) {
+                resolve(new Blob([file], { type: 'application/octet-stream' }));
+            } else if (extension === 'pdf') {
+                convertPDFToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (extension === 'html' || extension === 'htm') {
+                convertHTMLToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (extension === 'docx') {
+                convertDOCXToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (extension === 'xlsx' || extension === 'xls') {
+                convertXLSXToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (extension === 'glb' || extension === 'gltf') {
+                convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (extension === 'obj') {
+                convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (isArchive) {
+                if (format === 'zip') {
+                    handleArchive(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else {
+                    resolve(new Blob([file], { type: 'text/plain' }));
+                }
+            } else {
+                if (format === 'zip') {
+                    convertToZip(file).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        resolve(new Blob([e.target.result], { type: 'text/plain' }));
+                    };
+                    reader.onerror = () => resolve(null);
+                    reader.readAsArrayBuffer(file);
+                }
+            }
+        });
     }
 
     async function detectRealType(file) {
         const buffer = await file.slice(0, 64).arrayBuffer();
         const bytes = new Uint8Array(buffer);
-
         if (bytes.length < 4) return null;
-
         if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'png';
         if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'jpg';
         if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'gif';
@@ -100,14 +192,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bytes[0] === 0x4F && bytes[1] === 0x54 && bytes[2] === 0x54 && bytes[3] === 0x4F) return 'otf';
         if (bytes[0] === 0x77 && bytes[1] === 0x4F && bytes[2] === 0x46 && bytes[3] === 0x46) return 'woff';
         if (bytes[0] === 0x77 && bytes[1] === 0x4F && bytes[2] === 0x46 && bytes[3] === 0x32) return 'woff2';
-
         return null;
     }
 
     function getFormats(file, realType) {
         const fileType = file.type.split('/')[0];
         const extension = realType || file.name.split('.').pop().toLowerCase();
-
         if (fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension)) {
             return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
         }
@@ -130,62 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
     }
 
-    function performConversion(file, format, realType) {
-        const fileType = realType ? getTypeCategory(realType) : file.type.split('/')[0];
-        const extension = realType || file.name.split('.').pop().toLowerCase();
-        const isImage = fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension);
-        const isVideo = fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension);
-        const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension);
-        const isFont = ['ttf', 'otf', 'woff', 'woff2'].includes(extension);
-        const isArchive = ['zip', 'rar', '7z'].includes(extension);
-
-        if (isImage) {
-            if (format === 'txt (ocr)') extractTextFromImage(file);
-            else convertImage(file, format);
-        } else if (isVideo) {
-            if (format === 'jpg' || format === 'png') extractFrameFromVideo(file, format);
-            else if (format === 'mp3' || format === 'wav') extractAudioFromVideo(file, format);
-            else if (window.FFmpeg && isFFmpegAvailable()) convertWithFFmpeg(file, format);
-            else convertVideoFallback(file, format);
-        } else if (isAudio) {
-            if (format === 'mp4' || format === 'webm') audioToVideo(file, format);
-            else if (window.FFmpeg && isFFmpegAvailable()) convertWithFFmpeg(file, format);
-            else if (format === 'mp3') convertAudioToMp3(file);
-            else convertAudioFallback(file, format);
-        } else if (isFont) {
-            convertFont(file, format);
-        } else if (extension === 'pdf') {
-            convertPDF(file, format);
-        } else if (extension === 'html' || extension === 'htm') {
-            convertHTML(file, format);
-        } else if (extension === 'docx') {
-            convertDOCX(file, format);
-        } else if (extension === 'xlsx' || extension === 'xls') {
-            convertXLSX(file, format);
-        } else if (extension === 'glb' || extension === 'gltf') {
-            convert3D(file, format);
-        } else if (extension === 'obj') {
-            convert3D(file, format);
-        } else if (isArchive) {
-            if (format === 'zip') handleArchive(file, format);
-            else convertGeneric(file, format);
-        } else {
-            if (format === 'zip') convertToZip(file);
-            else convertGeneric(file, format);
-        }
-    }
-
     function getTypeCategory(realType) {
         if (['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(realType)) return 'image';
         if (['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(realType)) return 'video';
         if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(realType)) return 'audio';
         if (['ttf', 'otf', 'woff', 'woff2'].includes(realType)) return 'font';
         return 'other';
-    }
-
-    function convertFont(file, format) {
-        const blob = new Blob([file], { type: 'application/octet-stream' });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
     }
 
     let ffmpegLoaded = false;
@@ -205,102 +245,304 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function convertWithFFmpeg(file, format) {
-        try {
-            const ffmpeg = await loadFFmpeg();
-            const inputName = 'input' + getExtension(file.name);
-            const outputName = 'output.' + format;
-            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
-            const args = ['-i', inputName];
-            if (['jpg', 'png'].includes(format)) args.push('-vframes', '1');
-            if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) args.push('-vn');
-            if (['mp4', 'webm', 'avi', 'mov'].includes(format)) args.push('-c:v', 'libx264', '-c:a', 'aac');
-            args.push(outputName);
-            await ffmpeg.run(...args);
-            const data = ffmpeg.FS('readFile', outputName);
-            const blob = new Blob([data.buffer], { type: getMimeType(format) });
-            ffmpeg.FS('unlink', inputName);
-            ffmpeg.FS('unlink', outputName);
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.' + format));
-        } catch (e) {
-            showError(fileList, 'FFmpeg conversion failed: ' + e.message);
-        }
-    }
-
-    function convertVideoFallback(file, format) {
-        const blob = new Blob([file], { type: `video/${format}` });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-    }
-
-    function convertAudioFallback(file, format) {
-        const blob = new Blob([file], { type: `audio/${format}` });
-        downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
+        const ffmpeg = await loadFFmpeg();
+        const inputName = 'input' + getExtension(file.name);
+        const outputName = 'output.' + format;
+        ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+        const args = ['-i', inputName];
+        if (['jpg', 'png'].includes(format)) args.push('-vframes', '1');
+        if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(format)) args.push('-vn');
+        if (['mp4', 'webm', 'avi', 'mov'].includes(format)) args.push('-c:v', 'libx264', '-c:a', 'aac');
+        args.push(outputName);
+        await ffmpeg.run(...args);
+        const data = ffmpeg.FS('readFile', outputName);
+        const blob = new Blob([data.buffer], { type: getMimeType(format) });
+        ffmpeg.FS('unlink', inputName);
+        ffmpeg.FS('unlink', outputName);
+        return blob;
     }
 
     async function convertAudioToMp3(file) {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            const channels = audioBuffer.numberOfChannels;
-            const sampleRate = audioBuffer.sampleRate;
-            const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
-            const samples = new Int16Array(audioBuffer.length * channels);
-            let offset = 0;
-            for (let i = 0; i < audioBuffer.length; i++) {
-                for (let channel = 0; channel < channels; channel++) {
-                    const sample = audioBuffer.getChannelData(channel)[i];
-                    const clamped = Math.max(-1, Math.min(1, sample));
-                    samples[offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
-                }
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const channels = audioBuffer.numberOfChannels;
+        const sampleRate = audioBuffer.sampleRate;
+        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+        const samples = new Int16Array(audioBuffer.length * channels);
+        let offset = 0;
+        for (let i = 0; i < audioBuffer.length; i++) {
+            for (let channel = 0; channel < channels; channel++) {
+                const sample = audioBuffer.getChannelData(channel)[i];
+                const clamped = Math.max(-1, Math.min(1, sample));
+                samples[offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
             }
-            const mp3Data = mp3encoder.encodeBuffer(samples);
-            const endData = mp3encoder.flush();
-            const blob = new Blob([mp3Data, endData], { type: 'audio/mp3' });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.mp3'));
-        } catch (e) {
-            showError(fileList, 'MP3 conversion failed: ' + e.message);
         }
+        const mp3Data = mp3encoder.encodeBuffer(samples);
+        const endData = mp3encoder.flush();
+        return new Blob([mp3Data, endData], { type: 'audio/mp3' });
     }
 
-    async function convert3D(file, format) {
-        try {
-            if (file.name.endsWith('.glb') || file.name.endsWith('.gltf') || (realType === 'glb' || realType === 'gltf')) {
-                const url = URL.createObjectURL(file);
-                const loader = new THREE.GLTFLoader();
-                const gltf = await new Promise((resolve, reject) => {
-                    loader.load(url, resolve, undefined, reject);
-                });
-                if (format === 'obj') {
-                    const exporter = new THREE.OBJExporter();
-                    const objData = exporter.parse(gltf.scene);
-                    const blob = new Blob([objData], { type: 'text/plain' });
-                    downloadFile(blob, file.name.replace(/\.[^.]+$/, '.obj'));
-                } else if (format === 'stl') {
-                    const exporter = new THREE.STLExporter();
-                    const stlData = exporter.parse(gltf.scene);
-                    const blob = new Blob([stlData], { type: 'text/plain' });
-                    downloadFile(blob, file.name.replace(/\.[^.]+$/, '.stl'));
-                }
-                URL.revokeObjectURL(url);
-            } else if (file.name.endsWith('.obj') || realType === 'obj') {
-                if (format === 'stl') {
-                    const text = await file.text();
-                    const blob = new Blob([text], { type: 'text/plain' });
-                    downloadFile(blob, file.name.replace(/\.[^.]+$/, '.stl'));
+    function convertImageToBlob(file, format) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                if (format === 'svg') {
+                    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${img.width}" height="${img.height}"><image href="${img.src}" width="${img.width}" height="${img.height}"/></svg>`;
+                    resolve(new Blob([svgData], { type: 'image/svg+xml' }));
+                } else if (format === 'ico') {
+                    canvasToICO(canvas).then(blob => resolve(blob));
+                } else if (format === 'bmp') {
+                    resolve(new Blob([canvasToBMP(canvas)], { type: 'image/bmp' }));
                 } else {
-                    showError(fileList, 'OBJ can only be converted to STL');
+                    const mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
+                    canvas.toBlob(blob => resolve(blob), mimeType);
                 }
+            };
+            img.onerror = () => resolve(null);
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    async function extractTextFromImage(file) {
+        const result = await Tesseract.recognize(file, 'eng');
+        return new Blob([result.data.text], { type: 'text/plain' });
+    }
+
+    function extractFrameFromVideo(file, format) {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = function() {
+                video.currentTime = Math.min(1, video.duration / 2);
+            };
+            video.onseeked = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                canvas.toBlob(blob => resolve(blob), mimeType);
+                video.src = '';
+            };
+            video.onerror = () => resolve(null);
+        });
+    }
+
+    function extractAudioFromVideo(file, format) {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = function() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaElementSource(video);
+                const destination = audioContext.createMediaStreamDestination();
+                source.connect(destination);
+                const mediaRecorder = new MediaRecorder(destination.stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const mimeType = format === 'mp3' ? 'audio/mpeg' : 'audio/wav';
+                    resolve(new Blob(chunks, { type: mimeType }));
+                };
+                mediaRecorder.start();
+                video.play();
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    video.pause();
+                    source.disconnect();
+                    audioContext.close();
+                }, 5000);
+            };
+            video.onerror = () => resolve(null);
+        });
+    }
+
+    function audioToVideo(file, format) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 360;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1b2838';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#66c0f4';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(file.name, canvas.width / 2, canvas.height / 2);
+            const stream = canvas.captureStream(30);
+            const mediaRecorder = new MediaRecorder(stream);
+            const chunks = [];
+            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const mimeType = format === 'mp4' ? 'video/mp4' : 'video/webm';
+                resolve(new Blob(chunks, { type: mimeType }));
+            };
+            mediaRecorder.start();
+            setTimeout(() => mediaRecorder.stop(), 3000);
+        });
+    }
+
+    function convertPDFToBlob(file, format) {
+        return new Promise(async (resolve) => {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                if (format === 'txt') {
+                    let text = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        const strings = content.items.map(item => item.str);
+                        text += strings.join(' ') + '\n\n';
+                    }
+                    resolve(new Blob([text], { type: 'text/plain' }));
+                } else if (format === 'html') {
+                    let html = '<html><body>';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        const strings = content.items.map(item => item.str);
+                        html += `<p>${strings.join(' ')}</p>`;
+                    }
+                    html += '</body></html>';
+                    resolve(new Blob([html], { type: 'text/html' }));
+                } else if (format === 'jpg' || format === 'png') {
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 2 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                    canvas.toBlob(blob => resolve(blob), mimeType);
+                }
+            } catch (e) {
+                resolve(null);
             }
-        } catch (e) {
-            showError(fileList, '3D conversion failed: ' + e.message);
-        }
+        });
+    }
+
+    function convertHTMLToBlob(file, format) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const htmlContent = e.target.result;
+                if (format === 'txt') {
+                    const textContent = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    resolve(new Blob([textContent], { type: 'text/plain' }));
+                } else if (format === 'markdown') {
+                    let md = htmlContent;
+                    md = md.replace(/<h1>(.*?)<\/h1>/g, '# $1\n\n');
+                    md = md.replace(/<h2>(.*?)<\/h2>/g, '## $1\n\n');
+                    md = md.replace(/<h3>(.*?)<\/h3>/g, '### $1\n\n');
+                    md = md.replace(/<p>(.*?)<\/p>/g, '$1\n\n');
+                    md = md.replace(/<strong>(.*?)<\/strong>/g, '**$1**');
+                    md = md.replace(/<em>(.*?)<\/em>/g, '*$1*');
+                    md = md.replace(/<a href="(.*?)">(.*?)<\/a>/g, '[$2]($1)');
+                    md = md.replace(/<[^>]+>/g, '');
+                    resolve(new Blob([md], { type: 'text/markdown' }));
+                } else if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const textContent = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    doc.text(textContent, 10, 10);
+                    resolve(doc.output('blob'));
+                }
+            };
+            reader.onerror = () => resolve(null);
+            reader.readAsText(file);
+        });
+    }
+
+    function convertDOCXToBlob(file, format) {
+        return new Promise(async (resolve) => {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                const html = result.value;
+                if (format === 'txt') {
+                    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    resolve(new Blob([text], { type: 'text/plain' }));
+                } else if (format === 'html') {
+                    resolve(new Blob([html], { type: 'text/html' }));
+                } else if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    doc.text(text, 10, 10);
+                    resolve(doc.output('blob'));
+                }
+            } catch (e) {
+                resolve(null);
+            }
+        });
+    }
+
+    function convertXLSXToBlob(file, format) {
+        return new Promise(async (resolve) => {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                if (format === 'csv') {
+                    const csv = XLSX.utils.sheet_to_csv(firstSheet);
+                    resolve(new Blob([csv], { type: 'text/csv' }));
+                } else if (format === 'json') {
+                    const json = XLSX.utils.sheet_to_json(firstSheet);
+                    resolve(new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' }));
+                } else if (format === 'html') {
+                    const html = XLSX.utils.sheet_to_html(firstSheet);
+                    resolve(new Blob([html], { type: 'text/html' }));
+                }
+            } catch (e) {
+                resolve(null);
+            }
+        });
+    }
+
+    function convert3DToBlob(file, format) {
+        return new Promise(async (resolve) => {
+            try {
+                if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+                    const url = URL.createObjectURL(file);
+                    const loader = new THREE.GLTFLoader();
+                    const gltf = await new Promise((res, rej) => {
+                        loader.load(url, res, undefined, rej);
+                    });
+                    if (format === 'obj') {
+                        const exporter = new THREE.OBJExporter();
+                        resolve(new Blob([exporter.parse(gltf.scene)], { type: 'text/plain' }));
+                    } else if (format === 'stl') {
+                        const exporter = new THREE.STLExporter();
+                        resolve(new Blob([exporter.parse(gltf.scene)], { type: 'text/plain' }));
+                    }
+                    URL.revokeObjectURL(url);
+                } else if (file.name.endsWith('.obj')) {
+                    if (format === 'stl') {
+                        const text = await file.text();
+                        resolve(new Blob([text], { type: 'text/plain' }));
+                    } else {
+                        resolve(null);
+                    }
+                }
+            } catch (e) {
+                resolve(null);
+            }
+        });
     }
 
     async function handleArchive(file, format) {
         if (format === 'zip') {
-            if (file.name.endsWith('.zip') || realType === 'zip') {
-                downloadFile(file, file.name);
-                return;
+            if (file.name.endsWith('.zip')) {
+                return file;
             }
             try {
                 const archive = await Archive.open(file);
@@ -309,260 +551,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (const f of extracted) {
                     zip.file(f.name, f.blob);
                 }
-                const blob = await zip.generateAsync({ type: 'blob' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.zip'));
+                return await zip.generateAsync({ type: 'blob' });
             } catch (e) {
-                showError(fileList, 'Archive extraction failed: ' + e.message);
+                return null;
             }
         }
+        return null;
     }
 
     async function convertToZip(file) {
-        try {
-            const zip = new JSZip();
-            zip.file(file.name, file);
-            const blob = await zip.generateAsync({ type: 'blob' });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.zip'));
-        } catch (e) {
-            showError(fileList, 'ZIP conversion failed');
-        }
-    }
-
-    function convertGeneric(file, format) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const content = e.target.result;
-            const blob = new Blob([content], { type: 'text/plain' });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    function convertImage(file, format) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            if (format === 'svg') {
-                const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${img.width}" height="${img.height}"><image href="${img.src}" width="${img.width}" height="${img.height}"/></svg>`;
-                const blob = new Blob([svgData], { type: 'image/svg+xml' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.svg'));
-            } else if (format === 'ico') {
-                canvasToICO(canvas).then(blob => downloadFile(blob, file.name.replace(/\.[^.]+$/, '.ico')));
-            } else if (format === 'bmp') {
-                const bmpData = canvasToBMP(canvas);
-                const blob = new Blob([bmpData], { type: 'image/bmp' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.bmp'));
-            } else {
-                const mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
-                canvas.toBlob(blob => downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`)), mimeType);
-            }
-        };
-        img.src = URL.createObjectURL(file);
-    }
-
-    async function extractTextFromImage(file) {
-        try {
-            const result = await Tesseract.recognize(file, 'eng');
-            const blob = new Blob([result.data.text], { type: 'text/plain' });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, '.txt'));
-        } catch (e) {
-            showError(fileList, 'OCR failed: ' + e.message);
-        }
-    }
-
-    async function convertPDF(file, format) {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            if (format === 'txt') {
-                let text = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const strings = content.items.map(item => item.str);
-                    text += strings.join(' ') + '\n\n';
-                }
-                const blob = new Blob([text], { type: 'text/plain' });
-                downloadFile(blob, file.name.replace('.pdf', '.txt'));
-            } else if (format === 'html') {
-                let html = '<html><body>';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const strings = content.items.map(item => item.str);
-                    html += `<p>${strings.join(' ')}</p>`;
-                }
-                html += '</body></html>';
-                const blob = new Blob([html], { type: 'text/html' });
-                downloadFile(blob, file.name.replace('.pdf', '.html'));
-            } else if (format === 'jpg' || format === 'png') {
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 2 });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    const ctx = canvas.getContext('2d');
-                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-                    canvas.toBlob(blob => downloadFile(blob, file.name.replace('.pdf', `_page${i}.${format}`)), mimeType);
-                }
-            }
-        } catch (e) {
-            showError(fileList, 'PDF conversion failed: ' + e.message);
-        }
-    }
-
-    function convertHTML(file, format) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const htmlContent = e.target.result;
-            if (format === 'txt') {
-                const textContent = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                const blob = new Blob([textContent], { type: 'text/plain' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.txt'));
-            } else if (format === 'markdown') {
-                let md = htmlContent;
-                md = md.replace(/<h1>(.*?)<\/h1>/g, '# $1\n\n');
-                md = md.replace(/<h2>(.*?)<\/h2>/g, '## $1\n\n');
-                md = md.replace(/<h3>(.*?)<\/h3>/g, '### $1\n\n');
-                md = md.replace(/<p>(.*?)<\/p>/g, '$1\n\n');
-                md = md.replace(/<strong>(.*?)<\/strong>/g, '**$1**');
-                md = md.replace(/<em>(.*?)<\/em>/g, '*$1*');
-                md = md.replace(/<a href="(.*?)">(.*?)<\/a>/g, '[$2]($1)');
-                md = md.replace(/<[^>]+>/g, '');
-                const blob = new Blob([md], { type: 'text/markdown' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.md'));
-            } else if (format === 'pdf') {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                const textContent = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                doc.text(textContent, 10, 10);
-                const blob = doc.output('blob');
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.pdf'));
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    async function convertDOCX(file, format) {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
-            const html = result.value;
-            if (format === 'txt') {
-                const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                const blob = new Blob([text], { type: 'text/plain' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.txt'));
-            } else if (format === 'html') {
-                const blob = new Blob([html], { type: 'text/html' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.html'));
-            } else if (format === 'pdf') {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                doc.text(text, 10, 10);
-                const blob = doc.output('blob');
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.pdf'));
-            }
-        } catch (e) {
-            showError(fileList, 'DOCX conversion failed: ' + e.message);
-        }
-    }
-
-    async function convertXLSX(file, format) {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            if (format === 'csv') {
-                const csv = XLSX.utils.sheet_to_csv(firstSheet);
-                const blob = new Blob([csv], { type: 'text/csv' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.csv'));
-            } else if (format === 'json') {
-                const json = XLSX.utils.sheet_to_json(firstSheet);
-                const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.json'));
-            } else if (format === 'html') {
-                const html = XLSX.utils.sheet_to_html(firstSheet);
-                const blob = new Blob([html], { type: 'text/html' });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, '.html'));
-            }
-        } catch (e) {
-            showError(fileList, 'XLSX conversion failed: ' + e.message);
-        }
-    }
-
-    function extractFrameFromVideo(file, format) {
-        const video = document.createElement('video');
-        video.src = URL.createObjectURL(file);
-        video.onloadedmetadata = function() {
-            video.currentTime = Math.min(1, video.duration / 2);
-        };
-        video.onseeked = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-            canvas.toBlob(blob => downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`)), mimeType);
-            video.src = '';
-        };
-    }
-
-    function extractAudioFromVideo(file, format) {
-        const video = document.createElement('video');
-        video.src = URL.createObjectURL(file);
-        video.onloadedmetadata = function() {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaElementSource(video);
-            const destination = audioContext.createMediaStreamDestination();
-            source.connect(destination);
-            const mediaRecorder = new MediaRecorder(destination.stream);
-            const chunks = [];
-            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const mimeType = format === 'mp3' ? 'audio/mpeg' : 'audio/wav';
-                const blob = new Blob(chunks, { type: mimeType });
-                downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-            };
-            mediaRecorder.start();
-            video.play();
-            setTimeout(() => {
-                mediaRecorder.stop();
-                video.pause();
-                video.src = '';
-            }, 5000);
-        };
-    }
-
-    function audioToVideo(file, format) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 640;
-        canvas.height = 360;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#1b2838';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#66c0f4';
-        ctx.font = '30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(file.name, canvas.width / 2, canvas.height / 2);
-        const stream = canvas.captureStream(30);
-        const mediaRecorder = new MediaRecorder(stream);
-        const chunks = [];
-        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-        mediaRecorder.onstop = () => {
-            const mimeType = format === 'mp4' ? 'video/mp4' : 'video/webm';
-            const blob = new Blob(chunks, { type: mimeType });
-            downloadFile(blob, file.name.replace(/\.[^.]+$/, `.${format}`));
-        };
-        mediaRecorder.start();
-        setTimeout(() => mediaRecorder.stop(), 3000);
+        const zip = new JSZip();
+        zip.file(file.name, file);
+        return await zip.generateAsync({ type: 'blob' });
     }
 
     function canvasToICO(canvas) {
@@ -626,24 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return buffer;
     }
 
-    function downloadFile(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    function formatFileSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
-    }
-
     function getExtension(filename) {
         return filename.substring(filename.lastIndexOf('.'));
     }
@@ -669,5 +651,12 @@ document.addEventListener('DOMContentLoaded', function() {
             'woff2': 'font/woff2'
         };
         return types[format] || 'application/octet-stream';
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
     }
 });

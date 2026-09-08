@@ -168,6 +168,27 @@ function initMediaShop() {
         volumeGroup.appendChild(volumeLabel);
         settingsRow.appendChild(volumeGroup);
 
+        const speedGroup = document.createElement('div');
+        speedGroup.style.flex = '1';
+        speedGroup.style.minWidth = '150px';
+        speedGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Speed</label>';
+        const speedSlider = document.createElement('input');
+        speedSlider.type = 'range';
+        speedSlider.min = '0.5';
+        speedSlider.max = '2';
+        speedSlider.step = '0.1';
+        speedSlider.value = '1';
+        speedSlider.style.width = '100%';
+        const speedLabel = document.createElement('span');
+        speedLabel.textContent = '1x';
+        speedLabel.style.fontSize = '0.85rem';
+        speedSlider.addEventListener('input', () => {
+            speedLabel.textContent = speedSlider.value + 'x';
+        });
+        speedGroup.appendChild(speedSlider);
+        speedGroup.appendChild(speedLabel);
+        settingsRow.appendChild(speedGroup);
+
         controlsContainer.appendChild(settingsRow);
 
         const trimRow = document.createElement('div');
@@ -230,6 +251,45 @@ function initMediaShop() {
 
         controlsContainer.appendChild(trimRow);
 
+        const mixRow = document.createElement('div');
+        mixRow.style.display = 'flex';
+        mixRow.style.gap = '1rem';
+        mixRow.style.flexWrap = 'wrap';
+        mixRow.style.marginBottom = '1rem';
+
+        const mixSelectGroup = document.createElement('div');
+        mixSelectGroup.style.flex = '1';
+        mixSelectGroup.style.minWidth = '150px';
+        mixSelectGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Mix with another file</label>';
+        const mixSelect = document.createElement('select');
+        mixSelect.style.width = '100%';
+        mixSelect.style.padding = '0.5rem';
+        mixSelect.style.background = 'var(--bg)';
+        mixSelect.style.border = '1px solid var(--border)';
+        mixSelect.style.borderRadius = '4px';
+        mixSelect.style.color = 'var(--text)';
+        mixSelect.add(new Option('None', ''));
+        mediaFiles.forEach((f, i) => {
+            mixSelect.add(new Option(f.name, i));
+        });
+        mixSelectGroup.appendChild(mixSelect);
+        mixRow.appendChild(mixSelectGroup);
+
+        const mixVolumeGroup = document.createElement('div');
+        mixVolumeGroup.style.flex = '1';
+        mixVolumeGroup.style.minWidth = '150px';
+        mixVolumeGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Mix Volume</label>';
+        const mixVolume = document.createElement('input');
+        mixVolume.type = 'range';
+        mixVolume.min = '0';
+        mixVolume.max = '100';
+        mixVolume.value = '50';
+        mixVolume.style.width = '100%';
+        mixVolumeGroup.appendChild(mixVolume);
+        mixRow.appendChild(mixVolumeGroup);
+
+        controlsContainer.appendChild(mixRow);
+
         const actionRow = document.createElement('div');
         actionRow.style.display = 'flex';
         actionRow.style.gap = '0.5rem';
@@ -248,16 +308,24 @@ function initMediaShop() {
             const quality = qualitySelect.value;
             const resolution = resolutionSelect.value;
             const volume = parseInt(volumeSlider.value);
+            const speed = parseFloat(speedSlider.value);
             const start = parseFloat(startInput.value) || 0;
             const end = parseFloat(endInput.value) || 0;
             const overlayText = textOverlayInput.value.trim();
+            const mixIndex = mixSelect.value;
+            const mixVol = parseInt(mixVolume.value) / 100;
             processedBlobs = [];
             const statusDiv = document.createElement('div');
             statusDiv.className = 'success-message';
             statusDiv.textContent = 'Processing...';
             controlsContainer.appendChild(statusDiv);
-            for (const file of mediaFiles) {
-                const blob = await processMediaFile(file, start, end, format, volume, quality, resolution, overlayText);
+            for (let i = 0; i < mediaFiles.length; i++) {
+                const file = mediaFiles[i];
+                let mixFile = null;
+                if (mixIndex !== '' && i != mixIndex) {
+                    mixFile = mediaFiles[mixIndex];
+                }
+                const blob = await processMediaFile(file, mixFile, start, end, format, volume, speed, quality, resolution, overlayText, mixVol);
                 if (blob) {
                     processedBlobs.push({ blob, fileName: 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format) });
                 }
@@ -328,39 +396,53 @@ function initMediaShop() {
         container.appendChild(downloadContainer);
     }
 
-    async function processMediaFile(file, start, end, format, volumePercent, quality, resolution, overlayText) {
+    async function processMediaFile(file, mixFile, start, end, format, volumePercent, speed, quality, resolution, overlayText, mixVolume) {
         const isVideo = file.type.startsWith('video');
         const isAudio = file.type.startsWith('audio');
         if (isAudio) {
-            return await processAudio(file, start, end, volumePercent, format, quality);
+            if (mixFile && mixFile.type.startsWith('audio')) {
+                return await mixAudio(file, mixFile, mixVolume, speed, volumePercent, format, quality);
+            } else {
+                return await processAudio(file, start, end, volumePercent, speed, format, quality);
+            }
         } else if (isVideo) {
             if (format === 'jpg' || format === 'png') {
                 return await extractVideoFrame(file, start || 0, quality, resolution);
             } else if (format === 'webm' || format === 'mp4') {
-                return await trimVideo(file, start, end, volumePercent, quality, resolution, overlayText);
+                if (mixFile && mixFile.type.startsWith('audio')) {
+                    return await mixAudioIntoVideo(file, mixFile, start, end, volumePercent, speed, quality, resolution, overlayText, mixVolume);
+                } else {
+                    return await trimVideo(file, start, end, volumePercent, speed, quality, resolution, overlayText);
+                }
             } else if (format === 'gif') {
                 return await videoToGif(file, start, end, quality, resolution);
             } else if (format === 'mp3' || format === 'wav') {
-                return await extractAudioFromVideo(file, start, end, volumePercent, quality, format);
+                return await extractAudioFromVideo(file, start, end, volumePercent, speed, quality, format);
             }
         }
         return null;
     }
 
-    async function processAudio(file, start, end, volumePercent, format, quality) {
+    async function processAudio(file, start, end, volumePercent, speed, format, quality) {
         const arrayBuffer = await file.arrayBuffer();
         audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
         try {
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             const startSample = Math.floor((start || 0) * audioBuffer.sampleRate);
             const endSample = end > 0 ? Math.floor(end * audioBuffer.sampleRate) : audioBuffer.length;
-            const newLength = endSample - startSample;
+            const duration = (endSample - startSample) / audioBuffer.sampleRate;
+            const newLength = Math.floor(duration * audioBuffer.sampleRate / speed);
             const newBuffer = audioContext.createBuffer(audioBuffer.numberOfChannels, newLength, audioBuffer.sampleRate);
             for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
                 const oldData = audioBuffer.getChannelData(channel);
                 const newData = newBuffer.getChannelData(channel);
                 for (let i = 0; i < newLength; i++) {
-                    newData[i] = oldData[startSample + i] * (volumePercent / 100);
+                    const srcIndex = startSample + Math.floor(i * speed);
+                    if (srcIndex < endSample) {
+                        newData[i] = oldData[srcIndex] * (volumePercent / 100);
+                    } else {
+                        newData[i] = 0;
+                    }
                 }
             }
             if (format === 'mp3') {
@@ -373,11 +455,108 @@ function initMediaShop() {
         }
     }
 
-    async function trimVideo(file, start, end, volumePercent, quality, resolution, overlayText) {
+    async function mixAudio(file1, file2, mixVolume, speed, volumePercent, format, quality) {
+        const arrayBuffer1 = await file1.arrayBuffer();
+        const arrayBuffer2 = await file2.arrayBuffer();
+        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+        try {
+            const buffer1 = await audioContext.decodeAudioData(arrayBuffer1);
+            const buffer2 = await audioContext.decodeAudioData(arrayBuffer2);
+            const length = Math.max(buffer1.length, buffer2.length);
+            const newBuffer = audioContext.createBuffer(Math.max(buffer1.numberOfChannels, buffer2.numberOfChannels), length, buffer1.sampleRate);
+            for (let channel = 0; channel < newBuffer.numberOfChannels; channel++) {
+                const data1 = buffer1.getChannelData(channel);
+                const data2 = buffer2.getChannelData(channel);
+                const newData = newBuffer.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    const sample1 = i < buffer1.length ? data1[i] : 0;
+                    const sample2 = i < buffer2.length ? data2[i] : 0;
+                    newData[i] = (sample1 * (volumePercent / 100) + sample2 * mixVolume) / 2;
+                }
+            }
+            if (format === 'mp3') {
+                return bufferToMp3(newBuffer, quality);
+            }
+            return bufferToWav(newBuffer, quality);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function mixAudioIntoVideo(videoFile, audioFile, start, end, volumePercent, speed, quality, resolution, overlayText, mixVolume) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(videoFile);
+            video.volume = volumePercent / 100;
+            video.playbackRate = speed;
+            const audio = new Audio();
+            audio.src = URL.createObjectURL(audioFile);
+            audio.volume = mixVolume;
+            video.onloadedmetadata = () => {
+                video.currentTime = start || 0;
+                audio.currentTime = start || 0;
+            };
+            video.onseeked = () => {
+                let width = video.videoWidth || 640;
+                let height = video.videoHeight || 360;
+                if (resolution === '1080p') { width = 1920; height = 1080; }
+                else if (resolution === '720p') { width = 1280; height = 720; }
+                else if (resolution === '480p') { width = 854; height = 480; }
+                else if (resolution === '360p') { width = 640; height = 360; }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                const stream = canvas.captureStream(30);
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioCtx.createMediaElementSource(video);
+                const dest = audioCtx.createMediaStreamDestination();
+                source.connect(dest);
+                const audioElSource = audioCtx.createMediaElementSource(audio);
+                audioElSource.connect(dest);
+                dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+                const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                const chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    resolve(blob);
+                };
+                const drawOverlay = () => {
+                    ctx.drawImage(video, 0, 0, width, height);
+                    if (overlayText) {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '30px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(overlayText, width / 2, height / 2);
+                    }
+                };
+                drawOverlay();
+                recorder.start();
+                video.play();
+                audio.play();
+                const duration = end > start ? (end - start) * 1000 / speed : 5000;
+                const interval = setInterval(drawOverlay, 100);
+                setTimeout(() => {
+                    clearInterval(interval);
+                    recorder.stop();
+                    video.pause();
+                    audio.pause();
+                    source.disconnect();
+                    audioElSource.disconnect();
+                    audioCtx.close();
+                }, duration);
+            };
+            video.onerror = reject;
+        });
+    }
+
+    async function trimVideo(file, start, end, volumePercent, speed, quality, resolution, overlayText) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
             video.volume = volumePercent / 100;
+            video.playbackRate = speed;
             video.onloadedmetadata = () => {
                 video.currentTime = start || 0;
             };
@@ -417,7 +596,7 @@ function initMediaShop() {
                 drawOverlay();
                 recorder.start();
                 video.play();
-                const duration = end > start ? (end - start) * 1000 : 5000;
+                const duration = end > start ? (end - start) * 1000 / speed : 5000;
                 const interval = setInterval(drawOverlay, 100);
                 setTimeout(() => {
                     clearInterval(interval);
@@ -426,32 +605,6 @@ function initMediaShop() {
                     source.disconnect();
                     audioCtx.close();
                 }, duration);
-            };
-            video.onerror = reject;
-        });
-    }
-
-    async function extractVideoFrame(file, time, quality, resolution) {
-        return new Promise((resolve, reject) => {
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(file);
-            video.onloadedmetadata = () => {
-                video.currentTime = time || 0;
-            };
-            video.onseeked = () => {
-                let width = video.videoWidth;
-                let height = video.videoHeight;
-                if (resolution === '1080p') { width = 1920; height = 1080; }
-                else if (resolution === '720p') { width = 1280; height = 720; }
-                else if (resolution === '480p') { width = 854; height = 480; }
-                else if (resolution === '360p') { width = 640; height = 360; }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, width, height);
-                canvas.toBlob(blob => resolve(blob), 'image/png');
-                video.src = '';
             };
             video.onerror = reject;
         });
@@ -503,10 +656,12 @@ function initMediaShop() {
         });
     }
 
-    async function extractAudioFromVideo(file, start, end, volumePercent, quality, format) {
+    async function extractAudioFromVideo(file, start, end, volumePercent, speed, quality, format) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
+            video.playbackRate = speed;
+            video.volume = volumePercent / 100;
             video.onloadedmetadata = () => {
                 video.currentTime = start || 0;
             };
@@ -524,7 +679,7 @@ function initMediaShop() {
                 };
                 mediaRecorder.start();
                 video.play();
-                const duration = end > start ? (end - start) * 1000 : 5000;
+                const duration = end > start ? (end - start) * 1000 / speed : 5000;
                 setTimeout(() => {
                     mediaRecorder.stop();
                     video.pause();
