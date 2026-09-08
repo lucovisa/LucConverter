@@ -72,579 +72,87 @@ function initMediaShop() {
     }
 
     function processFiles(files) {
-    const validFiles = files.filter(isAllowedFile);
-    const invalidFiles = files.filter(f => !isAllowedFile(f));
+        const validFiles = files.filter(isAllowedFile);
+        const invalidFiles = files.filter(f => !isAllowedFile(f));
 
-    if (invalidFiles.length > 0) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = `Skipped ${invalidFiles.length} unsupported file(s). Only audio, video, GLB, GLTF and OBJ are allowed.`;
-        editorContainer.appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 5000);
-    }
-
-    if (validFiles.length === 0) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = 'No supported files. Please upload audio, video, GLB, GLTF or OBJ files.';
-        editorContainer.appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 5000);
-        return;
-    }
-
-    mediaFiles = [...mediaFiles, ...validFiles];
-    processedBlobs = [];
-    editorContainer.style.display = 'block';
-    editorContainer.innerHTML = '';
-
-    const title = document.createElement('h3');
-    title.textContent = `Loaded ${mediaFiles.length} file(s)`;
-    title.style.color = 'var(--accent)';
-    title.style.marginBottom = '1rem';
-    editorContainer.appendChild(title);
-
-    const previewContainer = document.createElement('div');
-    previewContainer.style.display = 'flex';
-    previewContainer.style.flexWrap = 'wrap';
-    previewContainer.style.gap = '0.5rem';
-    previewContainer.style.marginBottom = '1rem';
-
-    mediaFiles.forEach((file, index) => {
-        if (isMediaFile(file)) {
-            const previewItem = document.createElement('div');
-            previewItem.style.flex = '1';
-            previewItem.style.minWidth = '200px';
-            previewItem.style.maxWidth = '300px';
-            previewItem.style.background = 'var(--panel-bg)';
-            previewItem.style.border = '1px solid var(--border)';
-            previewItem.style.borderRadius = '4px';
-            previewItem.style.padding = '0.5rem';
-
-            const previewLabel = document.createElement('div');
-            previewLabel.textContent = file.name;
-            previewLabel.style.fontSize = '0.85rem';
-            previewLabel.style.marginBottom = '0.3rem';
-            previewLabel.style.overflow = 'hidden';
-            previewLabel.style.textOverflow = 'ellipsis';
-            previewLabel.style.whiteSpace = 'nowrap';
-            previewItem.appendChild(previewLabel);
-
-            const ext = file.name.split('.').pop().toLowerCase();
-            const isVideo = file.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(ext);
-            const isAudio = file.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(ext);
-
-            if (isVideo) {
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(file);
-                video.controls = true;
-                video.style.width = '100%';
-                video.style.maxHeight = '150px';
-                video.style.borderRadius = '4px';
-                video.preload = 'metadata';
-                previewItem.appendChild(video);
-            } else if (isAudio) {
-                const audio = document.createElement('audio');
-                audio.src = URL.createObjectURL(file);
-                audio.controls = true;
-                audio.style.width = '100%';
-                audio.preload = 'metadata';
-                previewItem.appendChild(audio);
-            }
-
-            previewContainer.appendChild(previewItem);
+        if (invalidFiles.length > 0) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = `Skipped ${invalidFiles.length} unsupported file(s). Only audio, video, GLB, GLTF and OBJ are allowed.`;
+            editorContainer.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
         }
-    });
 
-    if (previewContainer.children.length > 0) {
-        editorContainer.appendChild(previewContainer);
-    }
+        if (validFiles.length === 0) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = 'No supported files. Please upload audio, video, GLB, GLTF or OBJ files.';
+            editorContainer.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+            return;
+        }
 
-    const fileListContainer = document.createElement('div');
-    fileListContainer.style.marginBottom = '1rem';
-    mediaFiles.forEach((file, index) => {
-        const fileItem = document.createElement('div');
-        fileItem.style.padding = '0.5rem';
-        fileItem.style.border = '1px solid var(--border)';
-        fileItem.style.borderRadius = '4px';
-        fileItem.style.marginBottom = '0.3rem';
-        fileItem.textContent = `${index + 1}. ${file.name}`;
-        fileListContainer.appendChild(fileItem);
-    });
-
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = 'Clear All Files';
-    clearBtn.style.padding = '0.5rem 1rem';
-    clearBtn.style.background = '#8B0000';
-    clearBtn.style.color = 'white';
-    clearBtn.style.border = 'none';
-    clearBtn.style.borderRadius = '4px';
-    clearBtn.style.cursor = 'pointer';
-    clearBtn.style.marginTop = '0.5rem';
-    clearBtn.addEventListener('click', () => {
-        editorContainer.style.display = 'none';
-        editorContainer.innerHTML = '';
-        mediaFiles = [];
+        mediaFiles = [...mediaFiles, ...validFiles];
         processedBlobs = [];
-    });
-    fileListContainer.appendChild(clearBtn);
+        editorContainer.style.display = 'block';
+        editorContainer.innerHTML = '';
 
-    editorContainer.appendChild(fileListContainer);
+        const title = document.createElement('h3');
+        title.textContent = `Loaded ${mediaFiles.length} file(s)`;
+        title.style.color = 'var(--accent)';
+        title.style.marginBottom = '1rem';
+        editorContainer.appendChild(title);
 
-    const has3D = mediaFiles.some(f => is3DFile(f));
+        const previewContainer = document.createElement('div');
+        previewContainer.style.display = 'flex';
+        previewContainer.style.flexWrap = 'wrap';
+        previewContainer.style.gap = '0.5rem';
+        previewContainer.style.marginBottom = '1rem';
 
-    if (has3D) {
-        const viewerContainer = document.createElement('div');
-        viewerContainer.style.width = '100%';
-        viewerContainer.style.height = '500px';
-        viewerContainer.style.position = 'relative';
-        viewerContainer.style.background = '#000000';
-        viewerContainer.style.borderRadius = '4px';
-        viewerContainer.style.marginBottom = '1rem';
-        viewerContainer.style.overflow = 'hidden';
-        editorContainer.appendChild(viewerContainer);
+        mediaFiles.forEach((file, index) => {
+            if (isMediaFile(file)) {
+                const previewItem = document.createElement('div');
+                previewItem.style.flex = '1';
+                previewItem.style.minWidth = '200px';
+                previewItem.style.maxWidth = '300px';
+                previewItem.style.background = 'var(--panel-bg)';
+                previewItem.style.border = '1px solid var(--border)';
+                previewItem.style.borderRadius = '4px';
+                previewItem.style.padding = '0.5rem';
 
-        const viewerInfo = document.createElement('div');
-        viewerInfo.textContent = 'Loading 3D model...';
-        viewerInfo.style.position = 'absolute';
-        viewerInfo.style.top = '50%';
-        viewerInfo.style.left = '50%';
-        viewerInfo.style.transform = 'translate(-50%, -50%)';
-        viewerInfo.style.color = 'white';
-        viewerInfo.style.fontSize = '1.2rem';
-        viewerInfo.style.zIndex = '10';
-        viewerContainer.appendChild(viewerInfo);
+                const previewLabel = document.createElement('div');
+                previewLabel.textContent = file.name;
+                previewLabel.style.fontSize = '0.85rem';
+                previewLabel.style.marginBottom = '0.3rem';
+                previewLabel.style.overflow = 'hidden';
+                previewLabel.style.textOverflow = 'ellipsis';
+                previewLabel.style.whiteSpace = 'nowrap';
+                previewItem.appendChild(previewLabel);
 
-        const controlsInfo = document.createElement('div');
-        controlsInfo.textContent = 'Mouse: rotate | Wheel: zoom | Right click: pan';
-        controlsInfo.style.position = 'absolute';
-        controlsInfo.style.bottom = '10px';
-        controlsInfo.style.left = '50%';
-        controlsInfo.style.transform = 'translateX(-50%)';
-        controlsInfo.style.color = '#aaa';
-        controlsInfo.style.fontSize = '0.85rem';
-        controlsInfo.style.zIndex = '10';
-        controlsInfo.style.background = 'rgba(0,0,0,0.7)';
-        controlsInfo.style.padding = '0.3rem 0.8rem';
-        controlsInfo.style.borderRadius = '4px';
-        viewerContainer.appendChild(controlsInfo);
+                const ext = file.name.split('.').pop().toLowerCase();
+                const isVideo = file.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(ext);
+                const isAudio = file.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(ext);
 
-        const toolbar = document.createElement('div');
-        toolbar.style.position = 'absolute';
-        toolbar.style.top = '10px';
-        toolbar.style.left = '10px';
-        toolbar.style.right = '10px';
-        toolbar.style.display = 'flex';
-        toolbar.style.gap = '0.3rem';
-        toolbar.style.flexWrap = 'wrap';
-        toolbar.style.zIndex = '20';
-        viewerContainer.appendChild(toolbar);
-
-        const autoRotateBtn = document.createElement('button');
-        autoRotateBtn.textContent = 'Auto: Off';
-        autoRotateBtn.style.padding = '0.4rem 0.6rem';
-        autoRotateBtn.style.background = 'rgba(0,0,0,0.7)';
-        autoRotateBtn.style.color = 'white';
-        autoRotateBtn.style.border = '1px solid #444';
-        autoRotateBtn.style.borderRadius = '4px';
-        autoRotateBtn.style.cursor = 'pointer';
-        autoRotateBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(autoRotateBtn);
-
-        const resetCameraBtn = document.createElement('button');
-        resetCameraBtn.textContent = 'Reset Camera';
-        resetCameraBtn.style.padding = '0.4rem 0.6rem';
-        resetCameraBtn.style.background = 'rgba(0,0,0,0.7)';
-        resetCameraBtn.style.color = 'white';
-        resetCameraBtn.style.border = '1px solid #444';
-        resetCameraBtn.style.borderRadius = '4px';
-        resetCameraBtn.style.cursor = 'pointer';
-        resetCameraBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(resetCameraBtn);
-
-        const bgColorBtn = document.createElement('button');
-        bgColorBtn.textContent = 'BG';
-        bgColorBtn.style.padding = '0.4rem 0.6rem';
-        bgColorBtn.style.background = 'rgba(0,0,0,0.7)';
-        bgColorBtn.style.color = 'white';
-        bgColorBtn.style.border = '1px solid #444';
-        bgColorBtn.style.borderRadius = '4px';
-        bgColorBtn.style.cursor = 'pointer';
-        bgColorBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(bgColorBtn);
-
-        const gridBtn = document.createElement('button');
-        gridBtn.textContent = 'Grid: On';
-        gridBtn.style.padding = '0.4rem 0.6rem';
-        gridBtn.style.background = 'rgba(0,0,0,0.7)';
-        gridBtn.style.color = 'white';
-        gridBtn.style.border = '1px solid #444';
-        gridBtn.style.borderRadius = '4px';
-        gridBtn.style.cursor = 'pointer';
-        gridBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(gridBtn);
-
-        const wireframeBtn = document.createElement('button');
-        wireframeBtn.textContent = 'Wireframe';
-        wireframeBtn.style.padding = '0.4rem 0.6rem';
-        wireframeBtn.style.background = 'rgba(0,0,0,0.7)';
-        wireframeBtn.style.color = 'white';
-        wireframeBtn.style.border = '1px solid #444';
-        wireframeBtn.style.borderRadius = '4px';
-        wireframeBtn.style.cursor = 'pointer';
-        wireframeBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(wireframeBtn);
-
-        const edgesBtn = document.createElement('button');
-        edgesBtn.textContent = 'Edges';
-        edgesBtn.style.padding = '0.4rem 0.6rem';
-        edgesBtn.style.background = 'rgba(0,0,0,0.7)';
-        edgesBtn.style.color = 'white';
-        edgesBtn.style.border = '1px solid #444';
-        edgesBtn.style.borderRadius = '4px';
-        edgesBtn.style.cursor = 'pointer';
-        edgesBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(edgesBtn);
-
-        const verticesBtn = document.createElement('button');
-        verticesBtn.textContent = 'Vertices';
-        verticesBtn.style.padding = '0.4rem 0.6rem';
-        verticesBtn.style.background = 'rgba(0,0,0,0.7)';
-        verticesBtn.style.color = 'white';
-        verticesBtn.style.border = '1px solid #444';
-        verticesBtn.style.borderRadius = '4px';
-        verticesBtn.style.cursor = 'pointer';
-        verticesBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(verticesBtn);
-
-        const materialBtn = document.createElement('button');
-        materialBtn.textContent = 'Material';
-        materialBtn.style.padding = '0.4rem 0.6rem';
-        materialBtn.style.background = 'rgba(0,0,0,0.7)';
-        materialBtn.style.color = 'white';
-        materialBtn.style.border = '1px solid #444';
-        materialBtn.style.borderRadius = '4px';
-        materialBtn.style.cursor = 'pointer';
-        materialBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(materialBtn);
-
-        const lightBtn = document.createElement('button');
-        lightBtn.textContent = 'Light: Normal';
-        lightBtn.style.padding = '0.4rem 0.6rem';
-        lightBtn.style.background = 'rgba(0,0,0,0.7)';
-        lightBtn.style.color = 'white';
-        lightBtn.style.border = '1px solid #444';
-        lightBtn.style.borderRadius = '4px';
-        lightBtn.style.cursor = 'pointer';
-        lightBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(lightBtn);
-
-        const hideUIBtn = document.createElement('button');
-        hideUIBtn.textContent = 'Hide UI';
-        hideUIBtn.style.padding = '0.4rem 0.6rem';
-        hideUIBtn.style.background = 'rgba(0,0,0,0.7)';
-        hideUIBtn.style.color = 'white';
-        hideUIBtn.style.border = '1px solid #444';
-        hideUIBtn.style.borderRadius = '4px';
-        hideUIBtn.style.cursor = 'pointer';
-        hideUIBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(hideUIBtn);
-
-        const screenshotBtn = document.createElement('button');
-        screenshotBtn.textContent = 'Screenshot';
-        screenshotBtn.style.padding = '0.4rem 0.6rem';
-        screenshotBtn.style.background = 'rgba(0,0,0,0.7)';
-        screenshotBtn.style.color = 'white';
-        screenshotBtn.style.border = '1px solid #444';
-        screenshotBtn.style.borderRadius = '4px';
-        screenshotBtn.style.cursor = 'pointer';
-        screenshotBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(screenshotBtn);
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕';
-        closeBtn.style.padding = '0.4rem 0.6rem';
-        closeBtn.style.background = 'rgba(139,0,0,0.8)';
-        closeBtn.style.color = 'white';
-        closeBtn.style.border = '1px solid #444';
-        closeBtn.style.borderRadius = '4px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.fontSize = '0.75rem';
-        toolbar.appendChild(closeBtn);
-
-        init3DViewer(
-            viewerContainer,
-            mediaFiles.find(f => is3DFile(f)),
-            viewerInfo,
-            autoRotateBtn,
-            bgColorBtn,
-            gridBtn,
-            wireframeBtn,
-            edgesBtn,
-            verticesBtn,
-            materialBtn,
-            resetCameraBtn,
-            screenshotBtn,
-            lightBtn,
-            closeBtn,
-            hideUIBtn,
-            controlsInfo,
-            toolbar
-        );
-    }
-
-    const hasMedia = mediaFiles.some(f => isMediaFile(f));
-    if (hasMedia) {
-        const controlsContainer = document.createElement('div');
-        controlsContainer.style.padding = '1rem';
-        controlsContainer.style.background = 'var(--panel-bg)';
-        controlsContainer.style.border = '1px solid var(--border)';
-        controlsContainer.style.borderRadius = '4px';
-
-        const settingsRow = document.createElement('div');
-        settingsRow.style.display = 'flex';
-        settingsRow.style.gap = '1rem';
-        settingsRow.style.flexWrap = 'wrap';
-        settingsRow.style.marginBottom = '1rem';
-
-        const formatGroup = document.createElement('div');
-        formatGroup.style.flex = '1';
-        formatGroup.style.minWidth = '150px';
-        formatGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Output Format</label>';
-        const formatSelect = document.createElement('select');
-        formatSelect.style.width = '100%';
-        formatSelect.style.padding = '0.5rem';
-        formatSelect.style.background = 'var(--bg)';
-        formatSelect.style.border = '1px solid var(--border)';
-        formatSelect.style.borderRadius = '4px';
-        formatSelect.style.color = 'var(--text)';
-        const isVideo = mediaFiles.some(f => f.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(f.name.split('.').pop().toLowerCase()));
-        const isAudio = mediaFiles.some(f => f.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(f.name.split('.').pop().toLowerCase()));
-        if (isVideo && !isAudio) {
-            ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
-        } else if (isAudio && !isVideo) {
-            ['wav', 'mp3'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
-        } else {
-            ['webm', 'mp4', 'gif', 'wav', 'mp3', 'jpg', 'png'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
-        }
-        formatGroup.appendChild(formatSelect);
-        settingsRow.appendChild(formatGroup);
-
-        const qualityGroup = document.createElement('div');
-        qualityGroup.style.flex = '1';
-        qualityGroup.style.minWidth = '150px';
-        qualityGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Quality / Bitrate</label>';
-        const qualitySelect = document.createElement('select');
-        qualitySelect.style.width = '100%';
-        qualitySelect.style.padding = '0.5rem';
-        qualitySelect.style.background = 'var(--bg)';
-        qualitySelect.style.border = '1px solid var(--border)';
-        qualitySelect.style.borderRadius = '4px';
-        qualitySelect.style.color = 'var(--text)';
-        [
-            { value: 'low', label: 'Low (96 kbps)' },
-            { value: 'medium', label: 'Medium (128 kbps)' },
-            { value: 'high', label: 'High (192 kbps)' },
-            { value: 'best', label: 'Best (320 kbps)' }
-        ].forEach(q => qualitySelect.add(new Option(q.label, q.value)));
-        qualityGroup.appendChild(qualitySelect);
-        settingsRow.appendChild(qualityGroup);
-
-        const resolutionGroup = document.createElement('div');
-        resolutionGroup.style.flex = '1';
-        resolutionGroup.style.minWidth = '150px';
-        resolutionGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Resolution</label>';
-        const resolutionSelect = document.createElement('select');
-        resolutionSelect.style.width = '100%';
-        resolutionSelect.style.padding = '0.5rem';
-        resolutionSelect.style.background = 'var(--bg)';
-        resolutionSelect.style.border = '1px solid var(--border)';
-        resolutionSelect.style.borderRadius = '4px';
-        resolutionSelect.style.color = 'var(--text)';
-        [
-            { value: 'original', label: 'Original' },
-            { value: '1080p', label: '1080p (1920x1080)' },
-            { value: '720p', label: '720p (1280x720)' },
-            { value: '480p', label: '480p (854x480)' },
-            { value: '360p', label: '360p (640x360)' }
-        ].forEach(r => resolutionSelect.add(new Option(r.label, r.value)));
-        resolutionGroup.appendChild(resolutionSelect);
-        settingsRow.appendChild(resolutionGroup);
-
-        const volumeGroup = document.createElement('div');
-        volumeGroup.style.flex = '1';
-        volumeGroup.style.minWidth = '150px';
-        volumeGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Volume</label>';
-        const volumeSlider = document.createElement('input');
-        volumeSlider.type = 'range';
-        volumeSlider.min = '0';
-        volumeSlider.max = '1000';
-        volumeSlider.value = '100';
-        volumeSlider.style.width = '100%';
-        const volumeLabel = document.createElement('span');
-        volumeLabel.textContent = '100%';
-        volumeLabel.style.fontSize = '0.85rem';
-        volumeSlider.addEventListener('input', () => {
-            volumeLabel.textContent = volumeSlider.value + '%';
-        });
-        volumeGroup.appendChild(volumeSlider);
-        volumeGroup.appendChild(volumeLabel);
-        settingsRow.appendChild(volumeGroup);
-
-        const speedGroup = document.createElement('div');
-        speedGroup.style.flex = '1';
-        speedGroup.style.minWidth = '150px';
-        speedGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Speed</label>';
-        const speedSlider = document.createElement('input');
-        speedSlider.type = 'range';
-        speedSlider.min = '0.5';
-        speedSlider.max = '2';
-        speedSlider.step = '0.1';
-        speedSlider.value = '1';
-        speedSlider.style.width = '100%';
-        const speedLabel = document.createElement('span');
-        speedLabel.textContent = '1x';
-        speedLabel.style.fontSize = '0.85rem';
-        speedSlider.addEventListener('input', () => {
-            speedLabel.textContent = speedSlider.value + 'x';
-        });
-        speedGroup.appendChild(speedSlider);
-        speedGroup.appendChild(speedLabel);
-        settingsRow.appendChild(speedGroup);
-
-        controlsContainer.appendChild(settingsRow);
-
-        const trimRow = document.createElement('div');
-        trimRow.style.display = 'flex';
-        trimRow.style.gap = '1rem';
-        trimRow.style.flexWrap = 'wrap';
-        trimRow.style.marginBottom = '1rem';
-
-        const startGroup = document.createElement('div');
-        startGroup.style.flex = '1';
-        startGroup.style.minWidth = '120px';
-        startGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Start (seconds)</label>';
-        const startInput = document.createElement('input');
-        startInput.type = 'number';
-        startInput.min = '0';
-        startInput.step = '0.1';
-        startInput.value = '0';
-        startInput.style.width = '100%';
-        startInput.style.padding = '0.5rem';
-        startInput.style.background = 'var(--bg)';
-        startInput.style.border = '1px solid var(--border)';
-        startInput.style.borderRadius = '4px';
-        startInput.style.color = 'var(--text)';
-        startGroup.appendChild(startInput);
-        trimRow.appendChild(startGroup);
-
-        const endGroup = document.createElement('div');
-        endGroup.style.flex = '1';
-        endGroup.style.minWidth = '120px';
-        endGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">End (seconds)</label>';
-        const endInput = document.createElement('input');
-        endInput.type = 'number';
-        endInput.min = '0';
-        endInput.step = '0.1';
-        endInput.value = '0';
-        endInput.style.width = '100%';
-        endInput.style.padding = '0.5rem';
-        endInput.style.background = 'var(--bg)';
-        endInput.style.border = '1px solid var(--border)';
-        endInput.style.borderRadius = '4px';
-        endInput.style.color = 'var(--text)';
-        endGroup.appendChild(endInput);
-        trimRow.appendChild(endGroup);
-
-        const textOverlayGroup = document.createElement('div');
-        textOverlayGroup.style.flex = '1';
-        textOverlayGroup.style.minWidth = '200px';
-        textOverlayGroup.innerHTML = '<label style="display:block;margin-bottom:0.3rem;color:var(--accent)">Text Overlay (for video)</label>';
-        const textOverlayInput = document.createElement('input');
-        textOverlayInput.type = 'text';
-        textOverlayInput.placeholder = 'Enter text to overlay';
-        textOverlayInput.style.width = '100%';
-        textOverlayInput.style.padding = '0.5rem';
-        textOverlayInput.style.background = 'var(--bg)';
-        textOverlayInput.style.border = '1px solid var(--border)';
-        textOverlayInput.style.borderRadius = '4px';
-        textOverlayInput.style.color = 'var(--text)';
-        textOverlayGroup.appendChild(textOverlayInput);
-        trimRow.appendChild(textOverlayGroup);
-
-        controlsContainer.appendChild(trimRow);
-
-        const actionRow = document.createElement('div');
-        actionRow.style.display = 'flex';
-        actionRow.style.gap = '0.5rem';
-        actionRow.style.flexWrap = 'wrap';
-
-        const processBtn = document.createElement('button');
-        processBtn.textContent = 'Process All';
-        processBtn.style.padding = '0.7rem 1.5rem';
-        processBtn.style.background = 'var(--button-bg)';
-        processBtn.style.color = 'white';
-        processBtn.style.border = 'none';
-        processBtn.style.borderRadius = '4px';
-        processBtn.style.cursor = 'pointer';
-        processBtn.addEventListener('click', async () => {
-            const format = formatSelect.value;
-            const quality = qualitySelect.value;
-            const resolution = resolutionSelect.value;
-            const volume = parseInt(volumeSlider.value);
-            const speed = parseFloat(speedSlider.value);
-            const start = parseFloat(startInput.value) || 0;
-            const end = parseFloat(endInput.value) || 0;
-            const overlayText = textOverlayInput.value.trim();
-            processedBlobs = [];
-            const statusDiv = document.createElement('div');
-            statusDiv.className = 'success-message';
-            statusDiv.textContent = 'Processing...';
-            controlsContainer.appendChild(statusDiv);
-            for (const file of mediaFiles) {
-                if (isMediaFile(file)) {
-                    const blob = await processMediaFile(file, start, end, format, volume, speed, quality, resolution, overlayText);
-                    if (blob) {
-                        processedBlobs.push({ blob, fileName: 'processed_' + file.name.replace(/\.[^.]+$/, '.' + format) });
-                    }
+                if (isVideo) {
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(file);
+                    video.controls = true;
+                    video.style.width = '100%';
+                    video.style.maxHeight = '150px';
+                    video.style.borderRadius = '4px';
+                    video.preload = 'metadata';
+                    previewItem.appendChild(video);
+                } else if (isAudio) {
+                    const audio = document.createElement('audio');
+                    audio.src = URL.createObjectURL(file);
+                    audio.controls = true;
+                    audio.style.width = '100%';
+                    audio.preload = 'metadata';
+                    previewItem.appendChild(audio);
                 }
-            }
-            statusDiv.textContent = `Processed ${processedBlobs.length}/${mediaFiles.length} files`;
-            setTimeout(() => statusDiv.remove(), 3000);
-            if (processedBlobs.length > 0) {
-                showDownloadButtons(processedBlobs, controlsContainer);
-            }
-        });
-        actionRow.appendChild(processBtn);
 
-        const downloadZipBtn = document.createElement('button');
-        downloadZipBtn.textContent = 'Download All as ZIP';
-        downloadZipBtn.style.padding = '0.7rem 1.5rem';
-        downloadZipBtn.style.background = '#2e7d32';
-        downloadZipBtn.style.color = 'white';
-        downloadZipBtn.style.border = 'none';
-        downloadZipBtn.style.borderRadius = '4px';
-        downloadZipBtn.style.cursor = 'pointer';
-        downloadZipBtn.addEventListener('click', async () => {
-            if (processedBlobs.length === 0) {
-                showError(downloadZipBtn, 'No processed files');
-                return;
+                previewContainer.appendChild(previewItem);
             }
-            const zip = new JSZip();
-            processedBlobs.forEach(item => {
-                zip.file(item.fileName, item.blob);
-            });
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(zipBlob);
-            a.download = 'processed_media.zip';
-            a.click();
-        });
-        actionRow.appendChild(downloadZipBtn);
-
-        controlsContainer.appendChild(actionRow);
-        editorContainer.appendChild(controlsContainer);
-    }
-}
         });
 
         if (previewContainer.children.length > 0) {
@@ -653,7 +161,7 @@ function initMediaShop() {
 
         const fileListContainer = document.createElement('div');
         fileListContainer.style.marginBottom = '1rem';
-        validFiles.forEach((file, index) => {
+        mediaFiles.forEach((file, index) => {
             const fileItem = document.createElement('div');
             fileItem.style.padding = '0.5rem';
             fileItem.style.border = '1px solid var(--border)';
@@ -682,7 +190,7 @@ function initMediaShop() {
 
         editorContainer.appendChild(fileListContainer);
 
-        const has3D = validFiles.some(f => is3DFile(f));
+        const has3D = mediaFiles.some(f => is3DFile(f));
 
         if (has3D) {
             const viewerContainer = document.createElement('div');
@@ -865,7 +373,7 @@ function initMediaShop() {
 
             init3DViewer(
                 viewerContainer,
-                validFiles.find(f => is3DFile(f)),
+                mediaFiles.find(f => is3DFile(f)),
                 viewerInfo,
                 autoRotateBtn,
                 bgColorBtn,
@@ -884,7 +392,7 @@ function initMediaShop() {
             );
         }
 
-        const hasMedia = validFiles.some(f => isMediaFile(f));
+        const hasMedia = mediaFiles.some(f => isMediaFile(f));
         if (hasMedia) {
             const controlsContainer = document.createElement('div');
             controlsContainer.style.padding = '1rem';
@@ -909,8 +417,8 @@ function initMediaShop() {
             formatSelect.style.border = '1px solid var(--border)';
             formatSelect.style.borderRadius = '4px';
             formatSelect.style.color = 'var(--text)';
-            const isVideo = validFiles.some(f => f.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(f.name.split('.').pop().toLowerCase()));
-            const isAudio = validFiles.some(f => f.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(f.name.split('.').pop().toLowerCase()));
+            const isVideo = mediaFiles.some(f => f.type.startsWith('video') || ['mp4','webm','avi','mov','gif','mkv','flv','wmv'].includes(f.name.split('.').pop().toLowerCase()));
+            const isAudio = mediaFiles.some(f => f.type.startsWith('audio') || ['mp3','wav','ogg','aac','flac','m4a','opus','wma'].includes(f.name.split('.').pop().toLowerCase()));
             if (isVideo && !isAudio) {
                 ['webm', 'mp4', 'gif', 'jpg', 'png', 'mp3', 'wav'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
             } else if (isAudio && !isVideo) {

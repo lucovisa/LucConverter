@@ -46,42 +46,19 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
-    <script>
-        function loadLibarchive() {
-            const sources = [
-                'https://cdn.jsdelivr.net/npm/libarchive.js@1.3.0/dist/libarchive.min.js',
-                'https://unpkg.com/libarchive.js@1.3.0/dist/libarchive.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/libarchive.js/1.3.0/libarchive.min.js'
-            ];
-            
-            let index = 0;
-            
-            function tryLoad() {
-                if (index >= sources.length) {
-                    console.log('All libarchive sources failed');
-                    return;
-                }
-                
-                const script = document.createElement('script');
-                script.src = sources[index];
-                script.onload = function() {
-                    console.log('libarchive loaded from:', sources[index]);
-                };
-                script.onerror = function() {
-                    console.log('Failed:', sources[index]);
-                    index++;
-                    tryLoad();
-                };
-                document.head.appendChild(script);
-            }
-            
-            tryLoad();
-        }
-        
-        loadLibarchive();
-    </script>
 </head>
 <body>
+    <header>
+        <div class="logo">
+            <a href="https://github.com/lucovisa" target="_blank">LucConverter</a>
+        </div>
+        <div class="header-clock">
+            <span id="liveClock" class="live-clock"></span>
+        </div>
+        <div class="header-actions">
+            <button id="donateBtn" class="donate-btn">❤️ Donate</button>
+        </div>
+    </header>
 
     <main>
         <section class="converter-section">
@@ -712,7 +689,7 @@
                         <li>Hash Generator - SHA-1, SHA-256, SHA-512</li>
                         <li>Text to Binary</li>
                         <li>ASCII Converter</li>
-                        <li>Download from Link - uses cobalt.tools API for video downloads</li>
+                        <li>Download from Link - works for direct file links</li>
                     </ul>
                 </div>
                 
@@ -730,51 +707,53 @@
                 </div>
                 
                 <div class="guide-section">
-    <h3>MediaShop</h3>
-    <p>Click on MediaShop to edit audio, video and 3D models.</p>
-    <ul>
-        <li>Upload audio, video or 3D files</li>
-        <li>Trim - set start and end time</li>
-        <li>Volume control</li>
-        <li>Speed control (0.5x to 2x)</li>
-        <li>Mix audio into video</li>
-        <li>Text overlay for video</li>
-        <li>3D Viewer - load GLB, GLTF and OBJ models</li>
-        <li>3D Viewer - rotate, zoom and pan with mouse</li>
-        <li>3D Viewer - auto rotate and background color change</li>
-        <li>Download original or converted</li>
-    </ul>
-    <p><strong>Limitations:</strong></p>
-    <ul>
-        <li>Video conversion to WebM only (no MP4/AVI/MOV) on GitHub Pages</li>
-        <li>Video to JPG/PNG (frame extraction) works</li>
-        <li>Audio to WAV or MP3 works</li>
-        <li>OGG audio may not work in Safari; use Chrome or Firefox</li>
-        <li>Full video conversion requires Vercel hosting with FFmpeg</li>
-        <li>3D Viewer supports GLB, GLTF and OBJ formats only</li>
-    </ul>
-</div>
+                    <h3>MediaShop</h3>
+                    <p>Click on MediaShop to edit audio, video and 3D models.</p>
+                    <ul>
+                        <li>Upload audio, video or 3D files</li>
+                        <li>Trim - set start and end time</li>
+                        <li>Volume control</li>
+                        <li>Speed control (0.5x to 2x)</li>
+                        <li>Text overlay for video</li>
+                        <li>3D Viewer - rotate, zoom, pan</li>
+                        <li>3D Viewer - auto rotate, background color, grid</li>
+                        <li>3D Viewer - wireframe, edges, vertices</li>
+                        <li>3D Viewer - materials (metal, plastic, wood)</li>
+                        <li>3D Viewer - lighting modes (normal, bright, ultra)</li>
+                        <li>3D Viewer - screenshot</li>
+                        <li>Download original or converted</li>
+                    </ul>
+                    <p><strong>Limitations:</strong></p>
+                    <ul>
+                        <li>Video conversion to WebM only (no MP4/AVI/MOV) on GitHub Pages</li>
+                        <li>Video to JPG/PNG (frame extraction) works</li>
+                        <li>Audio to WAV or MP3 works</li>
+                        <li>OGG audio may not work in Safari; use Chrome or Firefox</li>
+                        <li>Full video conversion requires Vercel hosting with FFmpeg</li>
+                        <li>3D Viewer supports GLB, GLTF and OBJ formats only</li>
+                    </ul>
+                </div>
                 
                 <div class="guide-section">
-    <h3>Photoshop</h3>
-    <p>Click on Photoshop to edit images.</p>
-    <ul>
-        <li>Upload image</li>
-        <li>Brush - draw with color and size</li>
-        <li>Eraser - remove parts</li>
-        <li>Fill - fill area with color</li>
-        <li>Resize canvas</li>
-        <li>Rotate layer by degrees</li>
-        <li>Layers - add, delete, move, opacity, visibility</li>
-        <li>Filters - brightness, contrast, saturation, blur, sharpen</li>
-        <li>Shapes - circle, square</li>
-        <li>Text tool</li>
-        <li>Background removal by color</li>
-        <li>Export layers</li>
-        <li>Animation - frame by frame animation with GIF and WebM export</li>
-        <li>Download edited image</li>
-    </ul>
-</div>
+                    <h3>Photoshop</h3>
+                    <p>Click on Photoshop to edit images.</p>
+                    <ul>
+                        <li>Upload image</li>
+                        <li>Brush - draw with color and size</li>
+                        <li>Eraser - remove parts</li>
+                        <li>Fill - fill area with color</li>
+                        <li>Resize canvas</li>
+                        <li>Rotate layer by degrees</li>
+                        <li>Layers - add, delete, move, opacity, visibility</li>
+                        <li>Filters - brightness, contrast, saturation, blur, sharpen</li>
+                        <li>Shapes - circle, square</li>
+                        <li>Text tool</li>
+                        <li>Background removal by color</li>
+                        <li>Export layers</li>
+                        <li>Animation - frame by frame animation with GIF and WebM export</li>
+                        <li>Download edited image</li>
+                    </ul>
+                </div>
                 
                 <div class="guide-section">
                     <h3>Text Editor</h3>
@@ -790,6 +769,7 @@
                         <li>Find and Replace</li>
                         <li>Custom font upload</li>
                         <li>Font size selection</li>
+                        <li>Emoji picker</li>
                     </ul>
                 </div>
                 
@@ -849,10 +829,19 @@
                             <li>Creating RAR or 7z archives is not possible in browser; only extraction is supported</li>
                             <li>Very large files may exceed memory limits</li>
                             <li>Some OGG/Opus codecs may not be supported in Safari</li>
-                            <li>Some external libraries (three.js, libarchive.js) may fail to load due to CDN MIME type issues; in that case, 3D conversion and archive extraction will be unavailable</li>
-                            <li>Download from Link uses cobalt.tools API, which may be unavailable or rate-limited</li>
+                            <li>Some external libraries (three.js, libarchive.js) may fail to load due to CDN MIME type issues</li>
                         </ul>
-                    </div>            
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Why does the site sometimes fail?</h4>
+                        <p>The site is hosted on GitHub Pages. Some libraries may not load due to CDN restrictions.</p>
+                        <ul>
+                            <li>Primary link: <a href="https://lucovisa.github.io/LucConverter/" target="_blank" class="faq-link">GitHub Pages</a></li>
+                            <li>If the site doesn't work, check your internet connection or try again later</li>
+                            <li>Some file conversions will be limited due to browser restrictions</li>
+                        </ul>
+                    </div>
                     
                     <div class="faq-item">
                         <h4>Does the site work offline?</h4>
@@ -860,16 +849,17 @@
                         <ul>
                             <li>Basic tools (calculator, unit converter, text editor) work offline</li>
                             <li>File conversion with PDF, DOCX, XLSX may need internet for libraries</li>
-                            <li>FFmpeg-based conversions always need internet (Vercel)</li>
+                            <li>FFmpeg-based conversions always need internet</li>
                         </ul>
                     </div>
+                    
                     <div class="faq-item">
-    <h4>How to download videos from YouTube, TikTok or Twitter?</h4>
-    <p>Our Download from Link tool works for direct file links. YouTube, TikTok and Twitter block direct downloads due to CORS restrictions. For these sites, you can use external services like cobalt.tools.</p>
-    <div class="faq-answers">
-        <a href="https://cobalt.tools/" target="_blank" class="faq-btn">cobalt.tools</a>
-    </div>
-</div>
+                        <h4>How to download videos from YouTube, TikTok or Twitter?</h4>
+                        <p>Our Download from Link tool works for direct file links. YouTube, TikTok and Twitter block direct downloads due to CORS restrictions. For these sites, you can use external services like cobalt.tools.</p>
+                        <div class="faq-answers">
+                            <a href="https://cobalt.tools/" target="_blank" class="faq-btn">cobalt.tools</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
