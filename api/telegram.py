@@ -5,33 +5,23 @@ import uuid
 import zipfile
 import tempfile
 import requests
-import subprocess
 import re
-from flask import Flask, request, jsonify, send_file
+import imageio_ffmpeg
+from flask import Flask, request, jsonify
 from io import BytesIO
 
 app = Flask(__name__)
 
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 BASE_URL = f'https://api.telegram.org/bot{TOKEN}'
-VERCEL_URL = 'converter-ashy-kappa.vercel.app'
-
-files_in_memory = {}
+CHAT_ID = os.environ.get('CHAT_ID', '7072200354')
+FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 
 @app.route('/api/telegram', methods=['POST'])
 def telegram_webhook():
     update = request.json
     
-    if 'message' in update and 'text' in update['message']:
-        chat_id = update['message']['chat']['id']
-        text = update['message']['text']
-        
-        if text.startswith('/start'):
-            send_message(chat_id, "Send me a file with caption = target format (e.g. mp3, jpg, zip, obj, stl). Send 'upload' to just store file.")
-        else:
-            send_message(chat_id, "Send me a file to convert or upload")
-    
-    elif 'message' in update and 'document' in update['message']:
+    if 'message' in update and 'document' in update['message']:
         message = update['message']
         chat_id = message['chat']['id']
         document = message['document']
@@ -50,15 +40,11 @@ def telegram_webhook():
                 is_upload = True
         
         if not file_id:
-            send_message(chat_id, "No file ID")
             return 'OK', 200
-        
-        send_message(chat_id, f"Receiving {file_name}...")
         
         file_path = get_file_path(file_id)
         
         if not file_path:
-            send_message(chat_id, "Failed to get file")
             return 'OK', 200
         
         file_content = download_file(file_path)
@@ -66,80 +52,33 @@ def telegram_webhook():
         if is_upload:
             view_link, download_link = upload_to_tmpfiles(file_content, file_name)
             
-            if view_link:
-                send_message(chat_id, f"✅ Done!\n\n👁 View: {view_link}\n📥 Download: {download_link}")
-            else:
-                send_message(chat_id, "Failed to upload")
+            if view_link and unique_id:
+                send_message(CHAT_ID, f"RESULT|{unique_id}|{download_link}")
+            elif view_link:
+                send_message(chat_id, f"View: {view_link}\nDownload: {download_link}")
+            
             return 'OK', 200
-        
-        send_message(chat_id, f"Converting to {target_format if target_format else 'ZIP'}...")
         
         result = convert_file(file_content, file_name, target_format)
         
         if result:
-            if unique_id:
-                files_in_memory[unique_id] = {
-                    'content': result['content'],
-                    'filename': result['filename'],
-                    'extension': result['extension'],
-                    'created': time.time(),
-                    'downloaded': False,
-                    'download_url': f'https://{VERCEL_URL}/api/download/{unique_id}'
-                }
-                send_message(chat_id, "Done!")
-            else:
-                view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
-                
-                if view_link:
-                    send_message(chat_id, f"✅ Done!\n\n👁 View: {view_link}\n📥 Download: {download_link}")
-                else:
-                    send_message(chat_id, "Failed to upload result")
-        else:
-            send_message(chat_id, "Failed to convert")
+            view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
+            
+            if view_link and unique_id:
+                send_message(CHAT_ID, f"RESULT|{unique_id}|{download_link}")
+            elif view_link:
+                send_message(chat_id, f"View: {view_link}\nDownload: {download_link}")
+        
+        return 'OK', 200
+    
+    elif 'message' in update and 'text' in update['message']:
+        chat_id = update['message']['chat']['id']
+        text = update['message']['text']
+        
+        if text.startswith('/start'):
+            send_message(chat_id, "Send me a file with caption = target format. Send 'upload' to store file.")
     
     return 'OK', 200
-
-@app.route('/api/download/<download_id>', methods=['GET'])
-def download(download_id):
-    if download_id not in files_in_memory:
-        return 'Link invalid', 404
-    
-    file_info = files_in_memory[download_id]
-    
-    if file_info['downloaded']:
-        return 'Link already used', 403
-    
-    if time.time() - file_info['created'] > 3600:
-        del files_in_memory[download_id]
-        return 'Link expired', 410
-    
-    file_info['downloaded'] = True
-    
-    return send_file(
-        BytesIO(file_info['content']),
-        as_attachment=True,
-        download_name=file_info['filename'],
-        mimetype='application/octet-stream'
-    )
-
-@app.route('/api/status/<unique_id>', methods=['GET'])
-def status(unique_id):
-    if unique_id not in files_in_memory:
-        return jsonify({'status': 'processing'})
-    
-    file_info = files_in_memory[unique_id]
-    
-    if file_info['downloaded']:
-        return jsonify({'status': 'used'})
-    
-    if time.time() - file_info['created'] > 3600:
-        return jsonify({'status': 'expired'})
-    
-    return jsonify({
-        'status': 'ready',
-        'filename': file_info['filename'],
-        'download_url': file_info['download_url']
-    })
 
 def upload_to_tmpfiles(file_content, file_name):
     try:
@@ -166,13 +105,6 @@ def convert_file(file_content, file_name, target_format=None):
         
         if target_format and target_format.startswith('.'):
             target_format = target_format[1:]
-        
-        if target_format == 'upload':
-            return {
-                'content': file_content,
-                'filename': file_name,
-                'extension': extension.lstrip('.')
-            }
         
         if extension == '.rar' and target_format in ['zip', None]:
             return convert_rar_to_zip(file_content, file_name)
@@ -205,16 +137,16 @@ def convert_file(file_content, file_name, target_format=None):
             return convert_to_xlsx(file_content, file_name, target_format)
         
         if target_format in ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif', '.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
-            return convert_video_to_audio(file_content, file_name, target_format)
+            return convert_to_audio(file_content, file_name, target_format)
         
         if target_format in ['jpg', 'png'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif']:
             return convert_video_to_image(file_content, file_name, target_format)
         
-        if target_format in ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif', '.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
+        if target_format in ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif']:
             return convert_video(file_content, file_name, target_format)
         
-        if target_format in ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus'] and extension in ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
-            return convert_audio(file_content, file_name, target_format)
+        if target_format in ['mp4', 'webm'] and extension in ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
+            return convert_audio_to_video(file_content, file_name, target_format)
         
         if target_format in ['stl', 'obj', 'glb', 'gltf', 'fbx', 'ply'] and extension in ['.glb', '.gltf', '.obj', '.stl', '.fbx', '.ply', '.blend', '.dae']:
             return convert_3d(file_content, file_name, target_format)
@@ -491,7 +423,7 @@ def convert_to_xlsx(file_content, file_name, target_format):
         print(f"Error: {e}")
         return None
 
-def convert_video_to_audio(file_content, file_name, target_format):
+def convert_to_audio(file_content, file_name, target_format):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1]) as tmp:
             tmp.write(file_content)
@@ -499,7 +431,7 @@ def convert_video_to_audio(file_content, file_name, target_format):
         
         output_path = tmp_path + f'.{target_format}'
         
-        subprocess.run(['ffmpeg', '-i', tmp_path, '-vn', '-acodec', 'libmp3lame' if target_format == 'mp3' else 'copy', output_path], check=True, capture_output=True)
+        subprocess.run([FFMPEG_PATH, '-i', tmp_path, '-vn', output_path], check=True, capture_output=True)
         
         with open(output_path, 'rb') as f:
             content = f.read()
@@ -521,7 +453,7 @@ def convert_video_to_image(file_content, file_name, target_format):
         
         output_path = tmp_path + f'.{target_format}'
         
-        subprocess.run(['ffmpeg', '-i', tmp_path, '-vframes', '1', output_path], check=True, capture_output=True)
+        subprocess.run([FFMPEG_PATH, '-i', tmp_path, '-vframes', '1', output_path], check=True, capture_output=True)
         
         with open(output_path, 'rb') as f:
             content = f.read()
@@ -543,7 +475,7 @@ def convert_video(file_content, file_name, target_format):
         
         output_path = tmp_path + f'.{target_format}'
         
-        subprocess.run(['ffmpeg', '-i', tmp_path, '-c:v', 'libx264', '-c:a', 'aac', output_path], check=True, capture_output=True)
+        subprocess.run([FFMPEG_PATH, '-i', tmp_path, '-c:v', 'libx264', '-c:a', 'aac', output_path], check=True, capture_output=True)
         
         with open(output_path, 'rb') as f:
             content = f.read()
@@ -557,7 +489,7 @@ def convert_video(file_content, file_name, target_format):
         print(f"Error: {e}")
         return None
 
-def convert_audio(file_content, file_name, target_format):
+def convert_audio_to_video(file_content, file_name, target_format):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1]) as tmp:
             tmp.write(file_content)
@@ -565,7 +497,7 @@ def convert_audio(file_content, file_name, target_format):
         
         output_path = tmp_path + f'.{target_format}'
         
-        subprocess.run(['ffmpeg', '-i', tmp_path, output_path], check=True, capture_output=True)
+        subprocess.run([FFMPEG_PATH, '-i', tmp_path, '-f', 'lavfi', '-i', 'color=c=black:s=640x360', '-shortest', '-c:v', 'libx264', '-c:a', 'aac', output_path], check=True, capture_output=True)
         
         with open(output_path, 'rb') as f:
             content = f.read()
@@ -637,7 +569,6 @@ def get_file_path(file_id):
         data = response.json()
         
         if 'result' not in data:
-            print(f"Telegram API error: {data}")
             return None
         
         return data['result']['file_path']
@@ -651,8 +582,7 @@ def download_file(file_path):
 
 def send_message(chat_id, text):
     try:
-        response = requests.post(f'{BASE_URL}/sendMessage', json={'chat_id': chat_id, 'text': text})
-        print(f"Send message: {response.json()}")
+        requests.post(f'{BASE_URL}/sendMessage', json={'chat_id': chat_id, 'text': text})
     except Exception as e:
         print(f"Send message error: {e}")
 

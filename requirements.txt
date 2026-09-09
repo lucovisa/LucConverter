@@ -11,3 +11,4 @@ reportlab
 markdown
 html2text
 mammoth
+imageio-ffmpeg

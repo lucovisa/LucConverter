@@ -380,7 +380,7 @@ function initUploadFile() {
         const file = uploadFileInput.files[0];
         
         if (file.size > 50 * 1024 * 1024) {
-            resultDisplay.textContent = '❌ File too large. Maximum 50MB.';
+            resultDisplay.textContent = 'File too large. Maximum 50MB.';
             return;
         }
         
@@ -403,12 +403,12 @@ function initUploadFile() {
             const result = await response.json();
             
             if (result.ok) {
-                resultDisplay.textContent = '✅ File sent to bot. Link will be sent to your Telegram.';
+                resultDisplay.textContent = 'File sent to bot. Link will be sent to your Telegram.';
             } else {
-                resultDisplay.textContent = '❌ Upload failed';
+                resultDisplay.textContent = 'Upload failed';
             }
         } catch (e) {
-            resultDisplay.textContent = '❌ Network error';
+            resultDisplay.textContent = 'Network error';
         }
         
         uploadFileBtn.textContent = 'Upload File';
@@ -441,12 +441,12 @@ function initUploadFile() {
             const result = await response.json();
             
             if (result.ok) {
-                resultDisplay.textContent = '✅ Text sent to bot. Link will be sent to your Telegram.';
+                resultDisplay.textContent = 'Text sent to bot. Link will be sent to your Telegram.';
             } else {
-                resultDisplay.textContent = '❌ Upload failed';
+                resultDisplay.textContent = 'Upload failed';
             }
         } catch (e) {
-            resultDisplay.textContent = '❌ Network error';
+            resultDisplay.textContent = 'Network error';
         }
         
         uploadTextBtn.textContent = 'Upload Text';
