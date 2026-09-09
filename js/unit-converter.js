@@ -49,6 +49,31 @@ function initUnitConverter() {
             rgbInput.value = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
             hslInput.value = `${hsl.h}, ${hsl.s}%, ${hsl.l}%`;
         });
+
+        const randomColorBtn = document.createElement('button');
+        randomColorBtn.textContent = 'Random Color';
+        randomColorBtn.style.marginTop = '0.5rem';
+        randomColorBtn.style.padding = '0.5rem 1rem';
+        randomColorBtn.style.background = 'var(--button-bg)';
+        randomColorBtn.style.color = 'white';
+        randomColorBtn.style.border = 'none';
+        randomColorBtn.style.borderRadius = '4px';
+        randomColorBtn.style.cursor = 'pointer';
+        
+        randomColorBtn.addEventListener('click', () => {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+            const hsl = rgbToHsl(r, g, b);
+            
+            colorPicker.value = hex;
+            hexInput.value = hex;
+            rgbInput.value = `${r}, ${g}, ${b}`;
+            hslInput.value = `${hsl.h}, ${hsl.s}%, ${hsl.l}%`;
+        });
+        
+        document.getElementById('colorConverter').appendChild(randomColorBtn);
     }
 
     setupConverter('weightConverter', weightUnits, genericConvert);

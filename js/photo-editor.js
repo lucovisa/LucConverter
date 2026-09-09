@@ -676,6 +676,7 @@ function initPhotoEditor() {
         btn.style.fontSize = '0.85rem';
         btn.addEventListener('click', onClick);
         toolbar.appendChild(btn);
+        return btn;
     }
 
     addButton('📁 Upload', 'Upload', () => fileInput.click());
@@ -688,6 +689,7 @@ function initPhotoEditor() {
     addButton('□ Square', 'Square', () => { shapeMode = true; shapeType = 'square'; currentTool = 'shape'; canvas.style.cursor = 'crosshair'; cropMode = false; textMode = false; bgRemoveMode = false; redrawCanvas(); });
     addButton('🌈 BG Remove', 'Remove Background by Color', () => { bgRemoveMode = true; currentTool = 'bgremove'; canvas.style.cursor = 'crosshair'; cropMode = false; textMode = false; shapeMode = false; redrawCanvas(); });
     addButton('💾 Export Layers', 'Export Layers', exportLayers);
+    addButton('🗜️ Compress', 'Compress Image', () => { currentTool = 'compress'; cropMode = false; textMode = false; bgRemoveMode = false; shapeMode = false; cropRect = null; redrawCanvas(); compressImage(); });
 
     const colorPicker = document.createElement('input');
     colorPicker.type = 'color';
@@ -1259,6 +1261,81 @@ function initPhotoEditor() {
             for (let p=0; p<padding; p++) { view.setUint8(offset, 0); offset++; }
         }
         return buffer;
+    }
+
+    function compressImage() {
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%,-50%)';
+        container.style.background = 'var(--panel-bg)';
+        container.style.padding = '1rem';
+        container.style.borderRadius = '4px';
+        container.style.zIndex = '2000';
+        container.style.display = 'flex';
+        container.style.gap = '0.5rem';
+        container.style.flexDirection = 'column';
+        container.innerHTML = '<h3 style="color:var(--accent)">Compress Image</h3>';
+
+        const qualityLabel = document.createElement('label');
+        qualityLabel.textContent = 'Quality: ';
+        const qualityInput = document.createElement('input');
+        qualityInput.type = 'range';
+        qualityInput.min = '1';
+        qualityInput.max = '100';
+        qualityInput.value = '80';
+        qualityInput.style.width = '200px';
+        const qualityValue = document.createElement('span');
+        qualityValue.textContent = '80%';
+        qualityInput.addEventListener('input', () => {
+            qualityValue.textContent = qualityInput.value + '%';
+        });
+        qualityLabel.appendChild(qualityInput);
+        qualityLabel.appendChild(qualityValue);
+        container.appendChild(qualityLabel);
+
+        const formatLabel = document.createElement('label');
+        formatLabel.textContent = 'Format: ';
+        const formatSelect = document.createElement('select');
+        ['jpeg', 'webp', 'png'].forEach(f => formatSelect.add(new Option(f.toUpperCase(), f)));
+        formatLabel.appendChild(formatSelect);
+        container.appendChild(formatLabel);
+
+        const compressBtn = document.createElement('button');
+        compressBtn.textContent = 'Compress & Download';
+        compressBtn.style.padding = '0.6rem';
+        compressBtn.style.background = 'var(--button-bg)';
+        compressBtn.style.color = 'white';
+        compressBtn.style.border = 'none';
+        compressBtn.style.borderRadius = '4px';
+        compressBtn.style.cursor = 'pointer';
+        compressBtn.addEventListener('click', () => {
+            const quality = parseInt(qualityInput.value) / 100;
+            const format = formatSelect.value;
+            redrawCanvas();
+            const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+            canvas.toBlob(blob => {
+                if (blob) {
+                    downloadBlob(blob, `compressed.${format === 'jpeg' ? 'jpg' : format}`);
+                }
+            }, mimeType, quality);
+            container.remove();
+        });
+        container.appendChild(compressBtn);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.padding = '0.6rem';
+        cancelBtn.style.background = 'var(--border)';
+        cancelBtn.style.color = 'var(--text)';
+        cancelBtn.style.border = 'none';
+        cancelBtn.style.borderRadius = '4px';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.addEventListener('click', () => container.remove());
+        container.appendChild(cancelBtn);
+
+        document.body.appendChild(container);
     }
 
     function downloadBlob(blob, filename) {

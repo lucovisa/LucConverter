@@ -361,7 +361,65 @@ function initLinkConverter() {
         }
     });
 
+    initQRFromFile();
     initUploadFile();
+}
+
+function initQRFromFile() {
+    const fileInput = document.getElementById('qrFileInput');
+    const fileBtn = document.getElementById('qrFileBtn');
+    const result = document.getElementById('qrFileResult');
+    
+    if (!fileInput || !fileBtn || !result) return;
+    
+    fileBtn.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', async () => {
+        if (!fileInput.files.length) return;
+        
+        const file = fileInput.files[0];
+        
+        if (file.size > 4 * 1024 * 1024) {
+            result.textContent = 'File too large for QR';
+            return;
+        }
+        
+        fileBtn.textContent = 'Uploading...';
+        fileBtn.disabled = true;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('format', 'upload');
+        
+        try {
+            const response = await fetch('https://converter-ashy-kappa.vercel.app/api/convert', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.ok) {
+                result.innerHTML = '';
+                const qrContainer = document.createElement('div');
+                result.appendChild(qrContainer);
+                
+                new QRCode(qrContainer, {
+                    text: data.download_url,
+                    width: 200,
+                    height: 200
+                });
+            } else {
+                result.textContent = 'Upload failed';
+            }
+        } catch (e) {
+            result.textContent = 'Network error';
+        }
+        
+        fileBtn.textContent = 'Select File';
+        fileBtn.disabled = false;
+        fileInput.value = '';
+    });
 }
 
 function initUploadFile() {
@@ -412,7 +470,7 @@ function initUploadFile() {
                 viewLink.style.color = 'var(--button-text)';
                 viewLink.style.borderRadius = '4px';
                 viewLink.style.textDecoration = 'none';
-                downloadLink.target = '_blank';
+                viewLink.target = '_blank';
                 
                 const downloadLink = document.createElement('a');
                 downloadLink.href = result.download_url;
