@@ -387,15 +387,12 @@ function initUploadFile() {
         uploadFileBtn.textContent = 'Uploading...';
         uploadFileBtn.disabled = true;
         
-        const duration = uploadDuration.value || '0';
-        
         const formData = new FormData();
-        formData.append('chat_id', '7072200354');
-        formData.append('document', file);
-        formData.append('caption', `upload|${Date.now()}|upload|${duration}`);
+        formData.append('file', file);
+        formData.append('format', 'upload');
         
         try {
-            const response = await fetch('https://api.telegram.org/bot8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U/sendDocument', {
+            const response = await fetch('https://converter-ashy-kappa.vercel.app/api/convert', {
                 method: 'POST',
                 body: formData
             });
@@ -403,7 +400,31 @@ function initUploadFile() {
             const result = await response.json();
             
             if (result.ok) {
-                resultDisplay.textContent = 'File sent to bot. Link will be sent to your Telegram.';
+                resultDisplay.textContent = '';
+                
+                const viewLink = document.createElement('a');
+                viewLink.href = result.view_url;
+                viewLink.textContent = 'View File';
+                viewLink.style.display = 'inline-block';
+                viewLink.style.marginRight = '1rem';
+                viewLink.style.padding = '0.7rem 1.3rem';
+                viewLink.style.background = 'var(--button-bg)';
+                viewLink.style.color = 'var(--button-text)';
+                viewLink.style.borderRadius = '4px';
+                viewLink.style.textDecoration = 'none';
+                
+                const downloadLink = document.createElement('a');
+                downloadLink.href = result.download_url;
+                downloadLink.textContent = 'Download File';
+                downloadLink.style.display = 'inline-block';
+                downloadLink.style.padding = '0.7rem 1.3rem';
+                downloadLink.style.background = 'var(--button-bg)';
+                downloadLink.style.color = 'var(--button-text)';
+                downloadLink.style.borderRadius = '4px';
+                downloadLink.style.textDecoration = 'none';
+                
+                resultDisplay.appendChild(viewLink);
+                resultDisplay.appendChild(downloadLink);
             } else {
                 resultDisplay.textContent = 'Upload failed';
             }
@@ -423,17 +444,15 @@ function initUploadFile() {
         uploadTextBtn.textContent = 'Uploading...';
         uploadTextBtn.disabled = true;
         
-        const duration = uploadDuration.value || '0';
         const blob = new Blob([text], { type: 'text/plain' });
         const file = new File([blob], 'text.txt', { type: 'text/plain' });
         
         const formData = new FormData();
-        formData.append('chat_id', '7072200354');
-        formData.append('document', file);
-        formData.append('caption', `upload|${Date.now()}|upload|${duration}`);
+        formData.append('file', file);
+        formData.append('format', 'upload');
         
         try {
-            const response = await fetch('https://api.telegram.org/bot8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U/sendDocument', {
+            const response = await fetch('https://converter-ashy-kappa.vercel.app/api/convert', {
                 method: 'POST',
                 body: formData
             });
@@ -441,7 +460,31 @@ function initUploadFile() {
             const result = await response.json();
             
             if (result.ok) {
-                resultDisplay.textContent = 'Text sent to bot. Link will be sent to your Telegram.';
+                resultDisplay.textContent = '';
+                
+                const viewLink = document.createElement('a');
+                viewLink.href = result.view_url;
+                viewLink.textContent = 'View Text';
+                viewLink.style.display = 'inline-block';
+                viewLink.style.marginRight = '1rem';
+                viewLink.style.padding = '0.7rem 1.3rem';
+                viewLink.style.background = 'var(--button-bg)';
+                viewLink.style.color = 'var(--button-text)';
+                viewLink.style.borderRadius = '4px';
+                viewLink.style.textDecoration = 'none';
+                
+                const downloadLink = document.createElement('a');
+                downloadLink.href = result.download_url;
+                downloadLink.textContent = 'Download Text';
+                downloadLink.style.display = 'inline-block';
+                downloadLink.style.padding = '0.7rem 1.3rem';
+                downloadLink.style.background = 'var(--button-bg)';
+                downloadLink.style.color = 'var(--button-text)';
+                downloadLink.style.borderRadius = '4px';
+                downloadLink.style.textDecoration = 'none';
+                
+                resultDisplay.appendChild(viewLink);
+                resultDisplay.appendChild(downloadLink);
             } else {
                 resultDisplay.textContent = 'Upload failed';
             }

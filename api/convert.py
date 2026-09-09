@@ -12,73 +12,7 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-TOKEN = os.environ.get('TELEGRAM_TOKEN')
-BASE_URL = f'https://api.telegram.org/bot{TOKEN}'
-CHAT_ID = os.environ.get('CHAT_ID', '7072200354')
 FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
-
-@app.route('/api/telegram', methods=['POST'])
-def telegram_webhook():
-    update = request.json
-    
-    if 'message' in update and 'document' in update['message']:
-        message = update['message']
-        chat_id = message['chat']['id']
-        document = message['document']
-        file_name = document.get('file_name', 'file')
-        file_id = document.get('file_id')
-        target_format = None
-        unique_id = None
-        is_upload = False
-        
-        if 'caption' in message and message['caption']:
-            caption_parts = message['caption'].split('|')
-            target_format = caption_parts[0].lower().strip()
-            if len(caption_parts) > 1:
-                unique_id = caption_parts[1].strip()
-            if len(caption_parts) > 2 and caption_parts[2].strip() == 'upload':
-                is_upload = True
-        
-        if not file_id:
-            return 'OK', 200
-        
-        file_path = get_file_path(file_id)
-        
-        if not file_path:
-            return 'OK', 200
-        
-        file_content = download_file(file_path)
-        
-        if is_upload:
-            view_link, download_link = upload_to_tmpfiles(file_content, file_name)
-            
-            if view_link and unique_id:
-                send_message(CHAT_ID, f"RESULT|{unique_id}|{download_link}")
-            elif view_link:
-                send_message(chat_id, f"View: {view_link}\nDownload: {download_link}")
-            
-            return 'OK', 200
-        
-        result = convert_file(file_content, file_name, target_format)
-        
-        if result:
-            view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
-            
-            if view_link and unique_id:
-                send_message(CHAT_ID, f"RESULT|{unique_id}|{download_link}")
-            elif view_link:
-                send_message(chat_id, f"View: {view_link}\nDownload: {download_link}")
-        
-        return 'OK', 200
-    
-    elif 'message' in update and 'text' in update['message']:
-        chat_id = update['message']['chat']['id']
-        text = update['message']['text']
-        
-        if text.startswith('/start'):
-            send_message(chat_id, "Send me a file with caption = target format. Send 'upload' to store file.")
-    
-    return 'OK', 200
 
 def upload_to_tmpfiles(file_content, file_name):
     try:
@@ -86,18 +20,43 @@ def upload_to_tmpfiles(file_content, file_name):
             'https://tmpfiles.org/api/v1/upload',
             files={'file': (file_name, file_content)}
         )
-        
         data = response.json()
-        
         if 'data' in data and 'url' in data['data']:
             view_url = data['data']['url']
             download_url = view_url.replace('https://tmpfiles.org/', 'https://tmpfiles.org/dl/')
             return view_url, download_url
-        
         return None, None
     except Exception as e:
         print(f"Upload error: {e}")
         return None, None
+
+@app.route('/api/convert', methods=['POST'])
+def convert_endpoint():
+    if 'file' not in request.files:
+        return jsonify({'ok': False, 'error': 'No file'}), 400
+    
+    file = request.files['file']
+    target_format = request.form.get('format', 'zip').lower()
+    file_name = file.filename
+    file_content = file.read()
+    
+    if target_format == 'upload':
+        view_link, download_link = upload_to_tmpfiles(file_content, file_name)
+        if download_link:
+            return jsonify({'ok': True, 'download_url': download_link, 'view_url': view_link})
+        return jsonify({'ok': False, 'error': 'Upload failed'}), 500
+    
+    result = convert_file(file_content, file_name, target_format)
+    
+    if not result:
+        return jsonify({'ok': False, 'error': 'Conversion failed'}), 500
+    
+    view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
+    
+    if not download_link:
+        return jsonify({'ok': False, 'error': 'Upload failed'}), 500
+    
+    return jsonify({'ok': True, 'download_url': download_link, 'view_url': view_link})
 
 def convert_file(file_content, file_name, target_format=None):
     try:
@@ -562,29 +521,6 @@ def convert_html_to_markdown(file_content, file_name):
     except Exception as e:
         print(f"Error: {e}")
         return None
-
-def get_file_path(file_id):
-    try:
-        response = requests.get(f'{BASE_URL}/getFile', params={'file_id': file_id})
-        data = response.json()
-        
-        if 'result' not in data:
-            return None
-        
-        return data['result']['file_path']
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
-
-def download_file(file_path):
-    response = requests.get(f'https://api.telegram.org/file/bot{TOKEN}/{file_path}')
-    return response.content
-
-def send_message(chat_id, text):
-    try:
-        requests.post(f'{BASE_URL}/sendMessage', json={'chat_id': chat_id, 'text': text})
-    except Exception as e:
-        print(f"Send message error: {e}")
 
 def handler(request, response):
     return app(request.environ, lambda status, headers: response(status, headers))

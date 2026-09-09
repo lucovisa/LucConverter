@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const TELEGRAM_BOT_TOKEN = '8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U';
-    const TELEGRAM_CHAT_ID = '7072200354';
-
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
@@ -99,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     convertBtn.textContent = 'Convert';
                     convertBtn.disabled = false;
-                    offerTelegramBot(file, formatSelect.value, fileItem);
+                    offerServerConvert(file, formatSelect.value, fileItem);
                 }
             });
 
@@ -175,17 +172,17 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadBlob(zipBlob, 'converted_files.zip');
     }
 
-    function offerTelegramBot(file, format, fileItem) {
+    function offerServerConvert(file, format, fileItem) {
         fileItem.querySelectorAll('.telegram-offer').forEach(el => el.remove());
         
-        const telegramContainer = document.createElement('div');
-        telegramContainer.className = 'telegram-offer';
-        telegramContainer.style.marginTop = '0.5rem';
-        telegramContainer.style.padding = '1rem';
-        telegramContainer.style.background = 'var(--panel-bg)';
-        telegramContainer.style.border = '1px solid var(--border)';
-        telegramContainer.style.borderRadius = '4px';
-        telegramContainer.style.width = '100%';
+        const container = document.createElement('div');
+        container.className = 'telegram-offer';
+        container.style.marginTop = '0.5rem';
+        container.style.padding = '1rem';
+        container.style.background = 'var(--panel-bg)';
+        container.style.border = '1px solid var(--border)';
+        container.style.borderRadius = '4px';
+        container.style.width = '100%';
         
         const message = document.createElement('p');
         message.textContent = `Failed to convert ${file.name} to ${format}`;
@@ -193,129 +190,78 @@ document.addEventListener('DOMContentLoaded', function() {
         message.style.color = 'var(--text)';
         message.style.fontSize = '0.9rem';
         
-        const telegramBtn = document.createElement('button');
-        telegramBtn.textContent = 'Send to Telegram Bot';
-        telegramBtn.style.padding = '0.7rem 1.3rem';
-        telegramBtn.style.background = 'var(--button-bg)';
-        telegramBtn.style.color = 'var(--button-text)';
-        telegramBtn.style.border = 'none';
-        telegramBtn.style.borderRadius = '4px';
-        telegramBtn.style.cursor = 'pointer';
-        telegramBtn.style.fontSize = '0.9rem';
-        telegramBtn.style.fontWeight = '500';
-        telegramBtn.style.transition = 'all 0.3s ease';
-        telegramBtn.addEventListener('mouseenter', () => {
-            telegramBtn.style.filter = 'brightness(1.1)';
-            telegramBtn.style.transform = 'translateY(-2px)';
-            telegramBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
-        });
-        telegramBtn.addEventListener('mouseleave', () => {
-            telegramBtn.style.filter = 'none';
-            telegramBtn.style.transform = 'none';
-            telegramBtn.style.boxShadow = 'none';
-        });
-        telegramBtn.addEventListener('click', async () => {
-            telegramBtn.textContent = 'Converting...';
-            telegramBtn.disabled = true;
-            telegramBtn.style.opacity = '0.7';
+        const serverBtn = document.createElement('button');
+        serverBtn.textContent = 'Convert via Server';
+        serverBtn.style.padding = '0.7rem 1.3rem';
+        serverBtn.style.background = 'var(--button-bg)';
+        serverBtn.style.color = 'var(--button-text)';
+        serverBtn.style.border = 'none';
+        serverBtn.style.borderRadius = '4px';
+        serverBtn.style.cursor = 'pointer';
+        serverBtn.style.fontSize = '0.9rem';
+        serverBtn.style.fontWeight = '500';
+        serverBtn.style.transition = 'all 0.3s ease';
+        
+        serverBtn.addEventListener('click', async () => {
+            serverBtn.textContent = 'Converting...';
+            serverBtn.disabled = true;
             
-            const uniqueId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const downloadUrl = await sendToServerConvert(file, format);
             
-            const formData = new FormData();
-            formData.append('chat_id', TELEGRAM_CHAT_ID);
-            formData.append('document', file);
-            formData.append('caption', `${format}|${uniqueId}`);
-            
-            try {
-                const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
-                    method: 'POST',
-                    body: formData
-                });
+            if (downloadUrl) {
+                message.textContent = 'File converted!';
+                message.style.color = 'var(--success-text)';
                 
-                const result = await response.json();
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.textContent = 'Download Converted File';
+                downloadLink.style.display = 'inline-block';
+                downloadLink.style.marginTop = '0.5rem';
+                downloadLink.style.padding = '0.7rem 1.3rem';
+                downloadLink.style.background = 'var(--button-bg)';
+                downloadLink.style.color = 'var(--button-text)';
+                downloadLink.style.borderRadius = '4px';
+                downloadLink.style.textDecoration = 'none';
+                downloadLink.style.fontSize = '0.9rem';
                 
-                if (result.ok) {
-                    for (let i = 0; i < 60; i++) {
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        
-                        const updatesResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=-1`);
-                        const updatesResult = await updatesResponse.json();
-                        
-                        if (updatesResult.ok && updatesResult.result.length > 0) {
-                            const lastUpdate = updatesResult.result[updatesResult.result.length - 1];
-                            
-                            if (lastUpdate.message && lastUpdate.message.text) {
-                                const text = lastUpdate.message.text;
-                                
-                                if (text.startsWith('RESULT|') && text.includes(uniqueId)) {
-                                    const parts = text.split('|');
-                                    const downloadUrl = parts[2];
-                                    
-                                    message.textContent = 'File converted!';
-                                    message.style.color = 'var(--success-text)';
-                                    
-                                    const downloadLink = document.createElement('a');
-                                    downloadLink.href = downloadUrl;
-                                    downloadLink.textContent = 'Download Converted File';
-                                    downloadLink.style.display = 'inline-block';
-                                    downloadLink.style.marginTop = '0.5rem';
-                                    downloadLink.style.padding = '0.7rem 1.3rem';
-                                    downloadLink.style.background = 'var(--button-bg)';
-                                    downloadLink.style.color = 'var(--button-text)';
-                                    downloadLink.style.borderRadius = '4px';
-                                    downloadLink.style.textDecoration = 'none';
-                                    downloadLink.style.fontSize = '0.9rem';
-                                    downloadLink.style.fontWeight = '500';
-                                    downloadLink.style.transition = 'all 0.3s ease';
-                                    downloadLink.addEventListener('mouseenter', () => {
-                                        downloadLink.style.filter = 'brightness(1.1)';
-                                        downloadLink.style.transform = 'translateY(-2px)';
-                                    });
-                                    downloadLink.addEventListener('mouseleave', () => {
-                                        downloadLink.style.filter = 'none';
-                                        downloadLink.style.transform = 'none';
-                                    });
-                                    
-                                    telegramContainer.appendChild(downloadLink);
-                                    telegramBtn.style.display = 'none';
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    
-                    message.textContent = 'Timeout';
-                    message.style.color = 'var(--error-text)';
-                    telegramBtn.textContent = 'Try Again';
-                    telegramBtn.disabled = false;
-                    telegramBtn.style.opacity = '1';
-                } else {
-                    message.textContent = 'Failed to send';
-                    message.style.color = 'var(--error-text)';
-                    telegramBtn.textContent = 'Try Again';
-                    telegramBtn.disabled = false;
-                    telegramBtn.style.opacity = '1';
-                }
-            } catch (e) {
-                message.textContent = 'Network error';
+                container.appendChild(downloadLink);
+                serverBtn.style.display = 'none';
+            } else {
+                message.textContent = 'Failed to convert';
                 message.style.color = 'var(--error-text)';
-                telegramBtn.textContent = 'Try Again';
-                telegramBtn.disabled = false;
-                telegramBtn.style.opacity = '1';
+                serverBtn.textContent = 'Try Again';
+                serverBtn.disabled = false;
             }
         });
         
-        const hint = document.createElement('p');
-        hint.textContent = 'Bot will convert the file and you will get a download link';
-        hint.style.margin = '0.8rem 0 0 0';
-        hint.style.fontSize = '0.8rem';
-        hint.style.color = 'var(--text)';
-        hint.style.opacity = '0.7';
+        container.appendChild(message);
+        container.appendChild(serverBtn);
+        fileItem.appendChild(container);
+    }
+
+    async function sendToServerConvert(file, format) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('format', format);
         
-        telegramContainer.appendChild(message);
-        telegramContainer.appendChild(telegramBtn);
-        telegramContainer.appendChild(hint);
-        fileItem.appendChild(telegramContainer);
+        try {
+            const response = await fetch('https://converter-ashy-kappa.vercel.app/api/convert', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.ok) {
+                return result.download_url;
+            } else {
+                console.error('Convert error:', result.error);
+                return null;
+            }
+        } catch (e) {
+            console.error('Network error:', e);
+            return null;
+        }
     }
 
     function convertFileToBlob(file, format, realType) {
