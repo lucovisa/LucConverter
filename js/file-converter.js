@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     const VERCEL_URL = 'https://converter-ashy-kappa.vercel.app';
+    const TELEGRAM_BOT_TOKEN = '8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U';
+    const TELEGRAM_CHAT_ID = '7072200354';
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -218,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
             telegramBtn.disabled = true;
             telegramBtn.style.opacity = '0.7';
             
-            const downloadUrl = await sendToVercel(file, format);
+            const downloadUrl = await sendToTelegram(file, format);
             
             if (downloadUrl) {
                 message.textContent = `✅ File converted!`;
@@ -270,16 +272,16 @@ document.addEventListener('DOMContentLoaded', function() {
         fileItem.appendChild(telegramContainer);
     }
 
-    async function sendToVercel(file, format) {
+    async function sendToTelegram(file, format) {
         const uniqueId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('format', format);
-        formData.append('uniqueId', uniqueId);
+        formData.append('chat_id', TELEGRAM_CHAT_ID);
+        formData.append('document', file);
+        formData.append('caption', `${format}|${uniqueId}`);
         
         try {
-            const response = await fetch(`${VERCEL_URL}/api/send-to-bot`, {
+            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
                 method: 'POST',
                 body: formData
             });
@@ -304,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 return null;
             } else {
-                console.error('Vercel API error:', result);
+                console.error('Telegram API error:', result);
                 return null;
             }
         } catch (e) {
