@@ -491,10 +491,32 @@ def convert_audio_to_video(file_content, file_name, target_format):
 
 def convert_3d(file_content, file_name, target_format):
     try:
+        extension = os.path.splitext(file_name)[1].lower()
+        
+        if extension == '.fbx':
+            import assimp
+            
+            tmp_path = tempfile.NamedTemporaryFile(delete=False, suffix='.fbx')
+            tmp_path.write(file_content)
+            tmp_path.close()
+            
+            with assimp.ImportContext() as ctx:
+                scene = ctx.import_file(tmp_path.name)
+                output = tempfile.NamedTemporaryFile(delete=False, suffix='.obj')
+                assimp.export_scene(scene, output.name, 'obj')
+                
+                with open(output.name, 'rb') as f:
+                    content = f.read()
+                
+                os.remove(tmp_path.name)
+                os.remove(output.name)
+                
+                return {'content': content, 'filename': file_name.replace('.fbx', f'.{target_format}'), 'extension': target_format}
+        
         import trimesh
         import io
         
-        mesh = trimesh.load(io.BytesIO(file_content), file_type=os.path.splitext(file_name)[1][1:])
+        mesh = trimesh.load(io.BytesIO(file_content), file_type=extension[1:])
         
         if target_format == 'stl':
             content = mesh.export(file_type='stl')

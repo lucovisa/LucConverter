@@ -214,6 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const downloadLink = document.createElement('a');
                 downloadLink.href = downloadUrl;
+                downloadLink.target = '_blank';
                 downloadLink.textContent = 'Download Converted File';
                 downloadLink.style.display = 'inline-block';
                 downloadLink.style.marginTop = '0.5rem';
@@ -312,10 +313,12 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (extension === 'xlsx' || extension === 'xls') {
                 convertXLSXToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
             } else if (is3D) {
-                if (extension === 'blend') {
-                    resolve(null);
-                } else {
+                if (extension === 'glb' || extension === 'gltf') {
                     convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else if (extension === 'obj' && format === 'stl') {
+                    convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                } else {
+                    resolve(null);
                 }
             } else if (isArchive) {
                 if (file.name.endsWith('.rar') || file.name.endsWith('.7z')) {
@@ -389,6 +392,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function getFormats(file, realType) {
         const fileType = file.type.split('/')[0];
         const extension = realType || file.name.split('.').pop().toLowerCase();
+        
+        if (extension === 'stl') return ['OBJ', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'obj') return ['STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'fbx') return ['OBJ', 'STL', 'GLB', 'GLTF', 'PLY'];
+        if (extension === 'ply') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX'];
+        if (extension === 'blend') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'dae') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL', 'FBX', 'PLY'];
+        
         if (fileType === 'image' || ['png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp', 'ico', 'gif'].includes(extension)) {
             return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
         }
@@ -405,13 +417,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (extension === 'html' || extension === 'htm') return ['TXT', 'Markdown', 'PDF'];
         if (extension === 'docx') return ['TXT', 'HTML', 'PDF'];
         if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
-        if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL', 'FBX', 'PLY'];
-        if (extension === 'obj') return ['STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
-        if (extension === 'stl') return ['OBJ', 'GLB', 'GLTF', 'FBX', 'PLY'];
-        if (extension === 'fbx') return ['OBJ', 'STL', 'GLB', 'GLTF', 'PLY'];
-        if (extension === 'ply') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX'];
-        if (extension === 'blend') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
-        if (extension === 'dae') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
         if (extension === 'zip') return ['ZIP'];
         if (extension === 'rar' || extension === '7z') return ['ZIP'];
         return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV', 'PDF'];

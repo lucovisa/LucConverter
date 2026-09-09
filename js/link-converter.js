@@ -412,6 +412,7 @@ function initUploadFile() {
                 viewLink.style.color = 'var(--button-text)';
                 viewLink.style.borderRadius = '4px';
                 viewLink.style.textDecoration = 'none';
+                downloadLink.target = '_blank';
                 
                 const downloadLink = document.createElement('a');
                 downloadLink.href = result.download_url;
@@ -422,6 +423,7 @@ function initUploadFile() {
                 downloadLink.style.color = 'var(--button-text)';
                 downloadLink.style.borderRadius = '4px';
                 downloadLink.style.textDecoration = 'none';
+                downloadLink.target = '_blank';
                 
                 resultDisplay.appendChild(viewLink);
                 resultDisplay.appendChild(downloadLink);
@@ -472,6 +474,7 @@ function initUploadFile() {
                 viewLink.style.color = 'var(--button-text)';
                 viewLink.style.borderRadius = '4px';
                 viewLink.style.textDecoration = 'none';
+                viewLink.target = '_blank';
                 
                 const downloadLink = document.createElement('a');
                 downloadLink.href = result.download_url;
@@ -482,7 +485,8 @@ function initUploadFile() {
                 downloadLink.style.color = 'var(--button-text)';
                 downloadLink.style.borderRadius = '4px';
                 downloadLink.style.textDecoration = 'none';
-                
+                downloadLink.target = '_blank';
+
                 resultDisplay.appendChild(viewLink);
                 resultDisplay.appendChild(downloadLink);
             } else {
