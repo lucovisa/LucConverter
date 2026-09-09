@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
             telegramBtn.style.boxShadow = 'none';
         });
         telegramBtn.addEventListener('click', async () => {
-            telegramBtn.textContent = 'Sending...';
+            telegramBtn.textContent = 'Converting...';
             telegramBtn.disabled = true;
             telegramBtn.style.opacity = '0.7';
             
@@ -235,10 +235,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 
                 if (result.ok) {
-                    message.textContent = `✅ File sent to bot! Check your Telegram for the link.`;
-                    message.style.color = 'var(--success-text)';
-                    telegramBtn.textContent = 'Sent';
-                    telegramBtn.style.opacity = '0.5';
+                    for (let i = 0; i < 60; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        const statusResponse = await fetch(`https://converter-ashy-kappa.vercel.app/api/status/${uniqueId}`);
+                        const statusResult = await statusResponse.json();
+                        
+                        if (statusResult.status === 'ready') {
+                            message.textContent = `✅ File converted!`;
+                            message.style.color = 'var(--success-text)';
+                            
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = statusResult.download_url;
+                            downloadLink.textContent = '📥 Download Converted File';
+                            downloadLink.style.display = 'inline-block';
+                            downloadLink.style.marginTop = '0.5rem';
+                            downloadLink.style.padding = '0.7rem 1.3rem';
+                            downloadLink.style.background = 'var(--button-bg)';
+                            downloadLink.style.color = 'var(--button-text)';
+                            downloadLink.style.borderRadius = '4px';
+                            downloadLink.style.textDecoration = 'none';
+                            downloadLink.style.fontSize = '0.9rem';
+                            downloadLink.style.fontWeight = '500';
+                            downloadLink.style.transition = 'all 0.3s ease';
+                            downloadLink.addEventListener('mouseenter', () => {
+                                downloadLink.style.filter = 'brightness(1.1)';
+                                downloadLink.style.transform = 'translateY(-2px)';
+                            });
+                            downloadLink.addEventListener('mouseleave', () => {
+                                downloadLink.style.filter = 'none';
+                                downloadLink.style.transform = 'none';
+                            });
+                            
+                            telegramContainer.appendChild(downloadLink);
+                            telegramBtn.style.display = 'none';
+                            return;
+                        }
+                        
+                        if (statusResult.status === 'failed') {
+                            message.textContent = `❌ Failed to convert file`;
+                            message.style.color = 'var(--error-text)';
+                            telegramBtn.textContent = 'Try Again';
+                            telegramBtn.disabled = false;
+                            telegramBtn.style.opacity = '1';
+                            return;
+                        }
+                    }
+                    
+                    message.textContent = `❌ Timeout`;
+                    message.style.color = 'var(--error-text)';
+                    telegramBtn.textContent = 'Try Again';
+                    telegramBtn.disabled = false;
+                    telegramBtn.style.opacity = '1';
                 } else {
                     message.textContent = `❌ Failed to send file to bot`;
                     message.style.color = 'var(--error-text)';
@@ -256,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         const hint = document.createElement('p');
-        hint.textContent = 'Bot will convert the file and send you a link';
+        hint.textContent = 'Bot will convert the file and you will get a download link';
         hint.style.margin = '0.8rem 0 0 0';
         hint.style.fontSize = '0.8rem';
         hint.style.color = 'var(--text)';
@@ -736,8 +784,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         resolve(null);
                     }
-                } else if (file.name.endsWith('.stl')) {
-                    resolve(null);
                 } else {
                     resolve(null);
                 }

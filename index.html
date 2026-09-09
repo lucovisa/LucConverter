@@ -169,7 +169,6 @@
                 <button class="converter-btn" onclick="showConverter('uuidGenerator')">UUID Generator</button>
                 <button class="converter-btn" onclick="showConverter('timer')">Timer</button>
                 <button class="converter-btn" onclick="showConverter('stopwatch')">Stopwatch</button>
-                <button class="converter-btn" onclick="showConverter('uploadFile')">Upload File</button>
             </div>
             
             <div id="colorConverter" class="converter-content">
@@ -399,16 +398,6 @@
                 <button id="stopwatchResetBtn">Reset</button>
                 <div class="result-display" id="stopwatchDisplay">00:00.00</div>
             </div>
-            
-            <div id="uploadFile" class="converter-content">
-                <h3>Upload File</h3>
-                <label>Storage time (minutes, 0 = forever): <input type="number" id="uploadDuration" value="0" min="0"></label>
-                <input type="file" id="uploadFileInput" style="display: none;">
-                <button id="uploadFileBtn">Upload File</button>
-                <textarea id="uploadText" placeholder="Or paste text here"></textarea>
-                <button id="uploadTextBtn">Upload Text</button>
-                <div class="result-display"></div>
-            </div>
         </section>
         
         <section id="linkConverter" class="tool-section">
@@ -428,6 +417,7 @@
                 <button class="converter-btn" onclick="showConverter('textToBinary')">Text to Binary</button>
                 <button class="converter-btn" onclick="showConverter('asciiConverter')">ASCII Converter</button>
                 <button class="converter-btn" onclick="showConverter('downloadFromLink')">Download from Link</button>
+                <button class="converter-btn" onclick="showConverter('uploadFile')">Upload File</button>
             </div>
             
             <div id="urlConverter" class="converter-content">
@@ -530,6 +520,16 @@
                 <h3>Download from Link</h3>
                 <input type="url" placeholder="Enter any video or audio link">
                 <button>Try Download</button>
+                <div class="result-display"></div>
+            </div>
+            
+            <div id="uploadFile" class="converter-content">
+                <h3>Upload File</h3>
+                <label>Storage time (minutes, 0 = forever): <input type="number" id="uploadDuration" value="0" min="0"></label>
+                <input type="file" id="uploadFileInput" style="display: none;">
+                <button id="uploadFileBtn">Upload File</button>
+                <textarea id="uploadText" placeholder="Or paste text here"></textarea>
+                <button id="uploadTextBtn">Upload Text</button>
                 <div class="result-display"></div>
             </div>
         </section>
@@ -675,7 +675,6 @@
                         <li>Date Converter - ISO, Unix timestamp, week number, dd mm yyyy</li>
                         <li>UUID Generator</li>
                         <li>Timer and Stopwatch</li>
-                        <li>Upload File - upload files or text with configurable storage time</li>
                         <li>Every converter has a Clear button</li>
                     </ul>
                 </div>
@@ -696,6 +695,7 @@
                         <li>Text to Binary</li>
                         <li>ASCII Converter</li>
                         <li>Download from Link - works for direct file links</li>
+                        <li>Upload File - upload files or text with configurable storage time</li>
                     </ul>
                 </div>
                 

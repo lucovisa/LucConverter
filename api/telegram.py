@@ -14,6 +14,9 @@ app = Flask(__name__)
 
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 BASE_URL = f'https://api.telegram.org/bot{TOKEN}'
+VERCEL_URL = 'converter-ashy-kappa.vercel.app'
+
+files_in_memory = {}
 
 @app.route('/api/telegram', methods=['POST'])
 def telegram_webhook():
@@ -35,11 +38,14 @@ def telegram_webhook():
         file_name = document.get('file_name', 'file')
         file_id = document.get('file_id')
         target_format = None
+        unique_id = None
         is_upload = False
         
         if 'caption' in message and message['caption']:
             caption_parts = message['caption'].split('|')
             target_format = caption_parts[0].lower().strip()
+            if len(caption_parts) > 1:
+                unique_id = caption_parts[1].strip()
             if len(caption_parts) > 2 and caption_parts[2].strip() == 'upload':
                 is_upload = True
         
@@ -71,16 +77,69 @@ def telegram_webhook():
         result = convert_file(file_content, file_name, target_format)
         
         if result:
-            view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
-            
-            if view_link:
-                send_message(chat_id, f"✅ Done!\n\n👁 View: {view_link}\n📥 Download: {download_link}")
+            if unique_id:
+                files_in_memory[unique_id] = {
+                    'content': result['content'],
+                    'filename': result['filename'],
+                    'extension': result['extension'],
+                    'created': time.time(),
+                    'downloaded': False,
+                    'download_url': f'https://{VERCEL_URL}/api/download/{unique_id}'
+                }
+                send_message(chat_id, "Done!")
             else:
-                send_message(chat_id, "Failed to upload result")
+                view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
+                
+                if view_link:
+                    send_message(chat_id, f"✅ Done!\n\n👁 View: {view_link}\n📥 Download: {download_link}")
+                else:
+                    send_message(chat_id, "Failed to upload result")
         else:
             send_message(chat_id, "Failed to convert")
     
     return 'OK', 200
+
+@app.route('/api/download/<download_id>', methods=['GET'])
+def download(download_id):
+    if download_id not in files_in_memory:
+        return 'Link invalid', 404
+    
+    file_info = files_in_memory[download_id]
+    
+    if file_info['downloaded']:
+        return 'Link already used', 403
+    
+    if time.time() - file_info['created'] > 3600:
+        del files_in_memory[download_id]
+        return 'Link expired', 410
+    
+    file_info['downloaded'] = True
+    
+    return send_file(
+        BytesIO(file_info['content']),
+        as_attachment=True,
+        download_name=file_info['filename'],
+        mimetype='application/octet-stream'
+    )
+
+@app.route('/api/status/<unique_id>', methods=['GET'])
+def status(unique_id):
+    if unique_id not in files_in_memory:
+        return jsonify({'status': 'processing'})
+    
+    file_info = files_in_memory[unique_id]
+    
+    if file_info['downloaded']:
+        return jsonify({'status': 'used'})
+    
+    if time.time() - file_info['created'] > 3600:
+        return jsonify({'status': 'expired'})
+    
+    return jsonify({
+        'status': 'ready',
+        'filename': file_info['filename'],
+        'download_url': file_info['download_url']
+    })
 
 def upload_to_tmpfiles(file_content, file_name):
     try:
