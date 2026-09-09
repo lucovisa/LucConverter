@@ -794,3 +794,9 @@ main {
     font-family: monospace;
     letter-spacing: 1px;
 }
+
+.drop-zone {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
