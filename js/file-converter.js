@@ -364,7 +364,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (extension === 'obj') {
                 convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
             } else if (isArchive) {
-                if (format === 'zip') {
+                if (file.name.endsWith('.rar') || file.name.endsWith('.7z')) {
+                    resolve(null);
+                } else if (format === 'zip') {
                     handleArchive(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
                 } else {
                     resolve(null);
@@ -383,6 +385,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (format === 'zip') {
             if (file.name.endsWith('.zip')) {
                 return file;
+            }
+            
+            if (file.name.endsWith('.rar') || file.name.endsWith('.7z')) {
+                return null;
             }
             
             return await convertToZip(file);
