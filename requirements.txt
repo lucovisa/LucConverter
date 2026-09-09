@@ -7,3 +7,7 @@ PyPDF2
 pandas
 pdf2image
 trimesh
+reportlab
+markdown
+html2text
+mammoth

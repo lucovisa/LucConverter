@@ -6,6 +6,7 @@ import zipfile
 import tempfile
 import requests
 import subprocess
+import re
 from flask import Flask, request, jsonify, send_file
 from io import BytesIO
 
@@ -13,16 +14,9 @@ app = Flask(__name__)
 
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 BASE_URL = f'https://api.telegram.org/bot{TOKEN}'
-VERCEL_URL = 'converter-ashy-kappa.vercel.app'
-
-files_in_memory = {}
 
 @app.route('/api/telegram', methods=['POST'])
 def telegram_webhook():
-    return webhook()
-
-@app.route('/api/webhook', methods=['POST'])
-def webhook():
     update = request.json
     
     if 'message' in update and 'text' in update['message']:
@@ -30,7 +24,7 @@ def webhook():
         text = update['message']['text']
         
         if text.startswith('/start'):
-            send_message(chat_id, "Send me a file to convert or upload")
+            send_message(chat_id, "Send me a file with caption = target format (e.g. mp3, jpg, zip, obj, stl). Send 'upload' to just store file.")
         else:
             send_message(chat_id, "Send me a file to convert or upload")
     
@@ -41,14 +35,11 @@ def webhook():
         file_name = document.get('file_name', 'file')
         file_id = document.get('file_id')
         target_format = None
-        unique_id = None
         is_upload = False
         
         if 'caption' in message and message['caption']:
             caption_parts = message['caption'].split('|')
             target_format = caption_parts[0].lower().strip()
-            if len(caption_parts) > 1:
-                unique_id = caption_parts[1].strip()
             if len(caption_parts) > 2 and caption_parts[2].strip() == 'upload':
                 is_upload = True
         
@@ -67,22 +58,12 @@ def webhook():
         file_content = download_file(file_path)
         
         if is_upload:
-            upload_id = unique_id if unique_id else str(uuid.uuid4())
-            duration = int(caption_parts[3]) if len(caption_parts) > 3 else 60
-            max_downloads = int(caption_parts[4]) if len(caption_parts) > 4 else 1
+            view_link, download_link = upload_to_tmpfiles(file_content, file_name)
             
-            files_in_memory[upload_id] = {
-                'content': file_content,
-                'filename': file_name,
-                'extension': os.path.splitext(file_name)[1].lower().lstrip('.'),
-                'created': time.time(),
-                'downloaded': 0,
-                'max_downloads': max_downloads,
-                'duration': duration * 60,
-                'download_url': f'https://{VERCEL_URL}/api/view/{upload_id}'
-            }
-            
-            send_message(chat_id, f"Done! View: {files_in_memory[upload_id]['download_url']}")
+            if view_link:
+                send_message(chat_id, f"✅ Done!\n\n👁 View: {view_link}\n📥 Download: {download_link}")
+            else:
+                send_message(chat_id, "Failed to upload")
             return 'OK', 200
         
         send_message(chat_id, f"Converting to {target_format if target_format else 'ZIP'}...")
@@ -90,104 +71,35 @@ def webhook():
         result = convert_file(file_content, file_name, target_format)
         
         if result:
-            download_id = unique_id if unique_id else str(uuid.uuid4())
+            view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
             
-            files_in_memory[download_id] = {
-                'content': result['content'],
-                'filename': result['filename'],
-                'extension': result['extension'],
-                'created': time.time(),
-                'downloaded': False,
-                'download_url': f'https://{VERCEL_URL}/api/download/{download_id}'
-            }
-            
-            download_url = files_in_memory[download_id]['download_url']
-            
-            send_message(chat_id, f"Done! Download: {download_url}")
+            if view_link:
+                send_message(chat_id, f"✅ Done!\n\n👁 View: {view_link}\n📥 Download: {download_link}")
+            else:
+                send_message(chat_id, "Failed to upload result")
         else:
             send_message(chat_id, "Failed to convert")
     
     return 'OK', 200
 
-@app.route('/api/download/<download_id>', methods=['GET'])
-def download(download_id):
-    if download_id not in files_in_memory:
-        return 'Link invalid', 404
-    
-    file_info = files_in_memory[download_id]
-    
-    if file_info['downloaded']:
-        return 'Link already used', 403
-    
-    if time.time() - file_info['created'] > 3600:
-        del files_in_memory[download_id]
-        return 'Link expired', 410
-    
-    file_info['downloaded'] = True
-    
-    return send_file(
-        BytesIO(file_info['content']),
-        as_attachment=True,
-        download_name=file_info['filename'],
-        mimetype='application/octet-stream'
-    )
-
-@app.route('/api/view/<file_id>', methods=['GET'])
-def view_file(file_id):
-    if file_id not in files_in_memory:
-        return 'File not found', 404
-    
-    file_info = files_in_memory[file_id]
-    
-    if time.time() - file_info['created'] > file_info.get('duration', 3600):
-        del files_in_memory[file_id]
-        return 'Link expired', 410
-    
-    if file_info.get('downloaded', 0) >= file_info.get('max_downloads', 1):
-        return 'Download limit reached', 403
-    
-    file_info['downloaded'] = file_info.get('downloaded', 0) + 1
-    
-    extension = file_info.get('extension', '').lower()
-    content_type = 'application/octet-stream'
-    
-    if extension in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg']:
-        content_type = f'image/{extension}'
-    elif extension in ['mp4', 'webm']:
-        content_type = f'video/{extension}'
-    elif extension in ['mp3', 'wav', 'ogg']:
-        content_type = f'audio/{extension}'
-    elif extension == 'txt':
-        content_type = 'text/plain'
-    elif extension == 'html':
-        content_type = 'text/html'
-    elif extension == 'pdf':
-        content_type = 'application/pdf'
-    
-    return send_file(
-        BytesIO(file_info['content']),
-        mimetype=content_type,
-        download_name=file_info['filename']
-    )
-
-@app.route('/api/status/<unique_id>', methods=['GET'])
-def status(unique_id):
-    if unique_id not in files_in_memory:
-        return jsonify({'status': 'processing'})
-    
-    file_info = files_in_memory[unique_id]
-    
-    if file_info.get('downloaded', False):
-        return jsonify({'status': 'used'})
-    
-    if time.time() - file_info['created'] > file_info.get('duration', 3600):
-        return jsonify({'status': 'expired'})
-    
-    return jsonify({
-        'status': 'ready',
-        'filename': file_info['filename'],
-        'download_url': file_info['download_url']
-    })
+def upload_to_tmpfiles(file_content, file_name):
+    try:
+        response = requests.post(
+            'https://tmpfiles.org/api/v1/upload',
+            files={'file': (file_name, file_content)}
+        )
+        
+        data = response.json()
+        
+        if 'data' in data and 'url' in data['data']:
+            view_url = data['data']['url']
+            download_url = view_url.replace('https://tmpfiles.org/', 'https://tmpfiles.org/dl/')
+            return view_url, download_url
+        
+        return None, None
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return None, None
 
 def convert_file(file_content, file_name, target_format=None):
     try:
@@ -195,6 +107,13 @@ def convert_file(file_content, file_name, target_format=None):
         
         if target_format and target_format.startswith('.'):
             target_format = target_format[1:]
+        
+        if target_format == 'upload':
+            return {
+                'content': file_content,
+                'filename': file_name,
+                'extension': extension.lstrip('.')
+            }
         
         if extension == '.rar' and target_format in ['zip', None]:
             return convert_rar_to_zip(file_content, file_name)
@@ -208,35 +127,44 @@ def convert_file(file_content, file_name, target_format=None):
         if target_format == '7z':
             return convert_to_7z(file_content, file_name)
         
-        if target_format in ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'ico', 'gif', 'svg'] and extension in ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.ico', '.gif', '.svg']:
+        if target_format in ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'ico', 'gif', 'svg', 'tiff'] and extension in ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.ico', '.gif', '.svg', '.tiff']:
             return convert_image(file_content, file_name, target_format)
         
-        if target_format == 'txt' and extension == '.pdf':
-            return convert_pdf_to_txt(file_content, file_name)
+        if target_format == 'txt' and extension in ['.pdf', '.docx', '.doc', '.html', '.htm', '.rtf']:
+            return convert_to_txt(file_content, file_name)
         
         if target_format in ['jpg', 'png'] and extension == '.pdf':
             return convert_pdf_to_image(file_content, file_name, target_format)
         
-        if target_format in ['csv', 'json'] and extension in ['.xlsx', '.xls']:
+        if target_format == 'pdf' and extension in ['.txt', '.html', '.htm', '.docx', '.doc', '.rtf', '.md']:
+            return convert_to_pdf(file_content, file_name)
+        
+        if target_format in ['csv', 'json', 'html'] and extension in ['.xlsx', '.xls', '.ods']:
             return convert_xlsx(file_content, file_name, target_format)
         
-        if target_format in ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif']:
+        if target_format in ['xlsx', 'xls'] and extension in ['.csv', '.json']:
+            return convert_to_xlsx(file_content, file_name, target_format)
+        
+        if target_format in ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif', '.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
             return convert_video_to_audio(file_content, file_name, target_format)
         
         if target_format in ['jpg', 'png'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif']:
             return convert_video_to_image(file_content, file_name, target_format)
         
-        if target_format in ['mp4', 'webm', 'avi', 'mov', 'gif'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif']:
+        if target_format in ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv'] and extension in ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.gif', '.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
             return convert_video(file_content, file_name, target_format)
         
-        if target_format in ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'] and extension in ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
+        if target_format in ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus'] and extension in ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
             return convert_audio(file_content, file_name, target_format)
         
-        if target_format in ['mp4', 'webm'] and extension in ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.opus', '.wma']:
-            return convert_audio_to_video(file_content, file_name, target_format)
-        
-        if target_format in ['stl', 'obj'] and extension in ['.glb', '.gltf', '.obj']:
+        if target_format in ['stl', 'obj', 'glb', 'gltf', 'fbx', 'ply'] and extension in ['.glb', '.gltf', '.obj', '.stl', '.fbx', '.ply', '.blend', '.dae']:
             return convert_3d(file_content, file_name, target_format)
+        
+        if target_format == 'html' and extension == '.md':
+            return convert_markdown_to_html(file_content, file_name)
+        
+        if target_format == 'md' and extension in ['.html', '.htm']:
+            return convert_html_to_markdown(file_content, file_name)
         
         return None
     
@@ -274,11 +202,7 @@ def convert_rar_to_zip(file_content, file_name):
         import shutil
         shutil.rmtree(extract_dir)
         
-        return {
-            'content': content,
-            'filename': file_name.replace('.rar', '.zip'),
-            'extension': 'zip'
-        }
+        return {'content': content, 'filename': file_name.replace('.rar', '.zip'), 'extension': 'zip'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -314,11 +238,7 @@ def convert_7z_to_zip(file_content, file_name):
         import shutil
         shutil.rmtree(extract_dir)
         
-        return {
-            'content': content,
-            'filename': file_name.replace('.7z', '.zip'),
-            'extension': 'zip'
-        }
+        return {'content': content, 'filename': file_name.replace('.7z', '.zip'), 'extension': 'zip'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -335,11 +255,7 @@ def convert_to_zip(file_content, file_name):
         
         os.remove(zip_buffer.name)
         
-        return {
-            'content': content,
-            'filename': file_name + '.zip',
-            'extension': 'zip'
-        }
+        return {'content': content, 'filename': file_name + '.zip', 'extension': 'zip'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -365,11 +281,7 @@ def convert_to_7z(file_content, file_name):
         os.remove(tmp_path.name)
         os.remove(zip_buffer.name)
         
-        return {
-            'content': content,
-            'filename': file_name + '.7z',
-            'extension': '7z'
-        }
+        return {'content': content, 'filename': file_name + '.7z', 'extension': '7z'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -385,11 +297,11 @@ def convert_image(file_content, file_name, target_format):
         output_buffer = io.BytesIO()
         
         if target_format in ['jpg', 'jpeg']:
-            img.convert('RGB').save(output_buffer, format='JPEG')
+            img.convert('RGB').save(output_buffer, format='JPEG', quality=95)
         elif target_format == 'png':
             img.save(output_buffer, format='PNG')
         elif target_format == 'webp':
-            img.save(output_buffer, format='WEBP')
+            img.save(output_buffer, format='WEBP', quality=95)
         elif target_format == 'bmp':
             img.save(output_buffer, format='BMP')
         elif target_format == 'ico':
@@ -398,32 +310,40 @@ def convert_image(file_content, file_name, target_format):
             img.save(output_buffer, format='GIF')
         elif target_format == 'svg':
             img.save(output_buffer, format='SVG')
+        elif target_format == 'tiff':
+            img.save(output_buffer, format='TIFF')
         
-        return {
-            'content': output_buffer.getvalue(),
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': output_buffer.getvalue(), 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
     
     except Exception as e:
         print(f"Error: {e}")
         return None
 
-def convert_pdf_to_txt(file_content, file_name):
+def convert_to_txt(file_content, file_name):
     try:
-        from PyPDF2 import PdfReader
-        import io
+        extension = os.path.splitext(file_name)[1].lower()
         
-        pdf = PdfReader(io.BytesIO(file_content))
-        text = ''
-        for page in pdf.pages:
-            text += page.extract_text() + '\n\n'
+        if extension == '.pdf':
+            from PyPDF2 import PdfReader
+            import io
+            pdf = PdfReader(io.BytesIO(file_content))
+            text = ''
+            for page in pdf.pages:
+                text += page.extract_text() + '\n\n'
+        elif extension in ['.docx', '.doc']:
+            import mammoth
+            import io
+            result = mammoth.extract_raw_text(io.BytesIO(file_content))
+            text = result.value
+        elif extension in ['.html', '.htm']:
+            text = file_content.decode('utf-8', errors='ignore')
+            text = re.sub(r'<[^>]+>', ' ', text)
+        elif extension == '.rtf':
+            text = file_content.decode('utf-8', errors='ignore')
+        else:
+            text = file_content.decode('utf-8', errors='ignore')
         
-        return {
-            'content': text.encode('utf-8'),
-            'filename': file_name.replace('.pdf', '.txt'),
-            'extension': 'txt'
-        }
+        return {'content': text.encode('utf-8'), 'filename': file_name.replace(extension, '.txt'), 'extension': 'txt'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -439,14 +359,35 @@ def convert_pdf_to_image(file_content, file_name, target_format):
         if images:
             output_buffer = io.BytesIO()
             images[0].save(output_buffer, format='JPEG' if target_format == 'jpg' else 'PNG')
-            
-            return {
-                'content': output_buffer.getvalue(),
-                'filename': file_name.replace('.pdf', f'.{target_format}'),
-                'extension': target_format
-            }
+            return {'content': output_buffer.getvalue(), 'filename': file_name.replace('.pdf', f'.{target_format}'), 'extension': target_format}
         
         return None
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def convert_to_pdf(file_content, file_name):
+    try:
+        from reportlab.pdfgen import canvas
+        import io
+        
+        output_buffer = io.BytesIO()
+        c = canvas.Canvas(output_buffer)
+        
+        text = file_content.decode('utf-8', errors='ignore')
+        
+        y = 800
+        for line in text.split('\n'):
+            c.drawString(50, y, line[:100])
+            y -= 15
+            if y < 50:
+                c.showPage()
+                y = 800
+        
+        c.save()
+        
+        return {'content': output_buffer.getvalue(), 'filename': file_name.replace(os.path.splitext(file_name)[1], '.pdf'), 'extension': 'pdf'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -463,12 +404,29 @@ def convert_xlsx(file_content, file_name, target_format):
             content = df.to_csv(index=False).encode('utf-8')
         elif target_format == 'json':
             content = df.to_json(orient='records').encode('utf-8')
+        elif target_format == 'html':
+            content = df.to_html(index=False).encode('utf-8')
         
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': content, 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def convert_to_xlsx(file_content, file_name, target_format):
+    try:
+        import pandas as pd
+        import io
+        
+        if file_name.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(file_content))
+        elif file_name.endswith('.json'):
+            df = pd.read_json(io.BytesIO(file_content))
+        
+        output_buffer = io.BytesIO()
+        df.to_excel(output_buffer, index=False)
+        
+        return {'content': output_buffer.getvalue(), 'filename': file_name.replace(os.path.splitext(file_name)[1], '.xlsx'), 'extension': 'xlsx'}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -482,7 +440,7 @@ def convert_video_to_audio(file_content, file_name, target_format):
         
         output_path = tmp_path + f'.{target_format}'
         
-        subprocess.run(['ffmpeg', '-i', tmp_path, '-vn', output_path], check=True, capture_output=True)
+        subprocess.run(['ffmpeg', '-i', tmp_path, '-vn', '-acodec', 'libmp3lame' if target_format == 'mp3' else 'copy', output_path], check=True, capture_output=True)
         
         with open(output_path, 'rb') as f:
             content = f.read()
@@ -490,11 +448,7 @@ def convert_video_to_audio(file_content, file_name, target_format):
         os.remove(tmp_path)
         os.remove(output_path)
         
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': content, 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -516,11 +470,7 @@ def convert_video_to_image(file_content, file_name, target_format):
         os.remove(tmp_path)
         os.remove(output_path)
         
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': content, 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -542,11 +492,7 @@ def convert_video(file_content, file_name, target_format):
         os.remove(tmp_path)
         os.remove(output_path)
         
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': content, 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -568,37 +514,7 @@ def convert_audio(file_content, file_name, target_format):
         os.remove(tmp_path)
         os.remove(output_path)
         
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
-    
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
-
-def convert_audio_to_video(file_content, file_name, target_format):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1]) as tmp:
-            tmp.write(file_content)
-            tmp_path = tmp.name
-        
-        output_path = tmp_path + f'.{target_format}'
-        
-        subprocess.run(['ffmpeg', '-i', tmp_path, '-f', 'lavfi', '-i', 'color=c=black:s=640x360', '-shortest', '-c:v', 'libx264', '-c:a', 'aac', output_path], check=True, capture_output=True)
-        
-        with open(output_path, 'rb') as f:
-            content = f.read()
-        
-        os.remove(tmp_path)
-        os.remove(output_path)
-        
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': content, 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
     
     except Exception as e:
         print(f"Error: {e}")
@@ -615,12 +531,42 @@ def convert_3d(file_content, file_name, target_format):
             content = mesh.export(file_type='stl')
         elif target_format == 'obj':
             content = mesh.export(file_type='obj')
+        elif target_format == 'glb':
+            content = mesh.export(file_type='glb')
+        elif target_format == 'gltf':
+            content = mesh.export(file_type='gltf')
+        elif target_format == 'ply':
+            content = mesh.export(file_type='ply')
+        else:
+            content = mesh.export(file_type=target_format)
         
-        return {
-            'content': content,
-            'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'),
-            'extension': target_format
-        }
+        return {'content': content, 'filename': file_name.replace(os.path.splitext(file_name)[1], f'.{target_format}'), 'extension': target_format}
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def convert_markdown_to_html(file_content, file_name):
+    try:
+        import markdown
+        
+        md_text = file_content.decode('utf-8', errors='ignore')
+        html = markdown.markdown(md_text)
+        
+        return {'content': html.encode('utf-8'), 'filename': file_name.replace('.md', '.html'), 'extension': 'html'}
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def convert_html_to_markdown(file_content, file_name):
+    try:
+        import html2text
+        
+        html_text = file_content.decode('utf-8', errors='ignore')
+        md = html2text.html2text(html_text)
+        
+        return {'content': md.encode('utf-8'), 'filename': file_name.replace('.html', '.md'), 'extension': 'md'}
     
     except Exception as e:
         print(f"Error: {e}")

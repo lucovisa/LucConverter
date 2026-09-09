@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const VERCEL_URL = 'https://converter-ashy-kappa.vercel.app';
     const TELEGRAM_BOT_TOKEN = '8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U';
     const TELEGRAM_CHAT_ID = '7072200354';
 
@@ -216,42 +215,39 @@ document.addEventListener('DOMContentLoaded', function() {
             telegramBtn.style.boxShadow = 'none';
         });
         telegramBtn.addEventListener('click', async () => {
-            telegramBtn.textContent = 'Converting...';
+            telegramBtn.textContent = 'Sending...';
             telegramBtn.disabled = true;
             telegramBtn.style.opacity = '0.7';
             
-            const downloadUrl = await sendToTelegram(file, format);
+            const uniqueId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             
-            if (downloadUrl) {
-                message.textContent = `✅ File converted!`;
-                message.style.color = 'var(--success-text)';
-                
-                const downloadLink = document.createElement('a');
-                downloadLink.href = downloadUrl;
-                downloadLink.textContent = '📥 Download Converted File';
-                downloadLink.style.display = 'inline-block';
-                downloadLink.style.marginTop = '0.5rem';
-                downloadLink.style.padding = '0.7rem 1.3rem';
-                downloadLink.style.background = 'var(--button-bg)';
-                downloadLink.style.color = 'var(--button-text)';
-                downloadLink.style.borderRadius = '4px';
-                downloadLink.style.textDecoration = 'none';
-                downloadLink.style.fontSize = '0.9rem';
-                downloadLink.style.fontWeight = '500';
-                downloadLink.style.transition = 'all 0.3s ease';
-                downloadLink.addEventListener('mouseenter', () => {
-                    downloadLink.style.filter = 'brightness(1.1)';
-                    downloadLink.style.transform = 'translateY(-2px)';
-                });
-                downloadLink.addEventListener('mouseleave', () => {
-                    downloadLink.style.filter = 'none';
-                    downloadLink.style.transform = 'none';
+            const formData = new FormData();
+            formData.append('chat_id', TELEGRAM_CHAT_ID);
+            formData.append('document', file);
+            formData.append('caption', `${format}|${uniqueId}`);
+            
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
+                    method: 'POST',
+                    body: formData
                 });
                 
-                telegramContainer.appendChild(downloadLink);
-                telegramBtn.style.display = 'none';
-            } else {
-                message.textContent = `❌ Failed to convert file`;
+                const result = await response.json();
+                
+                if (result.ok) {
+                    message.textContent = `✅ File sent to bot! Check your Telegram for the link.`;
+                    message.style.color = 'var(--success-text)';
+                    telegramBtn.textContent = 'Sent';
+                    telegramBtn.style.opacity = '0.5';
+                } else {
+                    message.textContent = `❌ Failed to send file to bot`;
+                    message.style.color = 'var(--error-text)';
+                    telegramBtn.textContent = 'Try Again';
+                    telegramBtn.disabled = false;
+                    telegramBtn.style.opacity = '1';
+                }
+            } catch (e) {
+                message.textContent = `❌ Network error`;
                 message.style.color = 'var(--error-text)';
                 telegramBtn.textContent = 'Try Again';
                 telegramBtn.disabled = false;
@@ -260,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         const hint = document.createElement('p');
-        hint.textContent = 'Bot will convert the file and send you a download link';
+        hint.textContent = 'Bot will convert the file and send you a link';
         hint.style.margin = '0.8rem 0 0 0';
         hint.style.fontSize = '0.8rem';
         hint.style.color = 'var(--text)';
@@ -272,49 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
         fileItem.appendChild(telegramContainer);
     }
 
-    async function sendToTelegram(file, format) {
-        const uniqueId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        const formData = new FormData();
-        formData.append('chat_id', TELEGRAM_CHAT_ID);
-        formData.append('document', file);
-        formData.append('caption', `${format}|${uniqueId}`);
-        
-        try {
-            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.ok) {
-                for (let i = 0; i < 60; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    const statusResponse = await fetch(`${VERCEL_URL}/api/status/${uniqueId}`);
-                    const statusResult = await statusResponse.json();
-                    
-                    if (statusResult.status === 'ready') {
-                        return statusResult.download_url;
-                    }
-                    
-                    if (statusResult.status === 'failed') {
-                        return null;
-                    }
-                }
-                
-                return null;
-            } else {
-                console.error('Telegram API error:', result);
-                return null;
-            }
-        } catch (e) {
-            console.error('Network error:', e);
-            return null;
-        }
-    }
-
     function convertFileToBlob(file, format, realType) {
         return new Promise((resolve) => {
             const fileType = realType ? getTypeCategory(realType) : file.type.split('/')[0];
@@ -324,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension);
             const isFont = ['ttf', 'otf', 'woff', 'woff2'].includes(extension);
             const isArchive = ['zip', 'rar', '7z'].includes(extension);
+            const is3D = ['glb', 'gltf', 'obj', 'stl', 'fbx', 'ply', 'blend', 'dae'].includes(extension);
 
             if (isImage) {
                 if (format === 'txt (ocr)') {
@@ -339,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (window.FFmpeg && isFFmpegAvailable()) {
                     convertWithFFmpeg(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
                 } else {
-                    resolve(new Blob([file], { type: `video/${format}` }));
+                    resolve(null);
                 }
             } else if (isAudio) {
                 if (format === 'mp4' || format === 'webm') {
@@ -349,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (format === 'mp3') {
                     convertAudioToMp3(file).then(blob => resolve(blob)).catch(() => resolve(null));
                 } else {
-                    resolve(new Blob([file], { type: `audio/${format}` }));
+                    resolve(null);
                 }
             } else if (isFont) {
                 resolve(new Blob([file], { type: 'application/octet-stream' }));
@@ -361,10 +315,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 convertDOCXToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
             } else if (extension === 'xlsx' || extension === 'xls') {
                 convertXLSXToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
-            } else if (extension === 'glb' || extension === 'gltf') {
-                convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
-            } else if (extension === 'obj') {
-                convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+            } else if (is3D) {
+                if (extension === 'blend') {
+                    resolve(null);
+                } else {
+                    convert3DToBlob(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
+                }
             } else if (isArchive) {
                 if (file.name.endsWith('.rar') || file.name.endsWith('.7z')) {
                     resolve(null);
@@ -441,10 +397,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return ['PNG', 'JPG', 'WebP', 'SVG', 'BMP', 'ICO', 'TXT (OCR)'];
         }
         if (fileType === 'video' || ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(extension)) {
-            return ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MP3', 'WAV', 'JPG', 'PNG'];
+            return ['MP4', 'AVI', 'MOV', 'GIF', 'WebM', 'MKV', 'MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'JPG', 'PNG'];
         }
         if (fileType === 'audio' || ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(extension)) {
-            return ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'MP4', 'WebM'];
+            return ['MP3', 'WAV', 'OGG', 'AAC', 'FLAC', 'M4A', 'OPUS', 'MP4', 'WebM'];
         }
         if (['ttf', 'otf', 'woff', 'woff2'].includes(extension)) {
             return ['TTF', 'OTF', 'WOFF', 'WOFF2'];
@@ -453,11 +409,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (extension === 'html' || extension === 'htm') return ['TXT', 'Markdown', 'PDF'];
         if (extension === 'docx') return ['TXT', 'HTML', 'PDF'];
         if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
-        if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL'];
-        if (extension === 'obj') return ['STL'];
+        if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL', 'FBX', 'PLY'];
+        if (extension === 'obj') return ['STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'stl') return ['OBJ', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'fbx') return ['OBJ', 'STL', 'GLB', 'GLTF', 'PLY'];
+        if (extension === 'ply') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX'];
+        if (extension === 'blend') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
+        if (extension === 'dae') return ['OBJ', 'STL', 'GLB', 'GLTF', 'FBX', 'PLY'];
         if (extension === 'zip') return ['ZIP'];
         if (extension === 'rar' || extension === '7z') return ['ZIP'];
-        return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
+        return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV', 'PDF'];
     }
 
     function getTypeCategory(realType) {
@@ -465,6 +426,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'].includes(realType)) return 'video';
         if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'].includes(realType)) return 'audio';
         if (['ttf', 'otf', 'woff', 'woff2'].includes(realType)) return 'font';
+        if (['glb', 'gltf', 'obj', 'stl', 'fbx', 'ply', 'blend', 'dae'].includes(realType)) return '3d';
         return 'other';
     }
 
@@ -763,6 +725,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (format === 'stl') {
                         const exporter = new THREE.STLExporter();
                         resolve(new Blob([exporter.parse(gltf.scene)], { type: 'text/plain' }));
+                    } else {
+                        resolve(null);
                     }
                     URL.revokeObjectURL(url);
                 } else if (file.name.endsWith('.obj')) {
@@ -772,6 +736,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         resolve(null);
                     }
+                } else if (file.name.endsWith('.stl')) {
+                    resolve(null);
+                } else {
+                    resolve(null);
                 }
             } catch (e) {
                 resolve(null);

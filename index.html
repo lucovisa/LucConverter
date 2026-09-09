@@ -129,7 +129,8 @@
                     <span class="format-tag">XLSX → CSV, JSON, HTML</span>
                     <span class="format-tag">HTML → TXT, Markdown, PDF</span>
                     <span class="format-tag">Any file → ZIP</span>
-                    <span class="format-tag">3D: GLB → OBJ, STL</span>
+                    <span class="format-tag">3D: BLEND → OBJ, STL, FBX, PLY, GLB, GLTF</span>
+                    <span class="format-tag">3D: OBJ, STL, FBX, PLY, GLB, GLTF → OBJ, STL, FBX, PLY, GLB, GLTF</span>
                     <span class="format-tag">Archives: RAR, 7z → ZIP</span>
                     <span class="format-tag">Fonts: TTF, OTF, WOFF, WOFF2</span>
                 </div>
@@ -168,6 +169,7 @@
                 <button class="converter-btn" onclick="showConverter('uuidGenerator')">UUID Generator</button>
                 <button class="converter-btn" onclick="showConverter('timer')">Timer</button>
                 <button class="converter-btn" onclick="showConverter('stopwatch')">Stopwatch</button>
+                <button class="converter-btn" onclick="showConverter('uploadFile')">Upload File</button>
             </div>
             
             <div id="colorConverter" class="converter-content">
@@ -396,6 +398,16 @@
                 <button id="stopwatchPauseBtn">Pause</button>
                 <button id="stopwatchResetBtn">Reset</button>
                 <div class="result-display" id="stopwatchDisplay">00:00.00</div>
+            </div>
+            
+            <div id="uploadFile" class="converter-content">
+                <h3>Upload File</h3>
+                <label>Storage time (minutes, 0 = forever): <input type="number" id="uploadDuration" value="0" min="0"></label>
+                <input type="file" id="uploadFileInput" style="display: none;">
+                <button id="uploadFileBtn">Upload File</button>
+                <textarea id="uploadText" placeholder="Or paste text here"></textarea>
+                <button id="uploadTextBtn">Upload Text</button>
+                <div class="result-display"></div>
             </div>
         </section>
         
@@ -627,7 +639,8 @@
                         <li>XLSX → CSV, JSON, HTML</li>
                         <li>HTML → TXT, Markdown, PDF</li>
                         <li>Any file → ZIP</li>
-                        <li>3D: GLB → OBJ, STL</li>
+                        <li>3D: BLEND → OBJ, STL, FBX, PLY, GLB, GLTF</li>
+                        <li>3D: OBJ, STL, FBX, PLY, GLB, GLTF → OBJ, STL, FBX, PLY, GLB, GLTF</li>
                         <li>Archives: RAR, 7z → ZIP</li>
                         <li>Fonts: TTF, OTF, WOFF, WOFF2</li>
                     </ul>
@@ -662,6 +675,7 @@
                         <li>Date Converter - ISO, Unix timestamp, week number, dd mm yyyy</li>
                         <li>UUID Generator</li>
                         <li>Timer and Stopwatch</li>
+                        <li>Upload File - upload files or text with configurable storage time</li>
                         <li>Every converter has a Clear button</li>
                     </ul>
                 </div>
@@ -817,7 +831,7 @@
                         <p>Some formats require heavy processing or proprietary codecs that browsers cannot handle without additional server resources.</p>
                         <ul>
                             <li>MP4/AVI/MOV video conversion needs FFmpeg.wasm, which requires SharedArrayBuffer (available on Vercel, not on GitHub Pages)</li>
-                            <li>BLEND (Blender) files cannot be created or converted in browser</li>
+                            <li>BLEND files can only be converted FROM, not TO (via Telegram Bot)</li>
                             <li>Creating RAR or 7z archives is not possible in browser; only extraction is supported</li>
                             <li>Very large files may exceed memory limits</li>
                             <li>Some OGG/Opus codecs may not be supported in Safari</li>

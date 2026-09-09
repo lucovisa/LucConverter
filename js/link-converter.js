@@ -365,116 +365,34 @@ function initLinkConverter() {
 }
 
 function initUploadFile() {
-    const uploadFileInput = document.createElement('input');
-    uploadFileInput.type = 'file';
-    uploadFileInput.style.display = 'none';
-    document.body.appendChild(uploadFileInput);
-
-    const uploadBtn = document.createElement('button');
-    uploadBtn.textContent = 'Upload File';
-    uploadBtn.style.padding = '0.7rem 1.3rem';
-    uploadBtn.style.background = 'var(--button-bg)';
-    uploadBtn.style.color = 'var(--button-text)';
-    uploadBtn.style.border = 'none';
-    uploadBtn.style.borderRadius = '4px';
-    uploadBtn.style.cursor = 'pointer';
-    uploadBtn.style.fontSize = '0.9rem';
-
-    const uploadResult = document.createElement('div');
-    uploadResult.className = 'result-display';
-    uploadResult.style.marginTop = '1rem';
-    uploadResult.style.wordBreak = 'break-all';
-
-    const uploadContainer = document.createElement('div');
-    uploadContainer.style.marginTop = '2rem';
-    uploadContainer.style.padding = '1.5rem';
-    uploadContainer.style.background = 'var(--panel-bg)';
-    uploadContainer.style.border = '1px solid var(--border)';
-    uploadContainer.style.borderRadius = '4px';
-
-    const uploadTitle = document.createElement('h3');
-    uploadTitle.textContent = 'Upload File';
-    uploadTitle.style.color = 'var(--accent)';
-    uploadTitle.style.marginBottom = '1rem';
-
-    const durationLabel = document.createElement('label');
-    durationLabel.textContent = 'Storage time (minutes): ';
-    durationLabel.style.color = 'var(--text)';
-    durationLabel.style.fontSize = '0.9rem';
-    durationLabel.style.marginRight = '0.5rem';
-
-    const durationSelect = document.createElement('select');
-    durationSelect.style.padding = '0.5rem';
-    durationSelect.style.background = 'var(--bg)';
-    durationSelect.style.border = '1px solid var(--border)';
-    durationSelect.style.borderRadius = '4px';
-    durationSelect.style.color = 'var(--text)';
-    durationSelect.style.marginRight = '1rem';
-
-    for (let i = 1; i <= 60; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = `${i} min`;
-        durationSelect.appendChild(opt);
-    }
-
-    const downloadsLabel = document.createElement('label');
-    downloadsLabel.textContent = 'Max downloads: ';
-    downloadsLabel.style.color = 'var(--text)';
-    downloadsLabel.style.fontSize = '0.9rem';
-    downloadsLabel.style.marginRight = '0.5rem';
-
-    const downloadsSelect = document.createElement('select');
-    downloadsSelect.style.padding = '0.5rem';
-    downloadsSelect.style.background = 'var(--bg)';
-    downloadsSelect.style.border = '1px solid var(--border)';
-    downloadsSelect.style.borderRadius = '4px';
-    downloadsSelect.style.color = 'var(--text)';
-    downloadsSelect.style.marginRight = '1rem';
-
-    for (let i = 1; i <= 100; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        downloadsSelect.appendChild(opt);
-    }
-
-    const optionsRow = document.createElement('div');
-    optionsRow.style.display = 'flex';
-    optionsRow.style.alignItems = 'center';
-    optionsRow.style.flexWrap = 'wrap';
-    optionsRow.style.gap = '0.5rem';
-    optionsRow.style.marginBottom = '1rem';
-
-    optionsRow.appendChild(durationLabel);
-    optionsRow.appendChild(durationSelect);
-    optionsRow.appendChild(downloadsLabel);
-    optionsRow.appendChild(downloadsSelect);
-
-    uploadBtn.addEventListener('click', () => uploadFileInput.click());
-
+    const uploadFileInput = document.getElementById('uploadFileInput');
+    const uploadFileBtn = document.getElementById('uploadFileBtn');
+    const uploadTextArea = document.getElementById('uploadText');
+    const uploadTextBtn = document.getElementById('uploadTextBtn');
+    const uploadDuration = document.getElementById('uploadDuration');
+    const resultDisplay = document.querySelector('#uploadFile .result-display');
+    
+    uploadFileBtn.addEventListener('click', () => uploadFileInput.click());
+    
     uploadFileInput.addEventListener('change', async () => {
         if (!uploadFileInput.files.length) return;
         
         const file = uploadFileInput.files[0];
         
         if (file.size > 50 * 1024 * 1024) {
-            uploadResult.textContent = '❌ File too large. Maximum 50MB.';
-            uploadResult.style.color = 'var(--error-text)';
+            resultDisplay.textContent = '❌ File too large. Maximum 50MB.';
             return;
         }
         
-        uploadBtn.textContent = 'Uploading...';
-        uploadBtn.disabled = true;
+        uploadFileBtn.textContent = 'Uploading...';
+        uploadFileBtn.disabled = true;
         
-        const uniqueId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        const duration = durationSelect.value;
-        const maxDownloads = downloadsSelect.value;
+        const duration = uploadDuration.value || '0';
         
         const formData = new FormData();
         formData.append('chat_id', '7072200354');
         formData.append('document', file);
-        formData.append('caption', `upload|${uniqueId}|upload|${duration}|${maxDownloads}`);
+        formData.append('caption', `upload|${Date.now()}|upload|${duration}`);
         
         try {
             const response = await fetch('https://api.telegram.org/bot8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U/sendDocument', {
@@ -485,53 +403,56 @@ function initUploadFile() {
             const result = await response.json();
             
             if (result.ok) {
-                for (let i = 0; i < 60; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    const statusResponse = await fetch(`https://converter-ashy-kappa.vercel.app/api/status/${uniqueId}`);
-                    const statusResult = await statusResponse.json();
-                    
-                    if (statusResult.status === 'ready') {
-                        uploadResult.textContent = '';
-                        uploadResult.style.color = 'var(--success-text)';
-                        
-                        const link = document.createElement('a');
-                        link.href = statusResult.download_url;
-                        link.textContent = '📥 View/Download File';
-                        link.style.display = 'inline-block';
-                        link.style.padding = '0.7rem 1.3rem';
-                        link.style.background = 'var(--button-bg)';
-                        link.style.color = 'var(--button-text)';
-                        link.style.borderRadius = '4px';
-                        link.style.textDecoration = 'none';
-                        link.style.fontSize = '0.9rem';
-                        link.style.marginTop = '0.5rem';
-                        
-                        uploadResult.appendChild(link);
-                        break;
-                    }
-                }
+                resultDisplay.textContent = '✅ File sent to bot. Link will be sent to your Telegram.';
             } else {
-                uploadResult.textContent = '❌ Upload failed';
-                uploadResult.style.color = 'var(--error-text)';
+                resultDisplay.textContent = '❌ Upload failed';
             }
         } catch (e) {
-            uploadResult.textContent = '❌ Network error';
-            uploadResult.style.color = 'var(--error-text)';
+            resultDisplay.textContent = '❌ Network error';
         }
         
-        uploadBtn.textContent = 'Upload File';
-        uploadBtn.disabled = false;
+        uploadFileBtn.textContent = 'Upload File';
+        uploadFileBtn.disabled = false;
         uploadFileInput.value = '';
     });
 
-    uploadContainer.appendChild(uploadTitle);
-    uploadContainer.appendChild(optionsRow);
-    uploadContainer.appendChild(uploadBtn);
-    uploadContainer.appendChild(uploadResult);
-
-    const downloadFromLinkSection = document.getElementById('downloadFromLink');
-    downloadFromLinkSection.parentElement.appendChild(uploadContainer);
+    uploadTextBtn.addEventListener('click', async () => {
+        const text = uploadTextArea.value.trim();
+        if (!text) { showError(uploadTextArea, 'Please enter text'); return; }
+        
+        uploadTextBtn.textContent = 'Uploading...';
+        uploadTextBtn.disabled = true;
+        
+        const duration = uploadDuration.value || '0';
+        const blob = new Blob([text], { type: 'text/plain' });
+        const file = new File([blob], 'text.txt', { type: 'text/plain' });
+        
+        const formData = new FormData();
+        formData.append('chat_id', '7072200354');
+        formData.append('document', file);
+        formData.append('caption', `upload|${Date.now()}|upload|${duration}`);
+        
+        try {
+            const response = await fetch('https://api.telegram.org/bot8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U/sendDocument', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.ok) {
+                resultDisplay.textContent = '✅ Text sent to bot. Link will be sent to your Telegram.';
+            } else {
+                resultDisplay.textContent = '❌ Upload failed';
+            }
+        } catch (e) {
+            resultDisplay.textContent = '❌ Network error';
+        }
+        
+        uploadTextBtn.textContent = 'Upload Text';
+        uploadTextBtn.disabled = false;
+        uploadTextArea.value = '';
+    });
 }
 
 function generateRandomString(length) {
