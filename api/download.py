@@ -16,6 +16,10 @@ DOWNLOAD_DIR = '/tmp/downloads'
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+@app.route('/api/download', methods=['POST'])
+def download_webhook():
+    return webhook()
+
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
     update = request.json
