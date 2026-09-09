@@ -1,7 +1,2 @@
 flask
 requests
-rarfile
-py7zr
-Pillow
-PyPDF2
-pandas
