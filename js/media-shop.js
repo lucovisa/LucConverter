@@ -83,7 +83,7 @@ function initMediaShop() {
             setTimeout(() => errorDiv.remove(), 5000);
         }
 
-        if (validFiles.length === 0) {
+        if (validFiles.length === 0 && files.length > 0) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
             errorDiv.textContent = 'No supported files. Please upload audio, video, GLB, GLTF or OBJ files.';
@@ -92,8 +92,17 @@ function initMediaShop() {
             return;
         }
 
-        mediaFiles = [...mediaFiles, ...validFiles];
-        processedBlobs = [];
+        if (validFiles.length > 0) {
+            mediaFiles = [...mediaFiles, ...validFiles];
+            processedBlobs = [];
+        }
+
+        if (mediaFiles.length === 0) {
+            editorContainer.style.display = 'none';
+            editorContainer.innerHTML = '';
+            return;
+        }
+
         editorContainer.style.display = 'block';
         editorContainer.innerHTML = '';
 
@@ -228,10 +237,10 @@ function initMediaShop() {
         clearBtn.style.cursor = 'pointer';
         clearBtn.style.marginTop = '0.5rem';
         clearBtn.addEventListener('click', () => {
-            editorContainer.style.display = 'none';
-            editorContainer.innerHTML = '';
             mediaFiles = [];
             processedBlobs = [];
+            editorContainer.style.display = 'none';
+            editorContainer.innerHTML = '';
         });
         fileListContainer.appendChild(clearBtn);
 

@@ -52,23 +52,5 @@ def download(download_id):
         except:
             pass
 
-@app.route('/api/status/<download_id>', methods=['GET'])
-def status(download_id):
-    meta_path = os.path.join(DOWNLOAD_DIR, f'{download_id}.json')
-    
-    if not os.path.exists(meta_path):
-        return jsonify({'status': 'not_found'}), 404
-    
-    with open(meta_path, 'r') as f:
-        meta = json.load(f)
-    
-    if meta.get('downloaded', False):
-        return jsonify({'status': 'used'})
-    
-    if time.time() - meta.get('created', 0) > 3600:
-        return jsonify({'status': 'expired'})
-    
-    return jsonify({'status': 'ready', 'filename': meta['filename']})
-
 def handler(request, response):
     return app(request.environ, lambda status, headers: response(status, headers))

@@ -5,7 +5,7 @@ import uuid
 import zipfile
 import tempfile
 import requests
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
@@ -26,21 +26,40 @@ def webhook():
         document = message['document']
         file_name = document.get('file_name', 'file')
         target_format = None
+        unique_id = None
         
         if 'caption' in message and message['caption']:
-            target_format = message['caption'].lower().strip()
-        
-        send_message(chat_id, f"Receiving {file_name}...")
+            caption_parts = message['caption'].split('|')
+            target_format = caption_parts[0].lower().strip()
+            if len(caption_parts) > 1:
+                unique_id = caption_parts[1].strip()
         
         file_id = document['file_id']
         file_path = get_file_path(file_id)
         file_content = download_file(file_path)
         
-        send_message(chat_id, f"Converting to {target_format if target_format else 'ZIP'}...")
-        
         result = convert_file(file_content, file_name, target_format)
         
-        if result:
+        if result and unique_id:
+            download_id = unique_id
+            download_path = os.path.join(DOWNLOAD_DIR, f'{download_id}.{result["extension"]}')
+            meta_path = os.path.join(DOWNLOAD_DIR, f'{download_id}.json')
+            
+            with open(download_path, 'wb') as f:
+                f.write(result['content'])
+            
+            meta = {
+                'filename': result['filename'],
+                'created': time.time(),
+                'downloaded': False,
+                'download_url': f'https://{VERCEL_URL}/api/download/{download_id}'
+            }
+            
+            with open(meta_path, 'w') as f:
+                json.dump(meta, f)
+            
+            send_message(chat_id, f"File converted: {file_name}")
+        elif result:
             download_id = str(uuid.uuid4())
             download_path = os.path.join(DOWNLOAD_DIR, f'{download_id}.{result["extension"]}')
             meta_path = os.path.join(DOWNLOAD_DIR, f'{download_id}.json')
@@ -51,27 +70,38 @@ def webhook():
             meta = {
                 'filename': result['filename'],
                 'created': time.time(),
-                'downloaded': False
+                'downloaded': False,
+                'download_url': f'https://{VERCEL_URL}/api/download/{download_id}'
             }
             
             with open(meta_path, 'w') as f:
                 json.dump(meta, f)
             
-            download_url = f'https://{VERCEL_URL}/api/download/{download_id}'
-            
-            send_message(chat_id, f"Done! Download: {download_url}")
-        else:
-            send_message(chat_id, "Failed to convert file")
-    elif 'message' in update and 'text' in update['message']:
-        chat_id = update['message']['chat']['id']
-        text = update['message']['text']
-        
-        if text.startswith('/start'):
-            send_message(chat_id, "Send me a file with caption = target format (e.g. mp3, jpg, zip)")
-        else:
-            send_message(chat_id, "Send me a file to convert")
+            send_message(chat_id, f"Done! Download: {meta['download_url']}")
     
     return 'OK', 200
+
+@app.route('/api/status/<unique_id>', methods=['GET'])
+def status(unique_id):
+    meta_path = os.path.join(DOWNLOAD_DIR, f'{unique_id}.json')
+    
+    if not os.path.exists(meta_path):
+        return jsonify({'status': 'processing'})
+    
+    with open(meta_path, 'r') as f:
+        meta = json.load(f)
+    
+    if meta.get('downloaded', False):
+        return jsonify({'status': 'used'})
+    
+    if time.time() - meta.get('created', 0) > 3600:
+        return jsonify({'status': 'expired'})
+    
+    return jsonify({
+        'status': 'ready',
+        'filename': meta['filename'],
+        'download_url': meta['download_url']
+    })
 
 def convert_file(file_content, file_name, target_format=None):
     try:

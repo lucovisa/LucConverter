@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const TELEGRAM_BOT_TOKEN = '8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U';
-    const TELEGRAM_CHAT_ID = 'YOUR_CHAT_ID';
+    const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+    const CHAT_ID = process.env.CHAT_ID;
+    const VERCEL_URL = process.env.VERCEL_URL || 'converter-ashy-kappa.vercel.app';
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -215,19 +216,42 @@ document.addEventListener('DOMContentLoaded', function() {
             telegramBtn.style.boxShadow = 'none';
         });
         telegramBtn.addEventListener('click', async () => {
-            telegramBtn.textContent = 'Sending...';
+            telegramBtn.textContent = 'Converting...';
             telegramBtn.disabled = true;
             telegramBtn.style.opacity = '0.7';
             
-            const success = await sendToTelegramBot(file, format);
+            const downloadUrl = await sendToTelegramBot(file, format);
             
-            if (success) {
-                message.textContent = `✅ File sent to bot! Bot will send you a download link.`;
+            if (downloadUrl) {
+                message.textContent = `✅ File converted!`;
                 message.style.color = 'var(--success-text)';
-                telegramBtn.textContent = 'Sent';
-                telegramBtn.style.opacity = '0.5';
+                
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.textContent = '📥 Download Converted File';
+                downloadLink.style.display = 'inline-block';
+                downloadLink.style.marginTop = '0.5rem';
+                downloadLink.style.padding = '0.7rem 1.3rem';
+                downloadLink.style.background = 'var(--button-bg)';
+                downloadLink.style.color = 'var(--button-text)';
+                downloadLink.style.borderRadius = '4px';
+                downloadLink.style.textDecoration = 'none';
+                downloadLink.style.fontSize = '0.9rem';
+                downloadLink.style.fontWeight = '500';
+                downloadLink.style.transition = 'all 0.3s ease';
+                downloadLink.addEventListener('mouseenter', () => {
+                    downloadLink.style.filter = 'brightness(1.1)';
+                    downloadLink.style.transform = 'translateY(-2px)';
+                });
+                downloadLink.addEventListener('mouseleave', () => {
+                    downloadLink.style.filter = 'none';
+                    downloadLink.style.transform = 'none';
+                });
+                
+                telegramContainer.appendChild(downloadLink);
+                telegramBtn.style.display = 'none';
             } else {
-                message.textContent = `❌ Failed to send file to bot`;
+                message.textContent = `❌ Failed to convert file`;
                 message.style.color = 'var(--error-text)';
                 telegramBtn.textContent = 'Try Again';
                 telegramBtn.disabled = false;
@@ -249,13 +273,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function sendToTelegramBot(file, format) {
+        const uniqueId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        
         const formData = new FormData();
-        formData.append('chat_id', TELEGRAM_CHAT_ID);
+        formData.append('chat_id', CHAT_ID);
         formData.append('document', file);
-        formData.append('caption', format);
+        formData.append('caption', `${format}|${uniqueId}`);
         
         try {
-            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
+            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument`, {
                 method: 'POST',
                 body: formData
             });
@@ -263,14 +289,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.ok) {
-                return true;
+                for (let i = 0; i < 60; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    const statusResponse = await fetch(`https://${VERCEL_URL}/api/status/${uniqueId}`);
+                    const statusResult = await statusResponse.json();
+                    
+                    if (statusResult.status === 'ready') {
+                        return statusResult.download_url;
+                    }
+                    
+                    if (statusResult.status === 'failed') {
+                        return null;
+                    }
+                }
+                
+                return null;
             } else {
                 console.error('Telegram API error:', result);
-                return false;
+                return null;
             }
         } catch (e) {
             console.error('Network error:', e);
-            return false;
+            return null;
         }
     }
 
