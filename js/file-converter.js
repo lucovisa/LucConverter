@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const TELEGRAM_BOT_TOKEN = 'YOUR_TOKEN';
+    const TELEGRAM_BOT_TOKEN = '8933081113:AAFBexwnw8B2V_BuZaNKv-TxMyqe4n1YU_U';
     const TELEGRAM_CHAT_ID = 'YOUR_CHAT_ID';
 
     const dropZone = document.getElementById('dropZone');
@@ -62,6 +62,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const formatSelect = document.createElement('select');
             formatSelect.style.width = 'auto';
             formatSelect.style.minWidth = '120px';
+            formatSelect.style.padding = '0.5rem';
+            formatSelect.style.background = 'var(--bg)';
+            formatSelect.style.border = '1px solid var(--border)';
+            formatSelect.style.borderRadius = '4px';
+            formatSelect.style.color = 'var(--text)';
+            formatSelect.style.fontSize = '0.9rem';
             const formats = getFormats(file, realType);
             formats.forEach(f => {
                 const opt = document.createElement('option');
@@ -78,6 +84,10 @@ document.addEventListener('DOMContentLoaded', function() {
             convertBtn.style.border = 'none';
             convertBtn.style.borderRadius = '4px';
             convertBtn.style.cursor = 'pointer';
+            convertBtn.style.fontSize = '0.9rem';
+            convertBtn.style.transition = 'all 0.3s ease';
+            convertBtn.addEventListener('mouseenter', () => convertBtn.style.filter = 'brightness(1.1)');
+            convertBtn.addEventListener('mouseleave', () => convertBtn.style.filter = 'none');
             convertBtn.addEventListener('click', async () => {
                 convertBtn.textContent = 'Converting...';
                 convertBtn.disabled = true;
@@ -166,48 +176,71 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function offerTelegramBot(file, format, fileItem) {
+        fileItem.querySelectorAll('.telegram-offer').forEach(el => el.remove());
+        
         const telegramContainer = document.createElement('div');
         telegramContainer.className = 'telegram-offer';
         telegramContainer.style.marginTop = '0.5rem';
-        telegramContainer.style.padding = '0.5rem';
-        telegramContainer.style.background = '#f0f0f0';
+        telegramContainer.style.padding = '1rem';
+        telegramContainer.style.background = 'var(--panel-bg)';
+        telegramContainer.style.border = '1px solid var(--border)';
         telegramContainer.style.borderRadius = '4px';
         telegramContainer.style.width = '100%';
         
         const message = document.createElement('p');
         message.textContent = `❌ Failed to convert ${file.name} to ${format}`;
-        message.style.margin = '0 0 0.5rem 0';
+        message.style.margin = '0 0 0.8rem 0';
+        message.style.color = 'var(--text)';
+        message.style.fontSize = '0.9rem';
         
         const telegramBtn = document.createElement('button');
         telegramBtn.textContent = '📱 Send to Telegram Bot';
-        telegramBtn.style.padding = '0.5rem 1rem';
-        telegramBtn.style.background = '#0088cc';
-        telegramBtn.style.color = 'white';
+        telegramBtn.style.padding = '0.7rem 1.3rem';
+        telegramBtn.style.background = 'var(--button-bg)';
+        telegramBtn.style.color = 'var(--button-text)';
         telegramBtn.style.border = 'none';
         telegramBtn.style.borderRadius = '4px';
         telegramBtn.style.cursor = 'pointer';
+        telegramBtn.style.fontSize = '0.9rem';
+        telegramBtn.style.fontWeight = '500';
+        telegramBtn.style.transition = 'all 0.3s ease';
+        telegramBtn.addEventListener('mouseenter', () => {
+            telegramBtn.style.filter = 'brightness(1.1)';
+            telegramBtn.style.transform = 'translateY(-2px)';
+            telegramBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+        });
+        telegramBtn.addEventListener('mouseleave', () => {
+            telegramBtn.style.filter = 'none';
+            telegramBtn.style.transform = 'none';
+            telegramBtn.style.boxShadow = 'none';
+        });
         telegramBtn.addEventListener('click', async () => {
             telegramBtn.textContent = 'Sending...';
             telegramBtn.disabled = true;
+            telegramBtn.style.opacity = '0.7';
             
             const success = await sendToTelegramBot(file, format);
             
             if (success) {
                 message.textContent = `✅ File sent to bot! Bot will send you a download link.`;
+                message.style.color = 'var(--success-text)';
                 telegramBtn.textContent = 'Sent';
-                telegramBtn.disabled = true;
+                telegramBtn.style.opacity = '0.5';
             } else {
                 message.textContent = `❌ Failed to send file to bot`;
+                message.style.color = 'var(--error-text)';
                 telegramBtn.textContent = 'Try Again';
                 telegramBtn.disabled = false;
+                telegramBtn.style.opacity = '1';
             }
         });
         
         const hint = document.createElement('p');
         hint.textContent = 'Bot will convert the file and send you a download link';
-        hint.style.margin = '0.5rem 0 0 0';
+        hint.style.margin = '0.8rem 0 0 0';
         hint.style.fontSize = '0.8rem';
-        hint.style.color = '#666';
+        hint.style.color = 'var(--text)';
+        hint.style.opacity = '0.7';
         
         telegramContainer.appendChild(message);
         telegramContainer.appendChild(telegramBtn);

@@ -4,8 +4,4 @@ rarfile
 py7zr
 Pillow
 PyPDF2
-mammoth
 pandas
-trimesh
-reportlab
-pdf2image
