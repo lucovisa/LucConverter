@@ -18,15 +18,7 @@
     <link rel="canonical" href="https://lucovisa.github.io/LucConverter/">
     <link rel="icon" type="image/png" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-512.png">
-    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(() => {});
-            });
-        }
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -840,16 +832,6 @@
                             <li>Primary link: <a href="https://lucovisa.github.io/LucConverter/" target="_blank" class="faq-link">GitHub Pages</a></li>
                             <li>If the site doesn't work, check your internet connection or try again later</li>
                             <li>Some file conversions will be limited due to browser restrictions</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="faq-item">
-                        <h4>Does the site work offline?</h4>
-                        <p>Yes, after the first visit, the site is cached by the service worker and can be used offline. However, external libraries and some conversions may not work without internet.</p>
-                        <ul>
-                            <li>Basic tools (calculator, unit converter, text editor) work offline</li>
-                            <li>File conversion with PDF, DOCX, XLSX may need internet for libraries</li>
-                            <li>FFmpeg-based conversions always need internet</li>
                         </ul>
                     </div>
                     

@@ -14,16 +14,19 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
         const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) processFiles(files);
+        if (files.length > 0) addFiles(files);
     });
     fileInput.addEventListener('change', function() {
         const files = Array.from(this.files);
-        if (files.length > 0) processFiles(files);
+        if (files.length > 0) {
+            addFiles(files);
+            this.value = '';
+        }
     });
 
-    async function processFiles(files) {
-        fileList.innerHTML = '';
-        filesWithFormats = [];
+    async function addFiles(files) {
+        fileList.querySelectorAll('.action-container').forEach(el => el.remove());
+        
         for (const file of files) {
             const realType = await detectRealType(file);
             const fileItem = document.createElement('div');
@@ -45,9 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
             removeBtn.addEventListener('click', () => {
                 fileItem.remove();
                 filesWithFormats = filesWithFormats.filter(item => item.file !== file);
-                if (filesWithFormats.length === 0) {
-                    fileList.innerHTML = '';
-                }
+                updateActionButtons();
             });
 
             const fileInfo = document.createElement('span');
@@ -92,8 +93,15 @@ document.addEventListener('DOMContentLoaded', function() {
             fileList.appendChild(fileItem);
         }
 
+        updateActionButtons();
+    }
+
+    function updateActionButtons() {
+        fileList.querySelectorAll('.action-container').forEach(el => el.remove());
+        
         if (filesWithFormats.length > 1) {
             const actionContainer = document.createElement('div');
+            actionContainer.className = 'action-container';
             actionContainer.style.display = 'flex';
             actionContainer.style.gap = '0.5rem';
             actionContainer.style.marginTop = '1rem';
@@ -126,6 +134,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             fileList.appendChild(actionContainer);
         }
+    }
+
+    async function processFiles(files) {
+        fileList.innerHTML = '';
+        filesWithFormats = [];
+        await addFiles(files);
     }
 
     async function convertAllAndZip() {
