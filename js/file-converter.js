@@ -33,6 +33,23 @@ document.addEventListener('DOMContentLoaded', function() {
             fileItem.style.gap = '0.5rem';
             fileItem.style.flexWrap = 'wrap';
 
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '✕';
+            removeBtn.style.padding = '0.3rem 0.5rem';
+            removeBtn.style.background = '#8B0000';
+            removeBtn.style.color = 'white';
+            removeBtn.style.border = 'none';
+            removeBtn.style.borderRadius = '4px';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.fontSize = '0.8rem';
+            removeBtn.addEventListener('click', () => {
+                fileItem.remove();
+                filesWithFormats = filesWithFormats.filter(item => item.file !== file);
+                if (filesWithFormats.length === 0) {
+                    fileList.innerHTML = '';
+                }
+            });
+
             const fileInfo = document.createElement('span');
             fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})${realType ? ` [${realType.toUpperCase()}]` : ''}`;
             fileInfo.style.flex = '1';
@@ -68,31 +85,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
             filesWithFormats.push({ file, formatSelect, realType });
 
+            fileItem.appendChild(removeBtn);
             fileItem.appendChild(fileInfo);
             fileItem.appendChild(formatSelect);
             fileItem.appendChild(convertBtn);
             fileList.appendChild(fileItem);
         }
 
-        if (filesWithFormats.length > 0) {
+        if (filesWithFormats.length > 1) {
             const actionContainer = document.createElement('div');
             actionContainer.style.display = 'flex';
             actionContainer.style.gap = '0.5rem';
             actionContainer.style.marginTop = '1rem';
             actionContainer.style.flexWrap = 'wrap';
 
-            if (filesWithFormats.length > 1) {
-                const convertAllBtn = document.createElement('button');
-                convertAllBtn.textContent = 'Convert All and Download ZIP';
-                convertAllBtn.style.padding = '0.7rem 1.5rem';
-                convertAllBtn.style.background = '#2e7d32';
-                convertAllBtn.style.color = 'white';
-                convertAllBtn.style.border = 'none';
-                convertAllBtn.style.borderRadius = '4px';
-                convertAllBtn.style.cursor = 'pointer';
-                convertAllBtn.addEventListener('click', () => convertAllAndZip());
-                actionContainer.appendChild(convertAllBtn);
-            }
+            const convertAllBtn = document.createElement('button');
+            convertAllBtn.textContent = 'Convert All and Download ZIP';
+            convertAllBtn.style.padding = '0.7rem 1.5rem';
+            convertAllBtn.style.background = '#2e7d32';
+            convertAllBtn.style.color = 'white';
+            convertAllBtn.style.border = 'none';
+            convertAllBtn.style.borderRadius = '4px';
+            convertAllBtn.style.cursor = 'pointer';
+            convertAllBtn.addEventListener('click', () => convertAllAndZip());
+            actionContainer.appendChild(convertAllBtn);
 
             const clearBtn = document.createElement('button');
             clearBtn.textContent = 'Clear All';
