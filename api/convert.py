@@ -30,10 +30,19 @@ def upload_to_tmpfiles(file_content, file_name):
         print(f"Upload error: {e}")
         return None, None
 
-@app.route('/api/convert', methods=['POST'])
+@app.route('/api/convert', methods=['POST', 'OPTIONS'])
 def convert_endpoint():
+    if request.method == 'OPTIONS':
+        response = jsonify({'ok': True})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response, 200
+    
     if 'file' not in request.files:
-        return jsonify({'ok': False, 'error': 'No file'}), 400
+        response = jsonify({'ok': False, 'error': 'No file'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 400
     
     file = request.files['file']
     target_format = request.form.get('format', 'zip').lower()
@@ -43,20 +52,30 @@ def convert_endpoint():
     if target_format == 'upload':
         view_link, download_link = upload_to_tmpfiles(file_content, file_name)
         if download_link:
-            return jsonify({'ok': True, 'download_url': download_link, 'view_url': view_link})
-        return jsonify({'ok': False, 'error': 'Upload failed'}), 500
+            response = jsonify({'ok': True, 'download_url': download_link, 'view_url': view_link})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+        response = jsonify({'ok': False, 'error': 'Upload failed'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
     
     result = convert_file(file_content, file_name, target_format)
     
     if not result:
-        return jsonify({'ok': False, 'error': 'Conversion failed'}), 500
+        response = jsonify({'ok': False, 'error': 'Conversion failed'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
     
     view_link, download_link = upload_to_tmpfiles(result['content'], result['filename'])
     
     if not download_link:
-        return jsonify({'ok': False, 'error': 'Upload failed'}), 500
+        response = jsonify({'ok': False, 'error': 'Upload failed'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
     
-    return jsonify({'ok': True, 'download_url': download_link, 'view_url': view_link})
+    response = jsonify({'ok': True, 'download_url': download_link, 'view_url': view_link})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 def convert_file(file_content, file_name, target_format=None):
     try:
