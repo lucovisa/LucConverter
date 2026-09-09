@@ -1,9 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-    const CHAT_ID = process.env.CHAT_ID;
-    const VERCEL_URL = process.env.VERCEL_URL || 'converter-ashy-kappa.vercel.app';
+    const VERCEL_URL = 'https://converter-ashy-kappa.vercel.app';
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -220,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
             telegramBtn.disabled = true;
             telegramBtn.style.opacity = '0.7';
             
-            const downloadUrl = await sendToTelegramBot(file, format);
+            const downloadUrl = await sendToVercel(file, format);
             
             if (downloadUrl) {
                 message.textContent = `✅ File converted!`;
@@ -272,16 +270,16 @@ document.addEventListener('DOMContentLoaded', function() {
         fileItem.appendChild(telegramContainer);
     }
 
-    async function sendToTelegramBot(file, format) {
+    async function sendToVercel(file, format) {
         const uniqueId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         
         const formData = new FormData();
-        formData.append('chat_id', CHAT_ID);
-        formData.append('document', file);
-        formData.append('caption', `${format}|${uniqueId}`);
+        formData.append('file', file);
+        formData.append('format', format);
+        formData.append('uniqueId', uniqueId);
         
         try {
-            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument`, {
+            const response = await fetch(`${VERCEL_URL}/api/send-to-bot`, {
                 method: 'POST',
                 body: formData
             });
@@ -292,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (let i = 0; i < 60; i++) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                     
-                    const statusResponse = await fetch(`https://${VERCEL_URL}/api/status/${uniqueId}`);
+                    const statusResponse = await fetch(`${VERCEL_URL}/api/status/${uniqueId}`);
                     const statusResult = await statusResponse.json();
                     
                     if (statusResult.status === 'ready') {
@@ -306,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 return null;
             } else {
-                console.error('Telegram API error:', result);
+                console.error('Vercel API error:', result);
                 return null;
             }
         } catch (e) {
