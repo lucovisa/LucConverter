@@ -1,3 +1,19 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
+import { AMFLoader } from 'three/addons/loaders/AMFLoader.js';
+import { TDSLoader } from 'three/addons/loaders/TDSLoader.js';
+import { VTKLoader } from 'three/addons/loaders/VTKLoader.js';
+import { PDBLoader } from 'three/addons/loaders/PDBLoader.js';
+import { XYZLoader } from 'three/addons/loaders/XYZLoader.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     initMediaShop();
 });
@@ -18,7 +34,7 @@ function initMediaShop() {
     dropZone.innerHTML = '<p>Drag and drop audio, video or 3D files here or click to select</p>';
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'audio/*,video/*,.glb,.gltf,.obj,.fbx,.dae,.collada,.stl,.ply,.3ds,.3mf,.amf,.vtk,.vtp,.pdb,.xyz,.off,.mesh,.msh,.gcode,.blend,.blender,.max,.ma,.mb,.lwo,.lws,.c4d,.step,.stp,.iges,.igs,.brep,.sat,.sab,.drc,.kmz,.wrl,.vrml,.x3d,.json,.usd,.usdz,.usda,.usdc,.mp3,.wav,.ogg,.aac,.flac,.m4a,.opus,.wma,.mp4,.webm,.avi,.mov,.gif,.mkv,.flv,.wmv';
+    fileInput.accept = 'audio/*,video/*,.glb,.gltf,.obj,.fbx,.dae,.collada,.stl,.ply,.3ds,.3mf,.amf,.vtk,.vtp,.pdb,.xyz,.mp3,.wav,.ogg,.aac,.flac,.m4a,.opus,.wma,.mp4,.webm,.avi,.mov,.gif,.mkv,.flv,.wmv';
     fileInput.multiple = true;
     fileInput.style.display = 'none';
     dropZone.appendChild(fileInput);
@@ -49,7 +65,7 @@ function initMediaShop() {
 
     function isAllowedFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
-        const allowedExt = ['glb', 'gltf', 'obj', 'fbx', 'dae', 'collada', 'stl', 'ply', '3ds', '3mf', 'amf', 'vtk', 'vtp', 'pdb', 'xyz', 'off', 'mesh', 'msh', 'gcode', 'blend', 'blender', 'max', 'ma', 'mb', 'lwo', 'lws', 'c4d', 'step', 'stp', 'iges', 'igs', 'brep', 'sat', 'sab', 'drc', 'kmz', 'wrl', 'vrml', 'x3d', 'json', 'usd', 'usdz', 'usda', 'usdc'];
+        const allowedExt = ['glb', 'gltf', 'obj', 'fbx', 'dae', 'collada', 'stl', 'ply', '3ds', '3mf', 'amf', 'vtk', 'vtp', 'pdb', 'xyz'];
         const audioExt = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'opus', 'wma'];
         const videoExt = ['mp4', 'webm', 'avi', 'mov', 'gif', 'mkv', 'flv', 'wmv'];
         return file.type.startsWith('audio') || 
@@ -71,15 +87,10 @@ function initMediaShop() {
         const ext = file.name.split('.').pop().toLowerCase();
         const supported3DFormats = [
             'glb', 'gltf', 'obj', 'fbx', 'dae', 'collada', 'stl', 'ply',
-            '3ds', '3mf', 'amf', 'vtk', 'vtp', 'pdb', 'xyz',
-            'off', 'mesh', 'msh', 'gcode',
-            'blend', 'blender', 'max', 'ma', 'mb', 'lwo', 'lws', 'c4d',
-            'step', 'stp', 'iges', 'igs', 'brep', 'sat', 'sab',
-            'drc', 'kmz', 'wrl', 'vrml', 'x3d', 'json', 'usd', 'usdz', 'usda', 'usdc'
+            '3ds', '3mf', 'amf', 'vtk', 'vtp', 'pdb', 'xyz'
         ];
         return supported3DFormats.includes(ext) || 
-               file.type.includes('model/') ||
-               file.type.includes('application/octet-stream');
+               file.type.includes('model/');
     }
 
     function processFiles(files) {
@@ -727,8 +738,8 @@ function initMediaShop() {
     }
 
     function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn, lightBtn, closeBtn, hideUIBtn, controlsInfo, toolbar) {
-        if (!file || typeof THREE === 'undefined') {
-            infoEl.textContent = '3D library not loaded';
+        if (!file) {
+            infoEl.textContent = 'No 3D file loaded';
             return;
         }
 
@@ -749,7 +760,7 @@ function initMediaShop() {
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = false;
@@ -1018,13 +1029,11 @@ function initMediaShop() {
         const url = URL.createObjectURL(file);
         let loader = null;
 
-        if (ext === 'glb' || ext === 'gltf' || ext === 'json') {
-            loader = new THREE.GLTFLoader();
-            if (THREE.DRACOLoader) {
-                const dracoLoader = new THREE.DRACOLoader();
-                dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/libs/draco/');
-                loader.setDRACOLoader(dracoLoader);
-            }
+        if (ext === 'glb' || ext === 'gltf') {
+            loader = new GLTFLoader();
+            const dracoLoader = new DRACOLoader();
+            dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/libs/draco/');
+            loader.setDRACOLoader(dracoLoader);
             loader.load(url, (gltf) => {
                 infoEl.style.display = 'none';
                 currentModel = gltf.scene || gltf;
@@ -1040,7 +1049,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'obj') {
-            loader = new THREE.OBJLoader();
+            loader = new OBJLoader();
             loader.load(url, (obj) => {
                 infoEl.style.display = 'none';
                 currentModel = obj;
@@ -1050,7 +1059,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'fbx') {
-            loader = new THREE.FBXLoader();
+            loader = new FBXLoader();
             loader.load(url, (fbx) => {
                 infoEl.style.display = 'none';
                 currentModel = fbx;
@@ -1060,7 +1069,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'dae' || ext === 'collada') {
-            loader = new THREE.ColladaLoader();
+            loader = new ColladaLoader();
             loader.load(url, (collada) => {
                 infoEl.style.display = 'none';
                 currentModel = collada.scene;
@@ -1070,7 +1079,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'stl') {
-            loader = new THREE.STLLoader();
+            loader = new STLLoader();
             loader.load(url, (geometry) => {
                 infoEl.style.display = 'none';
                 const material = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5, metalness: 0.1 });
@@ -1081,7 +1090,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'ply') {
-            loader = new THREE.PLYLoader();
+            loader = new PLYLoader();
             loader.load(url, (geometry) => {
                 infoEl.style.display = 'none';
                 const material = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5, metalness: 0.1 });
@@ -1092,7 +1101,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === '3mf') {
-            loader = new THREE.ThreeMFLoader();
+            loader = new ThreeMFLoader();
             loader.load(url, (model) => {
                 infoEl.style.display = 'none';
                 currentModel = model;
@@ -1102,7 +1111,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'amf') {
-            loader = new THREE.AMFLoader();
+            loader = new AMFLoader();
             loader.load(url, (model) => {
                 infoEl.style.display = 'none';
                 currentModel = model;
@@ -1112,7 +1121,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === '3ds') {
-            loader = new THREE.TDSLoader();
+            loader = new TDSLoader();
             loader.load(url, (model) => {
                 infoEl.style.display = 'none';
                 currentModel = model;
@@ -1122,7 +1131,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'vtk' || ext === 'vtp') {
-            loader = new THREE.VTKLoader();
+            loader = new VTKLoader();
             loader.load(url, (geometry) => {
                 infoEl.style.display = 'none';
                 const material = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5, metalness: 0.1 });
@@ -1133,7 +1142,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'pdb') {
-            loader = new THREE.PDBLoader();
+            loader = new PDBLoader();
             loader.load(url, (pdb) => {
                 infoEl.style.display = 'none';
                 const geometry = pdb.geometry;
@@ -1145,7 +1154,7 @@ function initMediaShop() {
                 infoEl.textContent = 'Failed to load 3D model';
             });
         } else if (ext === 'xyz') {
-            loader = new THREE.XYZLoader();
+            loader = new XYZLoader();
             loader.load(url, (geometry) => {
                 infoEl.style.display = 'none';
                 const material = new THREE.PointsMaterial({ color: 0xcccccc, size: 0.1 });

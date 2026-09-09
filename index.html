@@ -19,6 +19,16 @@
     <link rel="icon" type="image/png" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="stylesheet" href="style.css">
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/"
+        }
+    }
+    </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -33,7 +43,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
     
-    <!-- Three.js и его расширения -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/OBJLoader.js"></script>
@@ -45,7 +54,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/controls/OrbitControls.js"></script>
     
-    <!-- Дополнительные загрузчики -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/3MFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/AMFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/TDSLoader.js"></script>
@@ -541,9 +549,11 @@
             
             <div id="uploadFile" class="converter-content">
                 <h3>Upload File</h3>
-                <label>Storage time (minutes, 0 = forever): <input type="number" id="uploadDuration" value="0" min="0"></label>
-                <input type="file" id="uploadFileInput" style="display: none;">
-                <button id="uploadFileBtn">Upload File</button>
+                <div style="margin-bottom: 20px;">
+                    <label>Storage time (minutes, 0 = forever): <input type="number" id="uploadDuration" value="0" min="0"></label>
+                    <input type="file" id="uploadFileInput" style="display: none;">
+                    <button id="uploadFileBtn">Upload File</button>
+                </div>
                 <textarea id="uploadText" placeholder="Or paste text here"></textarea>
                 <button id="uploadTextBtn">Upload Text</button>
                 <div class="result-display"></div>
