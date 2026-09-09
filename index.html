@@ -174,7 +174,6 @@
                 <button class="converter-btn" onclick="showConverter('uuidGenerator')">UUID Generator</button>
                 <button class="converter-btn" onclick="showConverter('timer')">Timer</button>
                 <button class="converter-btn" onclick="showConverter('stopwatch')">Stopwatch</button>
-                <button class="converter-btn" onclick="showConverter('randomColor')">Random Color</button>
             </div>
             
             <div id="colorConverter" class="converter-content">
@@ -183,13 +182,8 @@
                 <input type="text" id="hexInput" placeholder="HEX">
                 <input type="text" id="rgbInput" placeholder="RGB">
                 <input type="text" id="hslInput" placeholder="HSL">
+                <button id="randomColorBtn">Random</button>
                 <button class="clear-btn" data-target="colorConverter">Clear</button>
-            </div>
-            
-            <div id="randomColor" class="converter-content">
-                <h3>Random Color Generator</h3>
-                <button id="generateRandomColorBtn">Generate Random Color</button>
-                <div class="result-display" id="randomColorResult"></div>
             </div>
             
             <div id="timeConverter" class="converter-content">
@@ -419,6 +413,7 @@
             <div class="converter-options">
                 <button class="converter-btn" onclick="showConverter('urlConverter')">URL Encoder/Decoder</button>
                 <button class="converter-btn" onclick="showConverter('qrConverter')">QR Code Generator</button>
+                <button class="converter-btn" onclick="showConverter('qrWifi')">QR Wi-Fi</button>
                 <button class="converter-btn" onclick="showConverter('qrFromFile')">QR from File</button>
                 <button class="converter-btn" onclick="showConverter('qrLogoConverter')">QR with Logo</button>
                 <button class="converter-btn" onclick="showConverter('qrScanner')">QR Scanner</button>
@@ -448,6 +443,19 @@
                 <input type="text" placeholder="Enter text or URL">
                 <button>Generate QR</button>
                 <div id="qrCode"></div>
+            </div>
+            
+            <div id="qrWifi" class="converter-content">
+                <h3>QR Code for Wi-Fi</h3>
+                <input type="text" id="wifiSsid" placeholder="Network name (SSID)">
+                <input type="password" id="wifiPassword" placeholder="Password">
+                <select id="wifiEncryption">
+                    <option value="WPA">WPA/WPA2</option>
+                    <option value="WEP">WEP</option>
+                    <option value="nopass">No password</option>
+                </select>
+                <button id="generateWifiQrBtn">Generate Wi-Fi QR</button>
+                <div id="wifiQrCode"></div>
             </div>
             
             <div id="qrFromFile" class="converter-content">
@@ -673,8 +681,7 @@
                     <h3>Unit Converter</h3>
                     <p>Click on Unit Converter to convert between different units.</p>
                     <ul>
-                        <li>Color - HEX, RGB, HSL</li>
-                        <li>Random Color - generate random colors</li>
+                        <li>Color - HEX, RGB, HSL with random color generator</li>
                         <li>Time Zones - convert time between zones, supports custom UTC offsets like +10 or -5</li>
                         <li>Weight - kg, lbs, oz, etc.</li>
                         <li>Temperature - Celsius, Fahrenheit, Kelvin</li>
@@ -708,6 +715,7 @@
                     <ul>
                         <li>URL Encoder/Decoder</li>
                         <li>QR Code Generator</li>
+                        <li>QR Wi-Fi - generate QR code for Wi-Fi connection</li>
                         <li>QR from File - generate QR code from a file</li>
                         <li>QR with Logo - generate QR code with custom logo</li>
                         <li>QR Scanner - upload or drag QR image</li>

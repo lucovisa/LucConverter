@@ -90,7 +90,7 @@ function initCurrencyConverter() {
     currencyBox.insertBefore(apiKeyInput, currencyBox.querySelector('.currency-input-group'));
 
     const searchHint = document.createElement('p');
-    searchHint.textContent = '💡 Type a letter to search currencies';
+    searchHint.textContent = 'Type a letter to search currencies';
     searchHint.style.fontSize = '0.8rem';
     searchHint.style.opacity = '0.7';
     searchHint.style.marginBottom = '1rem';
@@ -113,14 +113,16 @@ function initCurrencyConverter() {
         const temp = fromSelect.value;
         fromSelect.value = toSelect.value;
         toSelect.value = temp;
+        autoConvert();
     });
 
     convertBtn.addEventListener('click', () => {
+        autoConvert();
+    });
+
+    function autoConvert() {
         const amount = parseFloat(amountInput.value);
-        if (!amount || amount <= 0) {
-            showError(amountInput, 'Please enter a valid amount');
-            return;
-        }
+        if (!amount || amount <= 0) return;
         const from = fromSelect.value;
         const to = toSelect.value;
         const apiKey = apiKeyInput.value.trim();
@@ -131,11 +133,14 @@ function initCurrencyConverter() {
             return;
         }
         fetchRate(from, to, amount, apiKey);
-    });
+    }
+
+    setInterval(() => {
+        autoConvert();
+    }, 60000);
 
     async function fetchRate(from, to, amount, apiKey) {
-        resultDiv.style.display = 'none';
-        rateInfo.textContent = 'Fetching...';
+        rateInfo.textContent = 'Updating...';
         try {
             let rate;
             if (apiKey) {
@@ -162,7 +167,8 @@ function initCurrencyConverter() {
             resultDiv.textContent = `${amount} ${from} = ${result.toFixed(2)} ${to}`;
         } catch (e) {
             rateInfo.textContent = '';
-            showError(amountInput, 'Failed to fetch rates. Check API key or try later.');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Failed to fetch rates';
         }
     }
 }
