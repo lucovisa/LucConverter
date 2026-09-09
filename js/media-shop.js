@@ -119,6 +119,29 @@ function initMediaShop() {
                 previewItem.style.border = '1px solid var(--border)';
                 previewItem.style.borderRadius = '4px';
                 previewItem.style.padding = '0.5rem';
+                previewItem.style.position = 'relative';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.style.position = 'absolute';
+                removeBtn.style.top = '5px';
+                removeBtn.style.right = '5px';
+                removeBtn.style.background = '#8B0000';
+                removeBtn.style.color = 'white';
+                removeBtn.style.border = 'none';
+                removeBtn.style.borderRadius = '50%';
+                removeBtn.style.width = '24px';
+                removeBtn.style.height = '24px';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.style.zIndex = '10';
+                removeBtn.style.fontSize = '12px';
+                removeBtn.style.display = 'flex';
+                removeBtn.style.alignItems = 'center';
+                removeBtn.style.justifyContent = 'center';
+                removeBtn.addEventListener('click', () => {
+                    removeFile(index);
+                });
+                previewItem.appendChild(removeBtn);
 
                 const previewLabel = document.createElement('div');
                 previewLabel.textContent = file.name;
@@ -127,6 +150,7 @@ function initMediaShop() {
                 previewLabel.style.overflow = 'hidden';
                 previewLabel.style.textOverflow = 'ellipsis';
                 previewLabel.style.whiteSpace = 'nowrap';
+                previewLabel.style.paddingRight = '25px';
                 previewItem.appendChild(previewLabel);
 
                 const ext = file.name.split('.').pop().toLowerCase();
@@ -167,7 +191,30 @@ function initMediaShop() {
             fileItem.style.border = '1px solid var(--border)';
             fileItem.style.borderRadius = '4px';
             fileItem.style.marginBottom = '0.3rem';
-            fileItem.textContent = `${index + 1}. ${file.name}`;
+            fileItem.style.display = 'flex';
+            fileItem.style.alignItems = 'center';
+            fileItem.style.justifyContent = 'space-between';
+
+            const fileName = document.createElement('span');
+            fileName.textContent = `${index + 1}. ${file.name}`;
+            fileName.style.flex = '1';
+            fileName.style.marginRight = '10px';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.style.padding = '0.3rem 0.8rem';
+            deleteBtn.style.background = '#8B0000';
+            deleteBtn.style.color = 'white';
+            deleteBtn.style.border = 'none';
+            deleteBtn.style.borderRadius = '4px';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.style.fontSize = '0.85rem';
+            deleteBtn.addEventListener('click', () => {
+                removeFile(index);
+            });
+
+            fileItem.appendChild(fileName);
+            fileItem.appendChild(deleteBtn);
             fileListContainer.appendChild(fileItem);
         });
 
@@ -644,6 +691,19 @@ function initMediaShop() {
             controlsContainer.appendChild(actionRow);
             editorContainer.appendChild(controlsContainer);
         }
+    }
+
+    function removeFile(index) {
+        mediaFiles.splice(index, 1);
+        processedBlobs = [];
+        
+        if (mediaFiles.length === 0) {
+            editorContainer.style.display = 'none';
+            editorContainer.innerHTML = '';
+            return;
+        }
+        
+        processFiles([]);
     }
 
     function init3DViewer(container, file, infoEl, autoRotateBtn, bgColorBtn, gridBtn, wireframeBtn, edgesBtn, verticesBtn, materialBtn, resetCameraBtn, screenshotBtn, lightBtn, closeBtn, hideUIBtn, controlsInfo, toolbar) {

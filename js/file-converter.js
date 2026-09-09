@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    const TELEGRAM_BOT_TOKEN = 'YOUR_TOKEN';
+    const TELEGRAM_CHAT_ID = 'YOUR_CHAT_ID';
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
@@ -76,11 +79,17 @@ document.addEventListener('DOMContentLoaded', function() {
             convertBtn.style.borderRadius = '4px';
             convertBtn.style.cursor = 'pointer';
             convertBtn.addEventListener('click', async () => {
+                convertBtn.textContent = 'Converting...';
+                convertBtn.disabled = true;
                 const blob = await convertFileToBlob(file, formatSelect.value, realType);
                 if (blob) {
                     downloadBlob(blob, file.name.replace(/\.[^.]+$/, '.' + formatSelect.value));
+                    convertBtn.textContent = 'Convert';
+                    convertBtn.disabled = false;
                 } else {
-                    showError(convertBtn, 'Conversion failed');
+                    convertBtn.textContent = 'Convert';
+                    convertBtn.disabled = false;
+                    offerTelegramBot(file, formatSelect.value, fileItem);
                 }
             });
 
@@ -156,6 +165,82 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadBlob(zipBlob, 'converted_files.zip');
     }
 
+    function offerTelegramBot(file, format, fileItem) {
+        const telegramContainer = document.createElement('div');
+        telegramContainer.className = 'telegram-offer';
+        telegramContainer.style.marginTop = '0.5rem';
+        telegramContainer.style.padding = '0.5rem';
+        telegramContainer.style.background = '#f0f0f0';
+        telegramContainer.style.borderRadius = '4px';
+        telegramContainer.style.width = '100%';
+        
+        const message = document.createElement('p');
+        message.textContent = `❌ Failed to convert ${file.name} to ${format}`;
+        message.style.margin = '0 0 0.5rem 0';
+        
+        const telegramBtn = document.createElement('button');
+        telegramBtn.textContent = '📱 Send to Telegram Bot';
+        telegramBtn.style.padding = '0.5rem 1rem';
+        telegramBtn.style.background = '#0088cc';
+        telegramBtn.style.color = 'white';
+        telegramBtn.style.border = 'none';
+        telegramBtn.style.borderRadius = '4px';
+        telegramBtn.style.cursor = 'pointer';
+        telegramBtn.addEventListener('click', async () => {
+            telegramBtn.textContent = 'Sending...';
+            telegramBtn.disabled = true;
+            
+            const success = await sendToTelegramBot(file, format);
+            
+            if (success) {
+                message.textContent = `✅ File sent to bot! Bot will send you a download link.`;
+                telegramBtn.textContent = 'Sent';
+                telegramBtn.disabled = true;
+            } else {
+                message.textContent = `❌ Failed to send file to bot`;
+                telegramBtn.textContent = 'Try Again';
+                telegramBtn.disabled = false;
+            }
+        });
+        
+        const hint = document.createElement('p');
+        hint.textContent = 'Bot will convert the file and send you a download link';
+        hint.style.margin = '0.5rem 0 0 0';
+        hint.style.fontSize = '0.8rem';
+        hint.style.color = '#666';
+        
+        telegramContainer.appendChild(message);
+        telegramContainer.appendChild(telegramBtn);
+        telegramContainer.appendChild(hint);
+        fileItem.appendChild(telegramContainer);
+    }
+
+    async function sendToTelegramBot(file, format) {
+        const formData = new FormData();
+        formData.append('chat_id', TELEGRAM_CHAT_ID);
+        formData.append('document', file);
+        formData.append('caption', format);
+        
+        try {
+            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.ok) {
+                return true;
+            } else {
+                console.error('Telegram API error:', result);
+                return false;
+            }
+        } catch (e) {
+            console.error('Network error:', e);
+            return false;
+        }
+    }
+
     function convertFileToBlob(file, format, realType) {
         return new Promise((resolve) => {
             const fileType = realType ? getTypeCategory(realType) : file.type.split('/')[0];
@@ -210,18 +295,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (format === 'zip') {
                     handleArchive(file, format).then(blob => resolve(blob)).catch(() => resolve(null));
                 } else {
-                    resolve(new Blob([file], { type: 'text/plain' }));
+                    resolve(null);
                 }
             } else {
                 if (format === 'zip') {
                     convertToZip(file).then(blob => resolve(blob)).catch(() => resolve(null));
                 } else {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        resolve(new Blob([e.target.result], { type: 'text/plain' }));
-                    };
-                    reader.onerror = () => resolve(null);
-                    reader.readAsArrayBuffer(file);
+                    resolve(null);
                 }
             }
         });
@@ -233,31 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return file;
             }
             
-            return new Promise((resolve) => {
-                const worker = new Worker('js/archive-worker.js');
-                
-                worker.onmessage = function(e) {
-                    if (e.data.success && e.data.files && e.data.files.length > 0) {
-                        const zip = new JSZip();
-                        e.data.files.forEach(f => {
-                            zip.file(f.name, f.data);
-                        });
-                        zip.generateAsync({ type: 'blob' }).then(blob => {
-                            resolve(blob);
-                        });
-                    } else {
-                        resolve(null);
-                    }
-                    worker.terminate();
-                };
-                
-                worker.onerror = function() {
-                    resolve(null);
-                    worker.terminate();
-                };
-                
-                worker.postMessage(file);
-            });
+            return await convertToZip(file);
         }
         return null;
     }
@@ -319,7 +375,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (extension === 'xlsx' || extension === 'xls') return ['CSV', 'JSON', 'HTML'];
         if (extension === 'glb' || extension === 'gltf') return ['OBJ', 'STL'];
         if (extension === 'obj') return ['STL'];
-        if (extension === 'zip' || extension === 'rar' || extension === '7z') return ['ZIP'];
+        if (extension === 'zip') return ['ZIP'];
+        if (extension === 'rar' || extension === '7z') return ['ZIP'];
         return ['ZIP', 'TXT', 'HTML', 'JSON', 'XML', 'CSV'];
     }
 

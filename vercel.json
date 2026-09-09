@@ -12,6 +12,27 @@
           "value": "require-corp"
         }
       ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "unsafe-none"
+        },
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "unsafe-none"
+        }
+      ]
     }
-  ]
+  ],
+  "functions": {
+    "api/webhook.py": {
+      "maxDuration": 60
+    },
+    "api/download.py": {
+      "maxDuration": 30
+    }
+  }
 }
