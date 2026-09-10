@@ -117,6 +117,83 @@ function initLinkConverter() {
         qrCode.dataset.text = text;
     }
 
+    // === QR Wi-Fi Generator ===
+    const wifiSsid = document.getElementById('wifiSsid');
+    const wifiPassword = document.getElementById('wifiPassword');
+    const wifiEncryption = document.getElementById('wifiEncryption');
+    const generateWifiQrBtn = document.getElementById('generateWifiQrBtn');
+    const wifiQrCode = document.getElementById('wifiQrCode');
+
+    if (generateWifiQrBtn) {
+        generateWifiQrBtn.addEventListener('click', () => {
+            const ssid = wifiSsid.value.trim();
+            const password = wifiPassword.value;
+            const enc = wifiEncryption.value;
+
+            if (!ssid) { showError(wifiSsid, 'Please enter network name (SSID)'); return; }
+            if (enc !== 'nopass' && !password) {
+                showError(wifiPassword, 'Please enter password');
+                return;
+            }
+
+            const escapeWifi = (s) => s.replace(/([\\;,:"])/g, '\\$1');
+            let wifiString = `WIFI:T:${enc};S:${escapeWifi(ssid)};`;
+            if (enc !== 'nopass') wifiString += `P:${escapeWifi(password)};`;
+            wifiString += ';';
+
+            wifiQrCode.innerHTML = '';
+
+            if (typeof QRCode === 'undefined') {
+                wifiQrCode.textContent = 'QR library not loaded';
+                return;
+            }
+
+            const container = document.createElement('div');
+            wifiQrCode.appendChild(container);
+
+            new QRCode(container, {
+                text: wifiString,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            const canvas = container.querySelector('canvas');
+            const img = container.querySelector('img');
+            const dlBtn = document.createElement('button');
+            dlBtn.textContent = 'Download Wi-Fi QR';
+            dlBtn.style.marginTop = '0.5rem';
+            dlBtn.style.padding = '0.5rem 1rem';
+            dlBtn.style.background = 'var(--button-bg)';
+            dlBtn.style.color = 'white';
+            dlBtn.style.border = 'none';
+            dlBtn.style.borderRadius = '4px';
+            dlBtn.style.cursor = 'pointer';
+
+            dlBtn.addEventListener('click', () => {
+                let dataUrl;
+                if (canvas) {
+                    dataUrl = canvas.toDataURL('image/png');
+                } else if (img) {
+                    const tmp = document.createElement('canvas');
+                    tmp.width = 200;
+                    tmp.height = 200;
+                    tmp.getContext('2d').drawImage(img, 0, 0, 200, 200);
+                    dataUrl = tmp.toDataURL('image/png');
+                } else return;
+
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `wifi-${ssid}.png`;
+                a.click();
+            });
+
+            wifiQrCode.appendChild(dlBtn);
+        });
+    }
+
     const qrDropZone = document.getElementById('qrDropZone');
     const qrImageInput = document.getElementById('qrImageInput');
     const qrScanBtn = document.querySelector('#qrScanner button');
